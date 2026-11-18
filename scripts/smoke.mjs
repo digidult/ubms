@@ -307,6 +307,10 @@ const scenarios = [
         },
         { eval: `(window.ubms.state.snapshot?.cells?.length ?? 0) > 0` },
         {
+          eval: `window.ubms.disconnect().then(() => window.ubms.connectRecent(window.ubms.state.recent.find((r) => r.kind === 'ble'))).then(() => window.ubms.state.state === 'connected')`,
+          wait: 1500,
+        },
+        {
           eval: `window.ubms.disconnect().then(() => (window.ubms.setPref('transport', 'serial'), window.ubms.setPref('selection', 'family:daly'), true))`,
           hash: '/connect',
           wait: 1200,

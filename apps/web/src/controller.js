@@ -291,6 +291,22 @@ export class AppController {
     await this.#connect({ kind: 'ble', handle, selection: this.state.prefs.selection });
   }
 
+  /** @param {RecentDevice} recent */
+  async #connectRecentByScan(recent) {
+    const showAll = this.state.prefs.showAllBle;
+    if (!showAll) this.setPref('showAllBle', true);
+    await this.startBleScan();
+    if (!showAll) this.setPref('showAllBle', false);
+    const deadline = Date.now() + 12000;
+    while (Date.now() < deadline) {
+      const found = this.state.scan.devices.find((d) => d.id === recent.id);
+      if (found) return this.connectScannedDevice(found);
+      await new Promise((r) => setTimeout(r, 250));
+    }
+    await this.stopBleScan();
+    toast(t('{name} was not found. Wake the BMS up and scan again.', { name: recent.name }), { tone: 'warn' });
+  }
+
   /** Refresh the serial port list (desktop app). */
   async listSerialPorts() {
     this.store.set({ ports: { loading: true, list: this.state.ports.list } });
@@ -316,6 +332,16 @@ export class AppController {
 
   /** @param {RecentDevice} recent */
   async connectRecent(recent) {
+    // Desktop app: no browser permissions; find the device by a short scan or the port list.
+    if (recent.kind === 'ble' && this.nativeBle) return this.#connectRecentByScan(recent);
+    if (recent.kind === 'serial' && this.nativeSerial) {
+      await this.listSerialPorts();
+      if (this.state.ports.list.some((p) => p.path === recent.id)) {
+        return this.connectSerialPort({ path: recent.id });
+      }
+      toast(t('The port {name} is not available. Check the adapter and pick a port from the list.', { name: recent.name }), { tone: 'warn' });
+      return;
+    }
     const provider = recent.kind === 'ble' ? this.providers.ble : this.providers.serial;
     const known = await provider.known();
     const handle = known.find((h) => h.id === recent.id);
