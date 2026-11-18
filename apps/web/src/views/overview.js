@@ -239,7 +239,9 @@ export class ViewOverview extends UiElement {
                 unit="Ah"
                 hint=${s.capacityFull ?? s.capacityNominal ? t('of {total} Ah', { total: num(s.capacityFull ?? s.capacityNominal, 1) }) : ''}
               ></ui-stat>`
-            : html`<ui-stat label=${t('Cell difference')} icon="cells" .value=${num((s.cellStats?.delta ?? NaN) * 1000, 0)} unit="mV"></ui-stat>`}
+            : s.cellStats
+              ? html`<ui-stat label=${t('Cell difference')} icon="cells" .value=${num(s.cellStats.delta * 1000, 0)} unit="mV"></ui-stat>`
+              : nothing}
         </div>
       </div>
     </section>`;

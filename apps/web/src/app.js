@@ -142,6 +142,8 @@ export class UbmsApp extends UiElement {
       soc: s.snapshot?.soc,
       alarms: s.snapshot?.alarms?.filter((a) => a.severity !== 'info').length ?? 0,
       worst: worstSeverity(s.snapshot?.alarms),
+      // Meters (Atorch and similar) have no cells: hide the Cells tab for them.
+      hasCells: !!s.snapshot?.cells?.length || (s.device?.deviceType ?? 'bms') !== 'meter',
       info: s.info,
     }));
     this.nav = new StoreController(this, router, (s) => s.route);
@@ -180,7 +182,7 @@ export class UbmsApp extends UiElement {
     if (connected) {
       items.push(
         { id: 'overview', label: t('Overview'), icon: 'gauge', href: '#/overview', badge: alarms || undefined, tone: worst === 'fault' || worst === 'protection' ? 'danger' : 'warn' },
-        { id: 'cells', label: t('Cells'), icon: 'cells', href: '#/cells' },
+        ...(this.app.value.hasCells ? [{ id: 'cells', label: t('Cells'), icon: 'cells', href: '#/cells' }] : []),
         { id: 'settings', label: t('Settings'), icon: 'sliders', href: '#/settings' },
       );
     } else {

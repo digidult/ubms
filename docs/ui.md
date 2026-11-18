@@ -30,7 +30,10 @@ After a successful connection the app opens Overview; after disconnecting it ret
 ## Device types
 
 The views render only data that is present in the snapshot, so a balancer (no current, no
-MOSFETs) or a BMS without temperature sensors gets a shorter screen automatically. Device specific
+MOSFETs) or a BMS without temperature sensors gets a shorter screen automatically. Meters and
+electronic loads (`deviceType: 'meter'`, for example Atorch) have no cells: the Cells tab is
+hidden for them and their readings (energy, capacity, duration, load settings) appear as values
+and settings of the driver. Device specific
 parameters come from the driver schema as extra fields and groups. Drivers can add specific values
 to `snapshot.extra`; Overview lists them under "More values".
 

@@ -189,7 +189,7 @@ export class ViewConnect extends UiElement {
         <div class="logo">${icon('battery', { size: 28, stroke: 2 })}</div>
         <div>
           <h1 style="font-size:1.35rem">ubms</h1>
-          <p>${t('Monitor and configure your battery management system.')}</p>
+          <p>${t('Monitor and configure battery management systems, balancers and meters.')}</p>
         </div>
       </div>
       ${busy ? this.#progress() : this.#form()}
@@ -309,7 +309,7 @@ export class ViewConnect extends UiElement {
     const { prefs } = this.sc.value;
     const families = this.ctrl.registry.families().filter((f) => f.drivers.some((d) => d.links[kind]));
     return html`<label class="field">
-      ${t('BMS type')}
+      ${t('Device type')}
       <select @change=${(/** @type {any} */ e) => this.ctrl.setPref('selection', e.target.value)} .value=${prefs.selection}>
         <option value="auto" ?selected=${prefs.selection === 'auto'}>${t('Detect automatically')}</option>
         ${families.map(
@@ -377,7 +377,7 @@ export class ViewConnect extends UiElement {
         <input type="checkbox" .checked=${prefs.adaptersOnly} @change=${(/** @type {any} */ e) => this.ctrl.setPref('adaptersOnly', e.target.checked)} />
         <span>${t('List only known USB-UART adapters')}<br /><span class="faint">CH340, CP210x, FTDI, PL2303</span></span>
       </label>
-      <div class="note">${icon('info', { size: 18 })}<span>${t('The browser cannot tell which device is behind a USB adapter, so ports cannot be filtered by BMS type. Automatic detection tries every protocol and baud rate; choosing the type makes it faster.')}</span></div>
+      <div class="note">${icon('info', { size: 18 })}<span>${t('The browser cannot tell which device is behind a USB adapter, so ports cannot be filtered by device type. Automatic detection tries every protocol and baud rate; choosing the type makes it faster.')}</span></div>
     `;
   }
 

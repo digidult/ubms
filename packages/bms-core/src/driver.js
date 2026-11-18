@@ -33,7 +33,8 @@ import { msg } from './msg.js';
  * @property {string} family brand family shown in the type selector: 'jk', 'ant', 'daly'
  * @property {string} vendor display name of the brand
  * @property {string} protocol English protocol label, for example 'JK02 (Bluetooth)'
- * @property {'bms'|'balancer'} deviceType
+ * @property {'bms'|'balancer'|'meter'} deviceType 'meter' covers power meters and electronic loads
+ *   (no cells); the UI renders only what the snapshot contains
  * @property {string} [description] English
  * @property {{ ble?: BleRequirements, serial?: SerialRequirements }} links
  * @property {(ctx: DriverContext) => BaseDriver} create
