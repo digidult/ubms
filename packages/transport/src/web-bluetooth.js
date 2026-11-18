@@ -29,7 +29,9 @@ import { msg } from './msg.js';
  * @property {string|number} service
  * @property {string|number} notify characteristic delivering notifications
  * @property {string|number} write characteristic used for writes (may equal `notify`)
- * @property {'auto'|'with-response'|'without-response'} [writeMode]
+ * @property {'auto'|'with-response'|'without-response'|'prefer-without-response'} [writeMode]
+ *   'auto' uses write with response when the characteristic supports it;
+ *   'prefer-without-response' uses write without response when supported, otherwise with response
  * @property {number} [chunkSize] max bytes per GATT write (default 20, safe without MTU exchange)
  * @property {number} [chunkDelayMs]
  *
@@ -286,7 +288,10 @@ export class WebBleLink extends Link {
   async _write(bytes) {
     const c = this.writeChar;
     const mode = this.profile.writeMode ?? 'auto';
-    const withoutResponse = mode === 'without-response' || (mode === 'auto' && c.properties.writeWithoutResponse && !c.properties.write);
+    const withoutResponse =
+      mode === 'without-response' ||
+      (mode === 'prefer-without-response' && c.properties.writeWithoutResponse) ||
+      (mode === 'auto' && c.properties.writeWithoutResponse && !c.properties.write);
     if (withoutResponse && c.writeValueWithoutResponse) return c.writeValueWithoutResponse(bytes);
     if (c.writeValueWithResponse) return c.writeValueWithResponse(bytes);
     return c.writeValue(bytes);

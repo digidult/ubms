@@ -44,13 +44,18 @@ export class DriverRegistry {
   }
 
   /**
-   * Definitions selected by a user choice: 'auto', a family id ('jk') or a driver id ('jk-ble').
+   * Definitions selected by a user choice: 'auto', a whole family ('family:jk') or one driver
+   * ('jk-ble'). A bare family id ('jk') also selects the family when no driver has that id; use the
+   * 'family:' prefix whenever a driver id equals its family id (for example 'ant').
    * @param {string} [selection]
    * @param {'ble'|'serial'} [kind] only definitions supporting this link kind
    */
   select(selection = 'auto', kind) {
     let list = this.list();
-    if (selection !== 'auto') {
+    if (selection.startsWith('family:')) {
+      const family = selection.slice(7);
+      list = list.filter((d) => d.family === family);
+    } else if (selection !== 'auto') {
       const exact = this.byId.get(selection);
       list = exact ? [exact] : list.filter((d) => d.family === selection);
     }
@@ -73,6 +78,7 @@ export class DriverRegistry {
     for (const d of defs) {
       const ble = /** @type {import('./driver.js').BleRequirements} */ (d.links.ble);
       for (const p of ble.profiles) optionalServices.add(canonicalUuid(p.service));
+      for (const extra of ble.optionalServices ?? []) optionalServices.add(canonicalUuid(extra));
       for (const prefix of ble.namePrefixes ?? []) filters.push({ namePrefix: prefix });
       for (const s of ble.advertisedServices ?? []) filters.push({ services: [s] });
       for (const id of ble.manufacturerIds ?? []) {

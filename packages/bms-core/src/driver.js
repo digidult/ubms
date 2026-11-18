@@ -21,6 +21,8 @@ import { msg } from './msg.js';
  * @property {RegExp[]} [namePatterns] name patterns used to rank candidates during detection
  * @property {(string|number)[]} [advertisedServices] services the device advertises (chooser filters)
  * @property {number[]} [manufacturerIds] company ids in manufacturer data (chooser filters)
+ * @property {(string|number)[]} [optionalServices] extra services to request access to (not used as
+ *   channel profiles, for example vendor configuration services)
  *
  * @typedef {Object} SerialRequirements
  * @property {SerialProfile[]} profiles serial settings to try, most likely first

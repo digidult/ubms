@@ -239,7 +239,7 @@ export class ViewConnect extends UiElement {
         <option value="auto" ?selected=${prefs.selection === 'auto'}>${t('Detect automatically')}</option>
         ${families.map(
           (f) => html`<optgroup label=${f.vendor}>
-            <option value=${f.id} ?selected=${prefs.selection === f.id}>${t('{vendor}, any protocol', { vendor: f.vendor })}</option>
+            <option value=${`family:${f.id}`} ?selected=${prefs.selection === `family:${f.id}`}>${t('{vendor}, any protocol', { vendor: f.vendor })}</option>
             ${f.drivers
               .filter((d) => d.links[kind])
               .map((d) => html`<option value=${d.id} ?selected=${prefs.selection === d.id}>${t(d.protocol)}</option>`)}
@@ -281,6 +281,18 @@ export class ViewConnect extends UiElement {
   #serialOptions() {
     const { prefs } = this.sc.value;
     return html`
+      <label class="field">
+        ${t('Device address on the RS485 bus')}
+        <input
+          class="input"
+          type="text"
+          inputmode="numeric"
+          placeholder=${t('Default of the protocol')}
+          .value=${prefs.serialAddress}
+          @change=${(/** @type {any} */ e) => this.ctrl.setPref('serialAddress', e.target.value.replace(/[^0-9]/g, '').slice(0, 3))}
+        />
+        <span class="faint" style="font-weight:400;font-size:.82rem">${t('Only needed when several devices share one RS485 bus (JK-PB DIP address, Daly board number).')}</span>
+      </label>
       <label class="check">
         <input type="checkbox" .checked=${prefs.adaptersOnly} @change=${(/** @type {any} */ e) => this.ctrl.setPref('adaptersOnly', e.target.checked)} />
         <span>${t('List only known USB-UART adapters')}<br /><span class="faint">CH340, CP210x, FTDI, PL2303</span></span>

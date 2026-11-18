@@ -34,6 +34,7 @@ export const LANGUAGES = [
  * @property {string} demoDriver
  * @property {boolean} showAllBle
  * @property {boolean} adaptersOnly
+ * @property {string} serialAddress RS485 device address or board number, empty for the protocol default
  *
  * @typedef {{ id: string, name: string, kind: 'ble'|'serial', driverId?: string, at: number }} RecentDevice
  *
@@ -65,6 +66,7 @@ const DEFAULT_PREFS = /** @type {Prefs} */ ({
   demoDriver: '',
   showAllBle: false,
   adaptersOnly: false,
+  serialAddress: '',
 });
 
 export class AppController {
@@ -220,7 +222,9 @@ export class AppController {
       if (/** @type {any} */ (err)?.name === 'NotFoundError') return;
       throw err;
     }
-    await this.#connect({ kind: 'serial', handle: port, selection });
+    const address = Number.parseInt(this.state.prefs.serialAddress, 10);
+    const options = Number.isFinite(address) ? { address, board: address } : {};
+    await this.#connect({ kind: 'serial', handle: port, selection, options });
   }
 
   /** @param {RecentDevice} recent */

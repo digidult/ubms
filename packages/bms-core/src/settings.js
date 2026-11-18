@@ -25,6 +25,8 @@ import { msg } from './msg.js';
  * @property {boolean} [advanced] hidden unless the user enables advanced settings
  * @property {string} [description] English help text
  * @property {(values: Record<string, any>) => string | null} [validate] cross-field check, returns an English error
+ * @property {(values: Record<string, any>) => string | null} [warn] non-blocking cross-field check: an English
+ *   warning shown next to the field and in the confirmation before writing
  * @property {any} [meta] driver private data (register, scale, offset...)
  *
  * @typedef {Object} SettingGroup
@@ -165,6 +167,29 @@ export function validateAll(schema, values) {
     }
   }
   return errors;
+}
+
+/**
+ * Non-blocking warnings for a full value set (see `SettingField.warn`).
+ * @param {SettingsSchema} schema
+ * @param {Record<string, any>} values
+ * @returns {Record<string, string>} field id to English message
+ */
+export function warnAll(schema, values) {
+  /** @type {Record<string, string>} */
+  const warnings = {};
+  for (const g of schema.groups) {
+    for (const f of g.fields) {
+      if (!f.warn) continue;
+      try {
+        const m = f.warn(values);
+        if (m) warnings[f.id] = m;
+      } catch {
+        /* a broken check must not block the form */
+      }
+    }
+  }
+  return warnings;
 }
 
 /**

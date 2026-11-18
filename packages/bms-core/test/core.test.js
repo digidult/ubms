@@ -234,3 +234,12 @@ test('DriverRegistry builds chooser filters and ranks candidates', () => {
   const filtered = reg.bleCandidates({ name: 'x', services: ['0000ffe0-0000-1000-8000-00805f9b34fb'] });
   assert.deepEqual(filtered.map((c) => c.definition.id), ['a-ble']);
 });
+
+test('DriverRegistry: family prefix wins over a driver with the same id', () => {
+  const mk = (id, family) => ({ id, family, vendor: family, protocol: id, deviceType: 'bms', links: { serial: { profiles: [{ id: `${id}-p`, baudRate: 9600 }] } }, create: () => null });
+  const reg = new DriverRegistry([mk('daly-modbus', 'daly'), mk('daly', 'daly'), mk('jk-ble', 'jk')]);
+  assert.deepEqual(reg.select('daly').map((d) => d.id), ['daly']);
+  assert.deepEqual(reg.select('family:daly').map((d) => d.id), ['daly-modbus', 'daly']);
+  assert.deepEqual(reg.select('jk').map((d) => d.id), ['jk-ble']);
+  assert.deepEqual(reg.serialCandidates({ selection: 'family:daly' }).map((c) => c.definition.id), ['daly-modbus', 'daly']);
+});

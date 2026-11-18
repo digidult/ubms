@@ -106,7 +106,7 @@ export class ViewOverview extends UiElement {
       }
       .switches {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(176px, 1fr));
         gap: 8px;
       }
       .sw {
@@ -119,11 +119,18 @@ export class ViewOverview extends UiElement {
       }
       .sw .name {
         flex: 1;
+        min-width: 0;
         font-weight: 600;
         font-size: 0.9rem;
         display: flex;
         align-items: center;
         gap: 6px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .sw ui-switch {
+        flex: none;
       }
       .state-dot {
         font-size: 0.78rem;

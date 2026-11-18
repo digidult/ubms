@@ -175,7 +175,7 @@ class TauriBleLink extends Link {
       service: canonicalUuid(this.profile.service),
       characteristic: canonicalUuid(this.profile.write),
       data: Array.from(bytes),
-      withResponse: this.profile.writeMode !== 'without-response',
+      withResponse: this.profile.writeMode !== 'without-response' && this.profile.writeMode !== 'prefer-without-response',
     });
   }
 }

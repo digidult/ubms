@@ -1,6 +1,6 @@
 import { html, css, nothing } from 'lit';
 import { UiElement, define, sharedStyles, StoreController, icon, t, confirmDialog, toast, pickFile } from '@ubms/ui';
-import { coerce, validateValue, validateAll, fieldMap } from '@ubms/bms-core';
+import { coerce, validateValue, validateAll, warnAll, fieldMap } from '@ubms/bms-core';
 import { num, fieldValue, ago } from '../format.js';
 import { router } from '../app.js';
 
@@ -344,6 +344,7 @@ export class ViewSettings extends UiElement {
     const q = this.query.trim().toLowerCase();
     const values = this.sc.value.settings.values ?? {};
     const errors = validateAll(/** @type {any} */ (this.#schema), this.#mergedValues());
+    const warnings = warnAll(/** @type {any} */ (this.#schema), this.#mergedValues());
     const hit = (/** @type {SettingField} */ f) =>
       [f.id, f.label, t(f.label), f.description ?? '', f.description ? t(f.description) : ''].some((x) => x.toLowerCase().includes(q));
     const matches = groups.map((g) => ({ g, fields: g.fields.filter(hit) })).filter((m) => m.fields.length);
@@ -351,7 +352,7 @@ export class ViewSettings extends UiElement {
     return html`<div class="results">
       ${matches.map(
         ({ g, fields }) => html`<div class="section-title">${t(g.label)}</div>
-          <div class="card fields">${fields.map((f) => this.#row(f, values[f.id], errors[f.id]))}</div>`,
+          <div class="card fields">${fields.map((f) => this.#row(f, values[f.id], errors[f.id], warnings[f.id]))}</div>`,
       )}
     </div>`;
   }
@@ -361,6 +362,7 @@ export class ViewSettings extends UiElement {
     const values = this.sc.value.settings.values ?? {};
     const merged = this.#mergedValues();
     const errors = validateAll(/** @type {any} */ (this.#schema), merged);
+    const warnings = warnAll(/** @type {any} */ (this.#schema), merged);
     return html`
       <button class="btn ghost small back" @click=${() => router.navigate('/settings')}>${icon('back', { size: 18 })}${t('All groups')}</button>
       <div class="group-head">
@@ -370,8 +372,13 @@ export class ViewSettings extends UiElement {
       ${this.ctrl.session.driver?.capabilities.writeSettings
         ? html`<div class="warning">${icon('warning', { size: 18 })}<span>${t('Wrong settings can damage the battery or the BMS. Change values only when you know what they do.')}</span></div>`
         : nothing}
-      <div class="card fields">${g.fields.map((f) => this.#row(f, values[f.id], errors[f.id]))}</div>
+      <div class="card fields">${g.fields.map((f) => this.#row(f, values[f.id], errors[f.id], warnings[f.id]))}</div>
     `;
+  }
+
+  /** Show a field warning only while some edit is pending (not for the stored device state). @param {string} _id */
+  #touchesWarning(_id) {
+    return Object.keys(this.edits).length > 0;
   }
 
   #mergedValues() {
@@ -384,8 +391,9 @@ export class ViewSettings extends UiElement {
    * @param {SettingField} f
    * @param {any} value
    * @param {string} [crossError]
+   * @param {string} [warning]
    */
-  #row(f, value, crossError) {
+  #row(f, value, crossError, warning) {
     const edit = this.edits[f.id];
     const dirty = !!edit;
     const writable = this.ctrl.session.driver?.capabilities.writeSettings && !f.readOnly;
@@ -403,6 +411,7 @@ export class ViewSettings extends UiElement {
       </div>
       <div class="control">${f.type === 'action' ? this.#action(f) : writable ? this.#control(f, value, edit) : html`<span class="ro">${fieldValue(f, value)}</span>`}</div>
       ${error ? html`<div class="err">${icon('alert', { size: 15 })}${error}</div>` : nothing}
+      ${!error && warning && (dirty || this.#touchesWarning(f.id)) ? html`<div class="res-warn">${icon('warning', { size: 15 })} ${t(warning)}</div>` : nothing}
       ${!dirty && result
         ? result.ok && result.verified !== false
           ? html`<div class="res-ok">${t('Saved')}</div>`
@@ -519,9 +528,13 @@ export class ViewSettings extends UiElement {
       const f = /** @type {SettingField} */ (fields.get(id));
       return `${t(f.label)}: ${fieldValue(f, values[id])} → ${fieldValue(f, value)}`;
     });
+    const warnings = Object.entries(warnAll(/** @type {any} */ (this.#schema), this.#mergedValues())).map(
+      ([id, m]) => `${t(fields.get(id)?.label ?? id)}: ${t(m)}`,
+    );
     const ok = await confirmDialog({
       title: t('Write {count} setting(s) to the device?', { count: changes.length }),
-      details,
+      message: warnings.length ? t('Check these warnings first:') : '',
+      details: [...warnings.map((w) => `⚠ ${w}`), ...details],
       confirmLabel: t('Write'),
       danger: changes.some(({ id }) => fields.get(id)?.danger),
     });
