@@ -12,6 +12,7 @@ export class UiStat extends UiElement {
     hint: { type: String },
     icon: { type: String },
     tone: { type: String, reflect: true },
+    compact: { type: Boolean, reflect: true },
   };
 
   static styles = [
@@ -65,6 +66,15 @@ export class UiStat extends UiElement {
         overflow: hidden;
         text-overflow: ellipsis;
       }
+      :host([compact]) .tile {
+        padding: 8px 10px;
+      }
+      :host([compact]) .value {
+        font-size: 1.12rem;
+      }
+      :host([compact]) .label {
+        font-size: 0.72rem;
+      }
       :host([tone='ok']) .value {
         color: var(--ui-ok);
       }
@@ -91,6 +101,7 @@ export class UiStat extends UiElement {
     this.hint = '';
     this.icon = '';
     this.tone = '';
+    this.compact = false;
   }
 
   render() {
@@ -114,6 +125,11 @@ export class UiRing extends UiElement {
   };
 
   static styles = css`
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
     :host {
       display: inline-block;
       position: relative;
@@ -182,6 +198,11 @@ export class UiSparkline extends UiElement {
   };
 
   static styles = css`
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
     :host {
       display: block;
     }
@@ -264,6 +285,11 @@ export class UiSwitch extends UiElement {
   };
 
   static styles = css`
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
     :host {
       display: inline-flex;
       vertical-align: middle;

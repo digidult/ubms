@@ -37,7 +37,7 @@ export function duration(seconds) {
   const DF = /** @type {any} */ (Intl).DurationFormat;
   if (DF) {
     try {
-      return new DF(i18n.locale, { style: 'narrow' }).format(parts);
+      return new DF(i18n.locale, { style: 'short' }).format(parts);
     } catch {
       /* fall back below */
     }

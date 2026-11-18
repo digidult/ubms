@@ -186,6 +186,11 @@ export class UiToaster extends UiElement {
   static properties = { items: { state: true } };
 
   static styles = css`
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
     :host {
       position: fixed;
       z-index: 50;
@@ -300,6 +305,11 @@ export class UiHexview extends UiElement {
   };
 
   static styles = css`
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
     :host {
       display: block;
     }

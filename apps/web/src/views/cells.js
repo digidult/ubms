@@ -16,7 +16,7 @@ export class ViewCells extends UiElement {
       }
       .summary {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
         gap: 8px;
         margin-bottom: 12px;
       }
@@ -152,13 +152,14 @@ export class ViewCells extends UiElement {
     const res = s.cellResistances ?? [];
     return html`
       <div class="summary">
-        <ui-stat label=${t('Cells')} .value=${String(st.count)}></ui-stat>
-        <ui-stat label=${t('Average')} .value=${num(st.avg, 3)} unit="V"></ui-stat>
-        <ui-stat label=${t('Min')} .value=${num(st.min, 3)} unit="V" hint=${`#${st.minIndex + 1}`}></ui-stat>
-        <ui-stat label=${t('Max')} .value=${num(st.max, 3)} unit="V" hint=${`#${st.maxIndex + 1}`}></ui-stat>
-        <ui-stat label=${t('Delta')} .value=${num(st.delta * 1000, 0)} unit="mV" tone=${st.delta > 0.05 ? 'danger' : st.delta > 0.02 ? 'warn' : 'ok'}></ui-stat>
+        <ui-stat compact label=${t('Cells')} .value=${String(st.count)}></ui-stat>
+        <ui-stat compact label=${t('Average')} .value=${num(st.avg, 3)} unit="V"></ui-stat>
+        <ui-stat compact label=${t('Min')} .value=${num(st.min, 3)} unit="V" hint=${`#${st.minIndex + 1}`}></ui-stat>
+        <ui-stat compact label=${t('Max')} .value=${num(st.max, 3)} unit="V" hint=${`#${st.maxIndex + 1}`}></ui-stat>
+        <ui-stat compact label=${t('Delta')} .value=${num(st.delta * 1000, 0)} unit="mV" tone=${st.delta > 0.05 ? 'danger' : st.delta > 0.02 ? 'warn' : 'ok'}></ui-stat>
         ${s.balancingActive !== undefined
           ? html`<ui-stat
+              compact
               label=${t('Balancer')}
               .value=${s.balancingActive ? t('Active') : t('Idle')}
               hint=${s.balanceCurrent !== undefined ? `${num(s.balanceCurrent, 3, { signed: true })} A` : ''}

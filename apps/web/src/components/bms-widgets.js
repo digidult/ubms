@@ -12,6 +12,11 @@ export class BmsCellBars extends UiElement {
   };
 
   static styles = css`
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
     :host {
       display: block;
     }

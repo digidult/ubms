@@ -122,6 +122,11 @@ export function applyTheme(mode) {
  * Components include it in `static styles`.
  */
 export const sharedStyles = css`
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
   :host {
     font-family: var(--ui-font);
     color: var(--ui-text);

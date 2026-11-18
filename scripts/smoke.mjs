@@ -168,13 +168,13 @@ async function scenario(name, sc) {
   await sleep(sc.wait ?? 1500);
   const shots = [];
   for (const step of sc.steps ?? [{ shot: name }]) {
-    if (step.hash) {
-      await p.send('Runtime.evaluate', { expression: `location.hash = ${JSON.stringify(step.hash)}` });
-    }
     if (step.eval) {
       const r = await p.send('Runtime.evaluate', { expression: step.eval, awaitPromise: true, returnByValue: true });
       if (r.exceptionDetails) errors.push(`eval failed: ${r.exceptionDetails.exception?.description ?? r.exceptionDetails.text}`);
-      else if (r.result?.value === false) errors.push(`check failed: ${step.eval}`);
+      else if (r.result?.value === false) errors.push(`check failed: ${step.eval.slice(0, 120)}`);
+    }
+    if (step.hash) {
+      await p.send('Runtime.evaluate', { expression: `location.hash = ${JSON.stringify(step.hash)}` });
     }
     await sleep(step.wait ?? 700);
     if (step.shot) {
@@ -219,10 +219,46 @@ const writeCheck = `(async () => {
   return true;
 })()`;
 
+/** A rich synthetic snapshot rendered without any driver, to check layouts of every widget. */
+const fixture = `(() => {
+  const c = window.ubms;
+  const cells = Array.from({ length: 16 }, (_, i) => 3.30 + Math.sin(i) * 0.012 + (i === 6 ? 0.025 : 0));
+  const snap = {
+    timestamp: Date.now(), voltage: 52.95, current: -23.4, power: -1239.0, soc: 64, soh: 98,
+    capacityRemaining: 179.2, capacityFull: 280, capacityNominal: 280, cycles: 112, cycleCapacity: 31360,
+    uptime: 912345, cells, cellResistances: cells.map((_, i) => 0.9 + (i % 4) * 0.12),
+    balancing: cells.map((_, i) => i === 6), balancingActive: true, balanceCurrent: 0.42,
+    temperatures: [
+      { id: 'mos', label: 'MOSFET', value: 31.5, kind: 'mos' },
+      { id: 't1', label: 'Sensor 1', value: 24.1, kind: 'cell' },
+      { id: 't2', label: 'Sensor 2', value: 47.9, kind: 'cell' },
+    ],
+    switches: { charge: true, discharge: true, balance: true, heater: false },
+    alarms: [
+      { id: 'cell_voltage_difference', label: 'Cell voltage difference too high', severity: 'warning', source: 'bit 2' },
+      { id: 'charge_overtemperature', label: 'Charge overtemperature', severity: 'protection' },
+    ],
+    extra: { state: { label: 'System state', value: 'Discharging' }, rt: { label: 'Remaining time', value: 7.6, unit: 'h', decimals: 1 } },
+    cellStats: { count: 16, min: Math.min(...cells), max: Math.max(...cells), avg: cells.reduce((a, b) => a + b) / 16, delta: Math.max(...cells) - Math.min(...cells), sum: cells.reduce((a, b) => a + b), minIndex: cells.indexOf(Math.min(...cells)), maxIndex: cells.indexOf(Math.max(...cells)) },
+    state: 'discharging', timeToEmpty: 7.66,
+  };
+  c.session.lastDataAt = Date.now() + 3600e3;
+  c.store.set({ state: 'connected', snapshot: snap, device: { driverId: 'fixture', vendor: 'Fixture BMS', protocol: 'Fixture protocol', deviceName: 'FIX-16S', linkKind: 'demo', deviceType: 'bms' } });
+  return true;
+})()`;
+
 const scenarios = [
   ['connect-phone', { ...phone, hash: '/connect', steps: [{ eval: hasText('ubms'), shot: 'connect-phone' }] }],
   ['connect-desktop-dark', { ...desktop, dark: true, hash: '/connect', steps: [{ shot: 'connect-desktop-dark' }] }],
   ['prefs-phone', { ...phone, hash: '/prefs', steps: [{ shot: 'prefs-phone' }] }],
+  [
+    'fixture-phone',
+    { ...phone, hash: '/connect', steps: [{ eval: fixture, hash: '/overview', shot: 'fixture-overview-phone' }, { hash: '/cells', shot: 'fixture-cells-phone' }] },
+  ],
+  [
+    'fixture-desktop',
+    { ...desktop, hash: '/connect', steps: [{ eval: fixture, hash: '/overview', shot: 'fixture-overview-desktop' }, { hash: '/cells', shot: 'fixture-cells-desktop' }] },
+  ],
 ];
 
 // Demo sessions for every driver that ships a simulator.
