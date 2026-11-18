@@ -1,0 +1,3996 @@
+[
+  {
+    "id": "new-req-status",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA1010000BE1855AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/components/ant_bms_ble/ant_bms_ble.cpp (update()); https://github.com/yosle/ant-bms-ble PROTOCOL.md (Real-time request)",
+    "description": "Status (real-time) request: function 0x01, address 0x0000, length 0xBE. Same bytes over UART.",
+    "expected": {
+      "function": 1,
+      "address": 0,
+      "length": 190
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-device-info",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA1026C022058C4AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/components/ant_bms_ble/ant_bms_ble.cpp (ESP_GATTC_REG_FOR_NOTIFY_EVT); docs/pdus/btsnoop_hci_ANT-BLE16ZMUB-reduced.txt",
+    "description": "Device info request: read 32 bytes at parameter address 0x026C (620): 16 byte hardware version + 16 byte software version.",
+    "expected": {
+      "function": 2,
+      "address": 620,
+      "length": 32
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-read-cell-overvoltage-protection",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA10200000219A0AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/tests/components/ant_bms_ble/frames_settings.h (SETTINGS_REGISTER_CASES CellOvervoltageProtection); issue #18 (bchiu 2022-10-24)",
+    "description": "Read settings register CellOvervoltageProtection at address 0x0000 (0), 2 data bytes.",
+    "expected": {
+      "function": 2,
+      "address": 0,
+      "length": 2
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-read-cell-overvoltage-recovery",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA102020002B860AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/tests/components/ant_bms_ble/frames_settings.h (SETTINGS_REGISTER_CASES CellOvervoltageRecovery); issue #18 (bchiu 2022-10-24)",
+    "description": "Read settings register CellOvervoltageRecovery at address 0x0002 (2), 2 data bytes.",
+    "expected": {
+      "function": 2,
+      "address": 2,
+      "length": 2
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-read-cell-overvoltage-protection-l2",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA1020400025861AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/tests/components/ant_bms_ble/frames_settings.h (SETTINGS_REGISTER_CASES CellOvervoltageProtectionL2); issue #18 (bchiu 2022-10-24)",
+    "description": "Read settings register CellOvervoltageProtectionL2 at address 0x0004 (4), 2 data bytes.",
+    "expected": {
+      "function": 2,
+      "address": 4,
+      "length": 2
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-read-cell-overvoltage-recovery-l2",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA102060002F9A1AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/tests/components/ant_bms_ble/frames_settings.h (SETTINGS_REGISTER_CASES CellOvervoltageRecoveryL2); issue #18 (bchiu 2022-10-24)",
+    "description": "Read settings register CellOvervoltageRecoveryL2 at address 0x0006 (6), 2 data bytes.",
+    "expected": {
+      "function": 2,
+      "address": 6,
+      "length": 2
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-read-pack-overvoltage-protection",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA1020800029862AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/tests/components/ant_bms_ble/frames_settings.h (SETTINGS_REGISTER_CASES PackOvervoltageProtection); issue #18 (bchiu 2022-10-24)",
+    "description": "Read settings register PackOvervoltageProtection at address 0x0008 (8), 2 data bytes.",
+    "expected": {
+      "function": 2,
+      "address": 8,
+      "length": 2
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-read-pack-overvoltage-recovery",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA1020A000239A2AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/tests/components/ant_bms_ble/frames_settings.h (SETTINGS_REGISTER_CASES PackOvervoltageRecovery); issue #18 (bchiu 2022-10-24)",
+    "description": "Read settings register PackOvervoltageRecovery at address 0x000A (10), 2 data bytes.",
+    "expected": {
+      "function": 2,
+      "address": 10,
+      "length": 2
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-read-cell-undervoltage-protection",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA1020C0002D9A3AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/tests/components/ant_bms_ble/frames_settings.h (SETTINGS_REGISTER_CASES CellUndervoltageProtection); issue #18 (bchiu 2022-10-24)",
+    "description": "Read settings register CellUndervoltageProtection at address 0x000C (12), 2 data bytes.",
+    "expected": {
+      "function": 2,
+      "address": 12,
+      "length": 2
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-read-cell-undervoltage-recovery",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA1020E00027863AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/tests/components/ant_bms_ble/frames_settings.h (SETTINGS_REGISTER_CASES CellUndervoltageRecovery); issue #18 (bchiu 2022-10-24)",
+    "description": "Read settings register CellUndervoltageRecovery at address 0x000E (14), 2 data bytes.",
+    "expected": {
+      "function": 2,
+      "address": 14,
+      "length": 2
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-read-cell-undervoltage-protection-l2",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA1021000021865AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/tests/components/ant_bms_ble/frames_settings.h (SETTINGS_REGISTER_CASES CellUndervoltageProtectionL2); issue #18 (bchiu 2022-10-24)",
+    "description": "Read settings register CellUndervoltageProtectionL2 at address 0x0010 (16), 2 data bytes.",
+    "expected": {
+      "function": 2,
+      "address": 16,
+      "length": 2
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-read-cell-undervoltage-recovery-l2",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA102120002B9A5AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/tests/components/ant_bms_ble/frames_settings.h (SETTINGS_REGISTER_CASES CellUndervoltageRecoveryL2); issue #18 (bchiu 2022-10-24)",
+    "description": "Read settings register CellUndervoltageRecoveryL2 at address 0x0012 (18), 2 data bytes.",
+    "expected": {
+      "function": 2,
+      "address": 18,
+      "length": 2
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-read-pack-undervoltage-protection",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA10214000259A4AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/tests/components/ant_bms_ble/frames_settings.h (SETTINGS_REGISTER_CASES PackUndervoltageProtection); issue #18 (bchiu 2022-10-24)",
+    "description": "Read settings register PackUndervoltageProtection at address 0x0014 (20), 2 data bytes.",
+    "expected": {
+      "function": 2,
+      "address": 20,
+      "length": 2
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-read-pack-undervoltage-recovery",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA102160002F864AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/tests/components/ant_bms_ble/frames_settings.h (SETTINGS_REGISTER_CASES PackUndervoltageRecovery); issue #18 (bchiu 2022-10-24)",
+    "description": "Read settings register PackUndervoltageRecovery at address 0x0016 (22), 2 data bytes.",
+    "expected": {
+      "function": 2,
+      "address": 22,
+      "length": 2
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-read-cell-voltage-difference-protection",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA10218000299A7AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/tests/components/ant_bms_ble/frames_settings.h (SETTINGS_REGISTER_CASES CellVoltageDifferenceProtection); issue #18 (bchiu 2022-10-24)",
+    "description": "Read settings register CellVoltageDifferenceProtection at address 0x0018 (24), 2 data bytes.",
+    "expected": {
+      "function": 2,
+      "address": 24,
+      "length": 2
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-read-cell-voltage-difference-recovery",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA1021A00023867AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/tests/components/ant_bms_ble/frames_settings.h (SETTINGS_REGISTER_CASES CellVoltageDifferenceRecovery); issue #18 (bchiu 2022-10-24)",
+    "description": "Read settings register CellVoltageDifferenceRecovery at address 0x001A (26), 2 data bytes.",
+    "expected": {
+      "function": 2,
+      "address": 26,
+      "length": 2
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-read-cell-overvoltage-warning",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA102200002186AAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/tests/components/ant_bms_ble/frames_settings.h (SETTINGS_REGISTER_CASES CellOvervoltageWarning); issue #18 (bchiu 2022-10-24)",
+    "description": "Read settings register CellOvervoltageWarning at address 0x0020 (32), 2 data bytes.",
+    "expected": {
+      "function": 2,
+      "address": 32,
+      "length": 2
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-read-cell-overvoltage-warning-recovery",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA102220002B9AAAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/tests/components/ant_bms_ble/frames_settings.h (SETTINGS_REGISTER_CASES CellOvervoltageWarningRecovery); issue #18 (bchiu 2022-10-24)",
+    "description": "Read settings register CellOvervoltageWarningRecovery at address 0x0022 (34), 2 data bytes.",
+    "expected": {
+      "function": 2,
+      "address": 34,
+      "length": 2
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-read-pack-overvoltage-warning",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA10224000259ABAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/tests/components/ant_bms_ble/frames_settings.h (SETTINGS_REGISTER_CASES PackOvervoltageWarning); issue #18 (bchiu 2022-10-24)",
+    "description": "Read settings register PackOvervoltageWarning at address 0x0024 (36), 2 data bytes.",
+    "expected": {
+      "function": 2,
+      "address": 36,
+      "length": 2
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-read-pack-overvoltage-warning-recovery",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA102260002F86BAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/tests/components/ant_bms_ble/frames_settings.h (SETTINGS_REGISTER_CASES PackOvervoltageWarningRecovery); issue #18 (bchiu 2022-10-24)",
+    "description": "Read settings register PackOvervoltageWarningRecovery at address 0x0026 (38), 2 data bytes.",
+    "expected": {
+      "function": 2,
+      "address": 38,
+      "length": 2
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-read-cell-undervoltage-warning",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA10228000299A8AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/tests/components/ant_bms_ble/frames_settings.h (SETTINGS_REGISTER_CASES CellUndervoltageWarning); issue #18 (bchiu 2022-10-24)",
+    "description": "Read settings register CellUndervoltageWarning at address 0x0028 (40), 2 data bytes.",
+    "expected": {
+      "function": 2,
+      "address": 40,
+      "length": 2
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-read-cell-undervoltage-warning-recovery",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA1022A00023868AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/tests/components/ant_bms_ble/frames_settings.h (SETTINGS_REGISTER_CASES CellUndervoltageWarningRecovery); issue #18 (bchiu 2022-10-24)",
+    "description": "Read settings register CellUndervoltageWarningRecovery at address 0x002A (42), 2 data bytes.",
+    "expected": {
+      "function": 2,
+      "address": 42,
+      "length": 2
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-read-pack-undervoltage-warning",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA1022C0002D869AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/tests/components/ant_bms_ble/frames_settings.h (SETTINGS_REGISTER_CASES PackUndervoltageWarning); issue #18 (bchiu 2022-10-24)",
+    "description": "Read settings register PackUndervoltageWarning at address 0x002C (44), 2 data bytes.",
+    "expected": {
+      "function": 2,
+      "address": 44,
+      "length": 2
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-read-pack-undervoltage-warning-recovery",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA1022E000279A9AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/tests/components/ant_bms_ble/frames_settings.h (SETTINGS_REGISTER_CASES PackUndervoltageWarningRecovery); issue #18 (bchiu 2022-10-24)",
+    "description": "Read settings register PackUndervoltageWarningRecovery at address 0x002E (46), 2 data bytes.",
+    "expected": {
+      "function": 2,
+      "address": 46,
+      "length": 2
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-read-cell-voltage-difference-warning",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA10230000219AFAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/tests/components/ant_bms_ble/frames_settings.h (SETTINGS_REGISTER_CASES CellVoltageDifferenceWarning); issue #18 (bchiu 2022-10-24)",
+    "description": "Read settings register CellVoltageDifferenceWarning at address 0x0030 (48), 2 data bytes.",
+    "expected": {
+      "function": 2,
+      "address": 48,
+      "length": 2
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-read-cell-voltage-difference-warning-recovery",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA102320002B86FAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/tests/components/ant_bms_ble/frames_settings.h (SETTINGS_REGISTER_CASES CellVoltageDifferenceWarningRecovery); issue #18 (bchiu 2022-10-24)",
+    "description": "Read settings register CellVoltageDifferenceWarningRecovery at address 0x0032 (50), 2 data bytes.",
+    "expected": {
+      "function": 2,
+      "address": 50,
+      "length": 2
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-read-charge-overcurrent-protection",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA102680002987CAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/tests/components/ant_bms_ble/frames_settings.h (SETTINGS_REGISTER_CASES ChargeOvercurrentProtection); issue #18 (bchiu 2022-10-24)",
+    "description": "Read settings register ChargeOvercurrentProtection at address 0x0068 (104), 2 data bytes.",
+    "expected": {
+      "function": 2,
+      "address": 104,
+      "length": 2
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-read-charge-overcurrent-protection-delay",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA1026A000239BCAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/tests/components/ant_bms_ble/frames_settings.h (SETTINGS_REGISTER_CASES ChargeOvercurrentProtectionDelay); issue #18 (bchiu 2022-10-24)",
+    "description": "Read settings register ChargeOvercurrentProtectionDelay at address 0x006A (106), 2 data bytes.",
+    "expected": {
+      "function": 2,
+      "address": 106,
+      "length": 2
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-read-discharge-overcurrent-protection",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA1026C0002D9BDAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/tests/components/ant_bms_ble/frames_settings.h (SETTINGS_REGISTER_CASES DischargeOvercurrentProtection); issue #18 (bchiu 2022-10-24)",
+    "description": "Read settings register DischargeOvercurrentProtection at address 0x006C (108), 2 data bytes.",
+    "expected": {
+      "function": 2,
+      "address": 108,
+      "length": 2
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-read-discharge-overcurrent-protection-delay",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA1026E0002787DAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/tests/components/ant_bms_ble/frames_settings.h (SETTINGS_REGISTER_CASES DischargeOvercurrentProtectionDelay); issue #18 (bchiu 2022-10-24)",
+    "description": "Read settings register DischargeOvercurrentProtectionDelay at address 0x006E (110), 2 data bytes.",
+    "expected": {
+      "function": 2,
+      "address": 110,
+      "length": 2
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-read-discharge-overcurrent-protection-l2",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA102700002187BAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/tests/components/ant_bms_ble/frames_settings.h (SETTINGS_REGISTER_CASES DischargeOvercurrentProtectionL2); issue #18 (bchiu 2022-10-24)",
+    "description": "Read settings register DischargeOvercurrentProtectionL2 at address 0x0070 (112), 2 data bytes.",
+    "expected": {
+      "function": 2,
+      "address": 112,
+      "length": 2
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-read-discharge-overcurrent-protection-delay-l2",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA102720002B9BBAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/tests/components/ant_bms_ble/frames_settings.h (SETTINGS_REGISTER_CASES DischargeOvercurrentProtectionDelayL2); issue #18 (bchiu 2022-10-24)",
+    "description": "Read settings register DischargeOvercurrentProtectionDelayL2 at address 0x0072 (114), 2 data bytes.",
+    "expected": {
+      "function": 2,
+      "address": 114,
+      "length": 2
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-read-short-circuit-protection",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA10274000259BAAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/tests/components/ant_bms_ble/frames_settings.h (SETTINGS_REGISTER_CASES ShortCircuitProtection); issue #18 (bchiu 2022-10-24)",
+    "description": "Read settings register ShortCircuitProtection at address 0x0074 (116), 2 data bytes.",
+    "expected": {
+      "function": 2,
+      "address": 116,
+      "length": 2
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-read-short-circuit-protection-delay",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA102760002F87AAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/tests/components/ant_bms_ble/frames_settings.h (SETTINGS_REGISTER_CASES ShortCircuitProtectionDelay); issue #18 (bchiu 2022-10-24)",
+    "description": "Read settings register ShortCircuitProtectionDelay at address 0x0076 (118), 2 data bytes.",
+    "expected": {
+      "function": 2,
+      "address": 118,
+      "length": 2
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-read-charge-overcurrent-warning",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA1027C0002D878AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/tests/components/ant_bms_ble/frames_settings.h (SETTINGS_REGISTER_CASES ChargeOvercurrentWarning); issue #18 (bchiu 2022-10-24)",
+    "description": "Read settings register ChargeOvercurrentWarning at address 0x007C (124), 2 data bytes.",
+    "expected": {
+      "function": 2,
+      "address": 124,
+      "length": 2
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-read-charge-overcurrent-warning-recovery",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA1027E000279B8AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/tests/components/ant_bms_ble/frames_settings.h (SETTINGS_REGISTER_CASES ChargeOvercurrentWarningRecovery); issue #18 (bchiu 2022-10-24)",
+    "description": "Read settings register ChargeOvercurrentWarningRecovery at address 0x007E (126), 2 data bytes.",
+    "expected": {
+      "function": 2,
+      "address": 126,
+      "length": 2
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-read-discharge-overcurrent-warning",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA1028000021848AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/tests/components/ant_bms_ble/frames_settings.h (SETTINGS_REGISTER_CASES DischargeOvercurrentWarning); issue #18 (bchiu 2022-10-24)",
+    "description": "Read settings register DischargeOvercurrentWarning at address 0x0080 (128), 2 data bytes.",
+    "expected": {
+      "function": 2,
+      "address": 128,
+      "length": 2
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-read-discharge-overcurrent-warning-recovery",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA102820002B988AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/tests/components/ant_bms_ble/frames_settings.h (SETTINGS_REGISTER_CASES DischargeOvercurrentWarningRecovery); issue #18 (bchiu 2022-10-24)",
+    "description": "Read settings register DischargeOvercurrentWarningRecovery at address 0x0082 (130), 2 data bytes.",
+    "expected": {
+      "function": 2,
+      "address": 130,
+      "length": 2
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-read-soc-low-level1-warning",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA1028400025989AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/tests/components/ant_bms_ble/frames_settings.h (SETTINGS_REGISTER_CASES SOCLowLevel1Warning); issue #18 (bchiu 2022-10-24)",
+    "description": "Read settings register SOCLowLevel1Warning at address 0x0084 (132), 2 data bytes.",
+    "expected": {
+      "function": 2,
+      "address": 132,
+      "length": 2
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-read-soc-low-level2-warning",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA102860002F849AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/tests/components/ant_bms_ble/frames_settings.h (SETTINGS_REGISTER_CASES SOCLowLevel2Warning); issue #18 (bchiu 2022-10-24)",
+    "description": "Read settings register SOCLowLevel2Warning at address 0x0086 (134), 2 data bytes.",
+    "expected": {
+      "function": 2,
+      "address": 134,
+      "length": 2
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-read-cell-balancing-voltage",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA1028C0002D84BAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/tests/components/ant_bms_ble/frames_settings.h (SETTINGS_REGISTER_CASES CellBalancingVoltage); issue #18 (bchiu 2022-10-24)",
+    "description": "Read settings register CellBalancingVoltage at address 0x008C (140), 2 data bytes.",
+    "expected": {
+      "function": 2,
+      "address": 140,
+      "length": 2
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-read-cell-balancing-start-voltage",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA1028E0002798BAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/tests/components/ant_bms_ble/frames_settings.h (SETTINGS_REGISTER_CASES CellBalancingStartVoltage); issue #18 (bchiu 2022-10-24)",
+    "description": "Read settings register CellBalancingStartVoltage at address 0x008E (142), 2 data bytes.",
+    "expected": {
+      "function": 2,
+      "address": 142,
+      "length": 2
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-read-cell-voltage-difference-balancing-on",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA102900002198DAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/tests/components/ant_bms_ble/frames_settings.h (SETTINGS_REGISTER_CASES CellVoltageDifferenceBalancingOn); issue #18 (bchiu 2022-10-24)",
+    "description": "Read settings register CellVoltageDifferenceBalancingOn at address 0x0090 (144), 2 data bytes.",
+    "expected": {
+      "function": 2,
+      "address": 144,
+      "length": 2
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-read-cell-voltage-difference-balancing-off",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA102920002B84DAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/tests/components/ant_bms_ble/frames_settings.h (SETTINGS_REGISTER_CASES CellVoltageDifferenceBalancingOff); issue #18 (bchiu 2022-10-24)",
+    "description": "Read settings register CellVoltageDifferenceBalancingOff at address 0x0092 (146), 2 data bytes.",
+    "expected": {
+      "function": 2,
+      "address": 146,
+      "length": 2
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-read-balancing-current",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA102940002584CAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/tests/components/ant_bms_ble/frames_settings.h (SETTINGS_REGISTER_CASES BalancingCurrent); issue #18 (bchiu 2022-10-24)",
+    "description": "Read settings register BalancingCurrent at address 0x0094 (148), 2 data bytes.",
+    "expected": {
+      "function": 2,
+      "address": 148,
+      "length": 2
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-read-balancing-charging-current",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA102960002F98CAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/tests/components/ant_bms_ble/frames_settings.h (SETTINGS_REGISTER_CASES BalancingChargingCurrent); issue #18 (bchiu 2022-10-24)",
+    "description": "Read settings register BalancingChargingCurrent at address 0x0096 (150), 2 data bytes.",
+    "expected": {
+      "function": 2,
+      "address": 150,
+      "length": 2
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-read-cell-type",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA102980002984FAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/tests/components/ant_bms_ble/frames_settings.h (SETTINGS_REGISTER_CASES CellType); issue #18 (bchiu 2022-10-24)",
+    "description": "Read settings register CellType at address 0x0098 (152), 2 data bytes.",
+    "expected": {
+      "function": 2,
+      "address": 152,
+      "length": 2
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-read-cell-number",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA1029A0002398FAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/tests/components/ant_bms_ble/frames_settings.h (SETTINGS_REGISTER_CASES CellNumber); issue #18 (bchiu 2022-10-24)",
+    "description": "Read settings register CellNumber at address 0x009A (154), 2 data bytes.",
+    "expected": {
+      "function": 2,
+      "address": 154,
+      "length": 2
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-read-cell-internal-resistance-calibration",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA1029C0002D98EAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/tests/components/ant_bms_ble/frames_settings.h (SETTINGS_REGISTER_CASES CellInternalResistanceCalibration); issue #18 (bchiu 2022-10-24)",
+    "description": "Read settings register CellInternalResistanceCalibration at address 0x009C (156), 2 data bytes.",
+    "expected": {
+      "function": 2,
+      "address": 156,
+      "length": 2
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-read-shutdown-voltage",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA1029E0002784EAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/tests/components/ant_bms_ble/frames_settings.h (SETTINGS_REGISTER_CASES ShutdownVoltage); issue #18 (bchiu 2022-10-24)",
+    "description": "Read settings register ShutdownVoltage at address 0x009E (158), 2 data bytes.",
+    "expected": {
+      "function": 2,
+      "address": 158,
+      "length": 2
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-read-request-charge-current",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA102A000021982AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/tests/components/ant_bms_ble/frames_settings.h (SETTINGS_REGISTER_CASES RequestChargeCurrent); issue #18 (bchiu 2022-10-24)",
+    "description": "Read settings register RequestChargeCurrent at address 0x00A0 (160), 2 data bytes.",
+    "expected": {
+      "function": 2,
+      "address": 160,
+      "length": 2
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-read-nominal-capacity",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA102A200043840AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/tests/components/ant_bms_ble/frames_settings.h (SETTINGS_REGISTER_CASES NominalCapacity); issue #18 (bchiu 2022-10-24)",
+    "description": "Read settings register NominalCapacity at address 0x00A2 (162), 4 data bytes.",
+    "expected": {
+      "function": 2,
+      "address": 162,
+      "length": 4
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-read-remaining-capacity",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA102A600047981AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/tests/components/ant_bms_ble/frames_settings.h (SETTINGS_REGISTER_CASES RemainingCapacity); issue #18 (bchiu 2022-10-24)",
+    "description": "Read settings register RemainingCapacity at address 0x00A6 (166), 4 data bytes.",
+    "expected": {
+      "function": 2,
+      "address": 166,
+      "length": 4
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-read-total-cycle-capacity",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA102AA0004B982AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/tests/components/ant_bms_ble/frames_settings.h (SETTINGS_REGISTER_CASES TotalCycleCapacity); issue #18 (bchiu 2022-10-24)",
+    "description": "Read settings register TotalCycleCapacity at address 0x00AA (170), 4 data bytes.",
+    "expected": {
+      "function": 2,
+      "address": 170,
+      "length": 4
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-read-state-of-charge-method",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA102C40002585DAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/tests/components/ant_bms_ble/frames_settings.h (SETTINGS_REGISTER_CASES StateOfChargeMethod); issue #18 (bchiu 2022-10-24)",
+    "description": "Read settings register StateOfChargeMethod at address 0x00C4 (196), 2 data bytes.",
+    "expected": {
+      "function": 2,
+      "address": 196,
+      "length": 2
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-read-tire-length",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA1027A010239E9AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/tests/components/ant_bms_ble/frames_settings.h (SETTINGS_REGISTER_CASES TireLength); issue #18 (bchiu 2022-10-24)",
+    "description": "Read settings register TireLength at address 0x017A (378), 2 data bytes.",
+    "expected": {
+      "function": 2,
+      "address": 378,
+      "length": 2
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-read-pulse-value",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA1027C0102D9E8AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/tests/components/ant_bms_ble/frames_settings.h (SETTINGS_REGISTER_CASES PulseValue); issue #18 (bchiu 2022-10-24)",
+    "description": "Read settings register PulseValue at address 0x017C (380), 2 data bytes.",
+    "expected": {
+      "function": 2,
+      "address": 380,
+      "length": 2
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-read-secondary-module-num",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA1027E01027828AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/tests/components/ant_bms_ble/frames_settings.h (SETTINGS_REGISTER_CASES SecondaryModuleNum); issue #18 (bchiu 2022-10-24)",
+    "description": "Read settings register SecondaryModuleNum at address 0x017E (382), 2 data bytes.",
+    "expected": {
+      "function": 2,
+      "address": 382,
+      "length": 2
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-read-block-0-56",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA10200003899B3AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/docs/pdus/btsnoop_hci_ANT-BLE16ZMUB-reduced.txt",
+    "description": "Block read used by the vendor Android app: 56 bytes from address 0 (voltage protection and warning parameters).",
+    "expected": {
+      "function": 2,
+      "address": 0,
+      "length": 56
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-read-block-voltage",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA10200003499B6AA55",
+    "source": "https://github.com/yosle/ant-bms-ble PROTOCOL.md (Known blocks: voltage 0/52)",
+    "description": "Block read: voltage group, address 0, 52 bytes.",
+    "expected": {
+      "function": 2,
+      "address": 0,
+      "length": 52
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "new-req-read-block-temperature",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA10238002C1871AA55",
+    "source": "https://github.com/yosle/ant-bms-ble PROTOCOL.md (Known blocks: temperature 56/44)",
+    "description": "Block read: temperature group, address 56, 44 bytes.",
+    "expected": {
+      "function": 2,
+      "address": 56,
+      "length": 44
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "new-req-read-block-current",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA1026800201865AA55",
+    "source": "https://github.com/yosle/ant-bms-ble PROTOCOL.md (Known blocks: current 104/32)",
+    "description": "Block read: current group, address 104, 32 bytes.",
+    "expected": {
+      "function": 2,
+      "address": 104,
+      "length": 32
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "new-req-read-block-balance",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA1028C000C598FAA55",
+    "source": "https://github.com/yosle/ant-bms-ble PROTOCOL.md (Known blocks: balance 140/12)",
+    "description": "Block read: balance group, address 140, 12 bytes.",
+    "expected": {
+      "function": 2,
+      "address": 140,
+      "length": 12
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "new-req-read-block-battery-a",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA102980040187EAA55",
+    "source": "https://github.com/yosle/ant-bms-ble PROTOCOL.md (battery 152/142, split in reads of at most 64 bytes)",
+    "description": "Block read: battery group part 1, address 152, 64 bytes.",
+    "expected": {
+      "function": 2,
+      "address": 152,
+      "length": 64
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "new-req-read-block-battery-b",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA102D8002E9846AA55",
+    "source": "https://github.com/yosle/ant-bms-ble PROTOCOL.md (battery 152/142, split in reads of at most 64 bytes)",
+    "description": "Block read: battery group part 2 (connection resistances), address 216, 46 bytes.",
+    "expected": {
+      "function": 2,
+      "address": 216,
+      "length": 46
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "new-req-read-pack-id",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA1020601207828AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/18 (bchiu 2022-10-26, SystemInformation dump)",
+    "description": "Read pack ID / battery ID string (32 ASCII bytes) at address 262 (0x0106).",
+    "expected": {
+      "function": 2,
+      "address": 262,
+      "length": 32
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-read-block-system",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA1022A01223820AA55",
+    "source": "https://github.com/yosle/ant-bms-ble PROTOCOL.md (Known blocks: system 298/34)",
+    "description": "Block read: system group, address 298, 34 bytes.",
+    "expected": {
+      "function": 2,
+      "address": 298,
+      "length": 34
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "new-req-read-block-other",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA1027A01123825AA55",
+    "source": "https://github.com/yosle/ant-bms-ble PROTOCOL.md (Known blocks: other 378/18)",
+    "description": "Block read: other group (tire length, pulses, slave modules), address 378, 18 bytes.",
+    "expected": {
+      "function": 2,
+      "address": 378,
+      "length": 18
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "new-req-read-sw-version",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA1027C02105915AA55",
+    "source": "https://github.com/yosle/ant-bms-ble PROTOCOL.md (Known blocks: version 636/16)",
+    "description": "Read user facing software version string, address 636, 16 bytes.",
+    "expected": {
+      "function": 2,
+      "address": 636,
+      "length": 16
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "new-req-chip-id",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA10400000C98ECAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/20 (MaYiSystem.exe Port/OpenPort); issue #18 (bchiu)",
+    "description": "Read chip ID (function 0x04, 12 bytes). Answer is function 0x14.",
+    "expected": {
+      "function": 4,
+      "address": 0,
+      "length": 12
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-system-info",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA105000028990BAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/20 (SystemInfo tab); issue #18 (bchiu)",
+    "description": "Read system info block (function 0x05, 40 bytes). Answer is function 0x15; field meaning unknown.",
+    "expected": {
+      "function": 5,
+      "address": 0,
+      "length": 40
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-gprs",
+    "variant": "ANT_NEW",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "7EA10600006C997CAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/20 (GPRS tab, polled every 1 s)",
+    "description": "Read GPRS/GPS data (function 0x06, 108 bytes). Answer function 0x16; layout unknown.",
+    "expected": {
+      "function": 6,
+      "address": 0,
+      "length": 108
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-system-log-1",
+    "variant": "ANT_NEW",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "7EA103010000C85DAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/20 (Log tab, 1 s gap between requests)",
+    "description": "Read system log entry 1 (function 0x03, address = entry index, length 0). Answer function 0x13; layout unknown.",
+    "expected": {
+      "function": 3,
+      "address": 1,
+      "length": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-system-log-2",
+    "variant": "ANT_NEW",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "7EA103020000385DAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/20 (Log tab, 1 s gap between requests)",
+    "description": "Read system log entry 2 (function 0x03, address = entry index, length 0). Answer function 0x13; layout unknown.",
+    "expected": {
+      "function": 3,
+      "address": 2,
+      "length": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-system-log-3",
+    "variant": "ANT_NEW",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "7EA103030000699DAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/20 (Log tab, 1 s gap between requests)",
+    "description": "Read system log entry 3 (function 0x03, address = entry index, length 0). Answer function 0x13; layout unknown.",
+    "expected": {
+      "function": 3,
+      "address": 3,
+      "length": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-system-log-4",
+    "variant": "ANT_NEW",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "7EA103040000D85CAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/20 (Log tab, 1 s gap between requests)",
+    "description": "Read system log entry 4 (function 0x03, address = entry index, length 0). Answer function 0x13; layout unknown.",
+    "expected": {
+      "function": 3,
+      "address": 4,
+      "length": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-system-log-5",
+    "variant": "ANT_NEW",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "7EA103050000899CAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/20 (Log tab, 1 s gap between requests)",
+    "description": "Read system log entry 5 (function 0x03, address = entry index, length 0). Answer function 0x13; layout unknown.",
+    "expected": {
+      "function": 3,
+      "address": 5,
+      "length": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-system-log-6",
+    "variant": "ANT_NEW",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "7EA103060000799CAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/20 (Log tab, 1 s gap between requests)",
+    "description": "Read system log entry 6 (function 0x03, address = entry index, length 0). Answer function 0x13; layout unknown.",
+    "expected": {
+      "function": 3,
+      "address": 6,
+      "length": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-system-log-7",
+    "variant": "ANT_NEW",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "7EA103070000285CAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/20 (Log tab, 1 s gap between requests)",
+    "description": "Read system log entry 7 (function 0x03, address = entry index, length 0). Answer function 0x13; layout unknown.",
+    "expected": {
+      "function": 3,
+      "address": 7,
+      "length": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-system-log-8",
+    "variant": "ANT_NEW",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "7EA103080000185FAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/20 (Log tab, 1 s gap between requests)",
+    "description": "Read system log entry 8 (function 0x03, address = entry index, length 0). Answer function 0x13; layout unknown.",
+    "expected": {
+      "function": 3,
+      "address": 8,
+      "length": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-system-log-9",
+    "variant": "ANT_NEW",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "7EA103090000499FAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/20 (Log tab, 1 s gap between requests)",
+    "description": "Read system log entry 9 (function 0x03, address = entry index, length 0). Answer function 0x13; layout unknown.",
+    "expected": {
+      "function": 3,
+      "address": 9,
+      "length": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-system-log-10",
+    "variant": "ANT_NEW",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "7EA1030A0000B99FAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/20 (Log tab, 1 s gap between requests)",
+    "description": "Read system log entry 10 (function 0x03, address = entry index, length 0). Answer function 0x13; layout unknown.",
+    "expected": {
+      "function": 3,
+      "address": 10,
+      "length": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-auth-level1-default",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA1234A01083132333435363738DB50AA55",
+    "source": "https://github.com/yosle/ant-bms-ble PROTOCOL.md (Authentication 0x23 -> 0x43); issue #18 (bchiu 2022-10-26 capture)",
+    "description": "Authenticate permission level 1: function 0x23, address 0x014A (330), 8 ASCII bytes, default password 12345678.",
+    "expected": {
+      "function": 35,
+      "address": 330,
+      "length": 8,
+      "password": "12345678"
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-auth-level5-default",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA1236A010C3132333435363738396162632062AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/20 (Level5 123456789abc); https://github.com/syssi/esphome-ant-bms/blob/main/components/ant_bms_ble/ant_bms_ble.cpp (authenticate_()); https://github.com/fl4p/batmon-ha bmslib/test/test_ant_ble_switch.py",
+    "description": "Authenticate permission level 5: function 0x23, address 0x016A (362), 12 ASCII bytes, factory password 123456789abc. ESPHome and batmon-ha send it before every control write.",
+    "expected": {
+      "function": 35,
+      "address": 362,
+      "length": 12,
+      "password": "123456789abc"
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-auth-aiobmsble-variant",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA123016A083132333435363738D9EEAA55",
+    "source": "https://github.com/patman15/aiobmsble tests/bms/test_ant_bms.py (DEFAULT_PASS_MSG)",
+    "description": "Password frame as built by aiobmsble: address bytes 01 6A (0x6A01), i.e. swapped compared to every other source. Not confirmed on hardware; prefer new-req-auth-level1-default.",
+    "expected": {
+      "function": 35,
+      "address": 27137,
+      "length": 8,
+      "password": "12345678"
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-control-discharge-mos-off",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA151010000D8E5AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/20 (MaYiSystem.exe Control tab); https://github.com/syssi/esphome-ant-bms/blob/main/components/ant_bms_ble/button/__init__.py and switch/__init__.py",
+    "description": "Control command (function 0x51, address 0x01, length 0): Discharge MOSFET off. Acknowledged with function 0x61.",
+    "expected": {
+      "function": 81,
+      "address": 1,
+      "length": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-control-discharge-mos-on",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA1510300007925AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/20 (MaYiSystem.exe Control tab); https://github.com/syssi/esphome-ant-bms/blob/main/components/ant_bms_ble/button/__init__.py and switch/__init__.py",
+    "description": "Control command (function 0x51, address 0x03, length 0): Discharge MOSFET on. Acknowledged with function 0x61.",
+    "expected": {
+      "function": 81,
+      "address": 3,
+      "length": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-control-charge-mos-off",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA151040000C8E4AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/20 (MaYiSystem.exe Control tab); https://github.com/syssi/esphome-ant-bms/blob/main/components/ant_bms_ble/button/__init__.py and switch/__init__.py",
+    "description": "Control command (function 0x51, address 0x04, length 0): Charge MOSFET off. Acknowledged with function 0x61.",
+    "expected": {
+      "function": 81,
+      "address": 4,
+      "length": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-control-charge-mos-on",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA1510600006924AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/20 (MaYiSystem.exe Control tab); https://github.com/syssi/esphome-ant-bms/blob/main/components/ant_bms_ble/button/__init__.py and switch/__init__.py",
+    "description": "Control command (function 0x51, address 0x06, length 0): Charge MOSFET on. Acknowledged with function 0x61.",
+    "expected": {
+      "function": 81,
+      "address": 6,
+      "length": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-control-save-apply",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA15107000038E4AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/20 (MaYiSystem.exe Control tab); https://github.com/syssi/esphome-ant-bms/blob/main/components/ant_bms_ble/button/__init__.py and switch/__init__.py",
+    "description": "Control command (function 0x51, address 0x07, length 0): Save / apply parameters (sent by the app after every 0x22 write). Acknowledged with function 0x61.",
+    "expected": {
+      "function": 81,
+      "address": 7,
+      "length": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-control-current-zero",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA15108000008E7AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/20 (MaYiSystem.exe Control tab); https://github.com/syssi/esphome-ant-bms/blob/main/components/ant_bms_ble/button/__init__.py and switch/__init__.py",
+    "description": "Control command (function 0x51, address 0x08, length 0): Current zero calibration. Acknowledged with function 0x61.",
+    "expected": {
+      "function": 81,
+      "address": 8,
+      "length": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-control-restart",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA1510900005927AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/20 (MaYiSystem.exe Control tab); https://github.com/syssi/esphome-ant-bms/blob/main/components/ant_bms_ble/button/__init__.py and switch/__init__.py",
+    "description": "Control command (function 0x51, address 0x09, length 0): Restart BMS. Acknowledged with function 0x61.",
+    "expected": {
+      "function": 81,
+      "address": 9,
+      "length": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-control-shutdown",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA1510B0000F8E7AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/20 (MaYiSystem.exe Control tab); https://github.com/syssi/esphome-ant-bms/blob/main/components/ant_bms_ble/button/__init__.py and switch/__init__.py",
+    "description": "Control command (function 0x51, address 0x0B, length 0): Shutdown (power off) BMS. Acknowledged with function 0x61.",
+    "expected": {
+      "function": 81,
+      "address": 11,
+      "length": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-control-factory-reset",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA1510C00004926AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/20 (MaYiSystem.exe Control tab); https://github.com/syssi/esphome-ant-bms/blob/main/components/ant_bms_ble/button/__init__.py and switch/__init__.py",
+    "description": "Control command (function 0x51, address 0x0C, length 0): Factory reset. Acknowledged with function 0x61.",
+    "expected": {
+      "function": 81,
+      "address": 12,
+      "length": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-control-balance-on",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA1510D000018E6AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/20 (MaYiSystem.exe Control tab); https://github.com/syssi/esphome-ant-bms/blob/main/components/ant_bms_ble/button/__init__.py and switch/__init__.py",
+    "description": "Control command (function 0x51, address 0x0D, length 0): Manual balance on. Acknowledged with function 0x61.",
+    "expected": {
+      "function": 81,
+      "address": 13,
+      "length": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-control-balance-off",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA1510E0000E8E6AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/20 (MaYiSystem.exe Control tab); https://github.com/syssi/esphome-ant-bms/blob/main/components/ant_bms_ble/button/__init__.py and switch/__init__.py",
+    "description": "Control command (function 0x51, address 0x0E, length 0): Manual balance off. Acknowledged with function 0x61.",
+    "expected": {
+      "function": 81,
+      "address": 14,
+      "length": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-control-clear-system-log",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA1510F0000B926AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/20 (MaYiSystem.exe Control tab); https://github.com/syssi/esphome-ant-bms/blob/main/components/ant_bms_ble/button/__init__.py and switch/__init__.py",
+    "description": "Control command (function 0x51, address 0x0F, length 0): Clear system log. Acknowledged with function 0x61.",
+    "expected": {
+      "function": 81,
+      "address": 15,
+      "length": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-control-bluetooth-init",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA15110000088E0AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/20 (MaYiSystem.exe Control tab); https://github.com/syssi/esphome-ant-bms/blob/main/components/ant_bms_ble/button/__init__.py and switch/__init__.py",
+    "description": "Control command (function 0x51, address 0x10, length 0): Bluetooth initialization. Acknowledged with function 0x61.",
+    "expected": {
+      "function": 81,
+      "address": 16,
+      "length": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-control-bluetooth-off",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA1511C000048E3AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/20 (MaYiSystem.exe Control tab); https://github.com/syssi/esphome-ant-bms/blob/main/components/ant_bms_ble/button/__init__.py and switch/__init__.py",
+    "description": "Control command (function 0x51, address 0x1C, length 0): Bluetooth off (drops the BLE link). Acknowledged with function 0x61.",
+    "expected": {
+      "function": 81,
+      "address": 28,
+      "length": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-control-bluetooth-on",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA1511D00001923AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/20 (MaYiSystem.exe Control tab); https://github.com/syssi/esphome-ant-bms/blob/main/components/ant_bms_ble/button/__init__.py and switch/__init__.py",
+    "description": "Control command (function 0x51, address 0x1D, length 0): Bluetooth on. Acknowledged with function 0x61.",
+    "expected": {
+      "function": 81,
+      "address": 29,
+      "length": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-control-buzzer-on",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA1511E0000E923AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/20 (MaYiSystem.exe Control tab); https://github.com/syssi/esphome-ant-bms/blob/main/components/ant_bms_ble/button/__init__.py and switch/__init__.py",
+    "description": "Control command (function 0x51, address 0x1E, length 0): Buzzer on. Acknowledged with function 0x61.",
+    "expected": {
+      "function": 81,
+      "address": 30,
+      "length": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-control-buzzer-off",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA1511F0000B8E3AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/20 (MaYiSystem.exe Control tab); https://github.com/syssi/esphome-ant-bms/blob/main/components/ant_bms_ble/button/__init__.py and switch/__init__.py",
+    "description": "Control command (function 0x51, address 0x1F, length 0): Buzzer off. Acknowledged with function 0x61.",
+    "expected": {
+      "function": 81,
+      "address": 31,
+      "length": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-control-clear-discharge-cycle-ah",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA15120000088EFAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/20 (MaYiSystem.exe Control tab); https://github.com/syssi/esphome-ant-bms/blob/main/components/ant_bms_ble/button/__init__.py and switch/__init__.py",
+    "description": "Control command (function 0x51, address 0x20, length 0): Clear discharge cycle Ah counter. Acknowledged with function 0x61.",
+    "expected": {
+      "function": 81,
+      "address": 32,
+      "length": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-control-clear-charge-cycle-ah",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA151210000D92FAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/20 (MaYiSystem.exe Control tab); https://github.com/syssi/esphome-ant-bms/blob/main/components/ant_bms_ble/button/__init__.py and switch/__init__.py",
+    "description": "Control command (function 0x51, address 0x21, length 0): Clear charge cycle Ah counter. Acknowledged with function 0x61.",
+    "expected": {
+      "function": 81,
+      "address": 33,
+      "length": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-control-clear-discharge-time",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA151220000292FAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/20 (MaYiSystem.exe Control tab); https://github.com/syssi/esphome-ant-bms/blob/main/components/ant_bms_ble/button/__init__.py and switch/__init__.py",
+    "description": "Control command (function 0x51, address 0x22, length 0): Clear discharge time counter. Acknowledged with function 0x61.",
+    "expected": {
+      "function": 81,
+      "address": 34,
+      "length": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-control-clear-charge-time",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA15123000078EFAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/20 (MaYiSystem.exe Control tab); https://github.com/syssi/esphome-ant-bms/blob/main/components/ant_bms_ble/button/__init__.py and switch/__init__.py",
+    "description": "Control command (function 0x51, address 0x23, length 0): Clear charge time counter. Acknowledged with function 0x61.",
+    "expected": {
+      "function": 81,
+      "address": 35,
+      "length": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-control-clear-running-time",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA151240000C92EAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/20 (MaYiSystem.exe Control tab); https://github.com/syssi/esphome-ant-bms/blob/main/components/ant_bms_ble/button/__init__.py and switch/__init__.py",
+    "description": "Control command (function 0x51, address 0x24, length 0): Clear running time counter. Acknowledged with function 0x61.",
+    "expected": {
+      "function": 81,
+      "address": 36,
+      "length": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-control-clear-protect-time",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA15125000098EEAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/20 (MaYiSystem.exe Control tab); https://github.com/syssi/esphome-ant-bms/blob/main/components/ant_bms_ble/button/__init__.py and switch/__init__.py",
+    "description": "Control command (function 0x51, address 0x25, length 0): Clear protect time counter. Acknowledged with function 0x61.",
+    "expected": {
+      "function": 81,
+      "address": 37,
+      "length": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-control-load-lto-defaults",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA15126000068EEAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/20 (MaYiSystem.exe Control tab); https://github.com/syssi/esphome-ant-bms/blob/main/components/ant_bms_ble/button/__init__.py and switch/__init__.py",
+    "description": "Control command (function 0x51, address 0x26, length 0): Load lithium titanate (LTO) default parameters (PC tool button TiLion). Acknowledged with function 0x61.",
+    "expected": {
+      "function": 81,
+      "address": 38,
+      "length": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-control-load-nmc-defaults",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA151270000392EAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/20 (MaYiSystem.exe Control tab); https://github.com/syssi/esphome-ant-bms/blob/main/components/ant_bms_ble/button/__init__.py and switch/__init__.py",
+    "description": "Control command (function 0x51, address 0x27, length 0): Load ternary lithium default parameters (PC tool button Lion). Acknowledged with function 0x61.",
+    "expected": {
+      "function": 81,
+      "address": 39,
+      "length": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-control-load-lfp-defaults",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA151280000092DAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/20 (MaYiSystem.exe Control tab); https://github.com/syssi/esphome-ant-bms/blob/main/components/ant_bms_ble/button/__init__.py and switch/__init__.py",
+    "description": "Control command (function 0x51, address 0x28, length 0): Load LiFePO4 default parameters (PC tool button Iron Lithium). Acknowledged with function 0x61.",
+    "expected": {
+      "function": 81,
+      "address": 40,
+      "length": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-control-reset-hardware",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA1512A0000A8EDAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/20 (MaYiSystem.exe Control tab); https://github.com/syssi/esphome-ant-bms/blob/main/components/ant_bms_ble/button/__init__.py and switch/__init__.py",
+    "description": "Control command (function 0x51, address 0x2A, length 0): Reset hardware. Acknowledged with function 0x61.",
+    "expected": {
+      "function": 81,
+      "address": 42,
+      "length": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-control-save-customer-data",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA1512C000048ECAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/20 (MaYiSystem.exe Control tab); https://github.com/syssi/esphome-ant-bms/blob/main/components/ant_bms_ble/button/__init__.py and switch/__init__.py",
+    "description": "Control command (function 0x51, address 0x2C, length 0): Save customer data. Acknowledged with function 0x61.",
+    "expected": {
+      "function": 81,
+      "address": 44,
+      "length": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-control-user-parameters",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA1512D0000192CAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/20 (MaYiSystem.exe Control tab); https://github.com/syssi/esphome-ant-bms/blob/main/components/ant_bms_ble/button/__init__.py and switch/__init__.py",
+    "description": "Control command (function 0x51, address 0x2D, length 0): Apply user parameters (PC tool button UserPareme). Acknowledged with function 0x61.",
+    "expected": {
+      "function": 81,
+      "address": 45,
+      "length": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-factory-reset-0x53",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA153010000D95DAA55",
+    "source": "https://github.com/yosle/ant-bms-ble PROTOCOL.md (Factory reset cmd 0x53 addr 1 len 0)",
+    "description": "Factory reset as found in the 2024 Android app (function 0x53, address 1). Bytes computed; not captured on hardware.",
+    "expected": {
+      "function": 83,
+      "address": 1,
+      "length": 0
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "new-req-write-charge-ocp-50a",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA122680002F401EA41AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/18 (bchiu 2022-10-26, Current tab capture)",
+    "description": "Write ChargeOvercurrentProtection (0x0068) = 500 raw = 50.0 A. Function 0x22, value u16 little endian.",
+    "expected": {
+      "function": 34,
+      "address": 104,
+      "length": 2,
+      "rawValue": 500
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-write-charge-ocp-delay-5s",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA1226A0002050017D1AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/18 (bchiu 2022-10-26, Current tab capture)",
+    "description": "Write ChargeOvercurrentProtectionDelay (0x006A) = 5 s. Function 0x22, value u16 little endian.",
+    "expected": {
+      "function": 34,
+      "address": 106,
+      "length": 2,
+      "rawValue": 5
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-write-discharge-ocp-300a",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA1226C0002B80BAF46AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/18 (bchiu 2022-10-26, Current tab capture)",
+    "description": "Write DischargeOvercurrentProtection (0x006C) = 3000 raw = 300.0 A. Function 0x22, value u16 little endian.",
+    "expected": {
+      "function": 34,
+      "address": 108,
+      "length": 2,
+      "rawValue": 3000
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-write-discharge-ocp-delay-5s",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA1226E00020500E611AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/18 (bchiu 2022-10-26, Current tab capture)",
+    "description": "Write DischargeOvercurrentProtectionDelay (0x006E) = 5 s. Function 0x22, value u16 little endian.",
+    "expected": {
+      "function": 34,
+      "address": 110,
+      "length": 2,
+      "rawValue": 5
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-write-cell-ovp-3650mv",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA122000002420EBDECAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/docs/pdus/btsnoop_hci_ANT-BLE16ZMUB-reduced.txt",
+    "description": "Write CellOvervoltageProtection (0x0000) = 3650 raw = 3.650 V. The app then sent 0x51/0x07 (save). Function 0x22, value u16 little endian.",
+    "expected": {
+      "function": 34,
+      "address": 0,
+      "length": 2,
+      "rawValue": 3650
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-write-cell-ovp-recovery-3550mv",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA122020002DE0DED2DAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/docs/pdus/btsnoop_hci_ANT-BLE16ZMUB-reduced.txt",
+    "description": "Write CellOvervoltageRecovery (0x0002) = 3550 raw = 3.550 V. The app then sent 0x51/0x07 (save). Function 0x22, value u16 little endian.",
+    "expected": {
+      "function": 34,
+      "address": 2,
+      "length": 2,
+      "rawValue": 3550
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-req-write-capacity-u32-example",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "7EA122A2000400E1F505D9C9AA55",
+    "source": "https://github.com/yosle/ant-bms-ble PROTOCOL.md (Parameter writes cmd 0x22: 162 len 4 physical capacity); https://github.com/syssi/esphome-ant-bms/blob/main/components/ant_bms_ble/ant_bms_ble.cpp (UINT32_ADDRESSES)",
+    "description": "Example u32 write to NominalCapacity (0x00A2) with raw 100000000 (100 Ah if the register is in micro Ah as the 2024 app map says; the unit is disputed, see spec). Bytes computed.",
+    "expected": {
+      "function": 34,
+      "address": 162,
+      "length": 4,
+      "rawValue": 100000000
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "new-rsp-status-16s-esphome",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "7EA11100008E05010210000000000000000080008001000000000000000000000000E40CE40CE50CE50CE80CE70CE70CE60CE80CE70CE70CE70CE70CE70CE60CE90C0100020002000700A41403005B006400010100000076B010D5670E0FBA324A000F00000010582E0200000000E90C1000E40C01000500E60C000080007A000F02F2FAB98C3B00BBD85800DA2D4300E8B649000543AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/tests/components/ant_bms_ble/frames_16s_status.h (STATUS_FRAME_16S) and ant_bms_ble_test.cpp; same frame in docs/pdus/btsnoop_hci_ANT-BLE16ZMUB-reduced.txt",
+    "description": "Status 0x11, 16S, 2 NTC, data length 142 (no optional block). Values as asserted by the ESPHome tests (some rounded).",
+    "expected": {
+      "cellCount": 16,
+      "tempSensorCount": 2,
+      "cellVoltages": [
+        3.3,
+        3.3,
+        3.301,
+        3.301,
+        3.304,
+        3.303,
+        3.303,
+        3.302,
+        3.304,
+        3.303,
+        3.303,
+        3.303,
+        3.303,
+        3.303,
+        3.302,
+        3.305
+      ],
+      "packVoltage": 52.84,
+      "current": 0.3,
+      "soc": 91,
+      "soh": 100,
+      "systemState": 1,
+      "capacityAh": 280.0,
+      "remainingAh": 252.602,
+      "cycleAh": 4862.65,
+      "power": 15,
+      "uptimeS": 36591632,
+      "temperatures": [
+        1,
+        2
+      ],
+      "mosTemperature": 2,
+      "balancerTemperature": 7,
+      "chargeMosState": 1,
+      "dischargeMosState": 1,
+      "balanceState": 0,
+      "cellVoltageMax": 3.305,
+      "cellVoltageMaxCell": 16,
+      "cellVoltageMin": 3.3,
+      "cellVoltageMinCell": 1,
+      "cellVoltageDelta": 0.005,
+      "cellVoltageAverage": 3.302,
+      "balancingCellMask": 0,
+      "totalDischargeAh": 3902.649,
+      "totalChargeAh": 5822.651,
+      "totalDischargeTimeS": 4402650,
+      "totalChargeTimeS": 4830952
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-rsp-status-14s-charge-protect",
+    "variant": "ANT_NEW",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "7EA11100008E0501040E020000000000000000000001000000000000000000000000111011101110111011101110111011101110111011101110111011101C001C00D8FF1C001C001C007E160000600064000102000080C3C9014F55B3010853000000000000CB26120000000000111001001110010000001110010070000300AC02F1FA7D2E000094770000DE070000777600008F5FAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/18 (bchiu 2022-10-26 20:25:25, vendor PC tool over serial); https://github.com/fl4p/batmon-ha bmslib/test/data/ant_uart_fixtures.py (NEW_14S_PC_TOOL) and test_ant_uart.py",
+    "description": "Status 0x11, 14S, 4 NTC (third reads -40 = absent). Scalar values match batmon-ha assertions; masks, raw MOS states and battery type computed. Byte 82 = discharge MOS 1 (on), byte 83 = charge MOS 2 (cell overvoltage); protection bit 1 set, warning bit 24 (discharge MOS on) set.",
+    "expected": {
+      "cellCount": 14,
+      "tempSensorCount": 4,
+      "cellVoltages": [
+        4.113,
+        4.113,
+        4.113,
+        4.113,
+        4.113,
+        4.113,
+        4.113,
+        4.113,
+        4.113,
+        4.113,
+        4.113,
+        4.113,
+        4.113,
+        4.113
+      ],
+      "packVoltage": 57.58,
+      "current": 0.0,
+      "soc": 96,
+      "soh": 100,
+      "capacityAh": 30.0,
+      "remainingAh": 28.53,
+      "cycleAh": 21.256,
+      "mosTemperature": 28,
+      "temperatures": [
+        28,
+        28,
+        -40,
+        28
+      ],
+      "dischargeMosState": 1,
+      "chargeMosState": 2,
+      "protectionMask0": 2,
+      "warningMask0": 16777216,
+      "batteryType": 64241
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "new-rsp-status-22s-lto-aiobmsble",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "7EA11100009E050404160000000000000000000088010000000000000000000000001E091B091E091D091D091E0920091E098F088E0890082209EB08200920091F091E091F091E091F0921091F091D001D001D001D001E001E00E01315000A0064000101000000B4C40486F197003AEDE8006A000000A1F2C0030000000022090C008E080A009400080900006D006A00AF02F3FA4C74E5002866EC00C35D6200CCB39200EDC8AA55",
+    "source": "https://github.com/patman15/aiobmsble tests/bms/test_ant_bms.py (MockANTBleakClient.RESP[0x1], _RESULT_DEFS)",
+    "description": "Status 0x11, 22S LTO pack (battery type 0xFAF3), 4 NTC, system state 4 (discharging) with +2.1 A. Values as asserted by aiobmsble (cycleAh given as integer by the source).",
+    "expected": {
+      "cellCount": 22,
+      "tempSensorCount": 4,
+      "packVoltage": 50.88,
+      "current": 2.1,
+      "soc": 10,
+      "soh": 100,
+      "remainingAh": 9.957766,
+      "capacityAh": 80,
+      "power": 106,
+      "cellVoltages": [
+        2.334,
+        2.331,
+        2.334,
+        2.333,
+        2.333,
+        2.334,
+        2.336,
+        2.334,
+        2.191,
+        2.19,
+        2.192,
+        2.338,
+        2.283,
+        2.336,
+        2.336,
+        2.335,
+        2.334,
+        2.335,
+        2.334,
+        2.335,
+        2.337,
+        2.335
+      ],
+      "temperatures": [
+        29,
+        29,
+        29,
+        29
+      ],
+      "mosTemperature": 30,
+      "balancerTemperature": 30,
+      "cellVoltageDelta": 0.148,
+      "chargeMosState": 1,
+      "dischargeMosState": 1
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-rsp-status-8s-batmon",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "7EA11100007E05010208020000000000000001004201000000000000000000000000D40DD50DD50DD50DD50DD40DD50DD50DD8FFD8FF1C001D00110B0000640064000102000000E1F50500E1F505A532000000000000FF97010000000000D50D0200D40D01000100D40DF8FF82000000AB02F2FA100000003A6500001F000000FA62000011C3AA55",
+    "source": "https://github.com/fl4p/batmon-ha bmslib/test/data/ant_fixtures.py (INLINE_8S) and bmslib/models/ant.py",
+    "description": "Status 0x11, 8S LiFePO4, 2 NTC both absent (-40), full pack: discharge MOS 1, charge MOS 2 (cell overvoltage), protection bit 1. Scalar values match batmon-ha assertions; raw MOS state bytes and temperatures computed.",
+    "expected": {
+      "cellCount": 8,
+      "tempSensorCount": 2,
+      "packVoltage": 28.33,
+      "current": 0.0,
+      "remainingAh": 100.0,
+      "capacityAh": 100.0,
+      "cycleAh": 12.965,
+      "soc": 100,
+      "soh": 100,
+      "mosTemperature": 28,
+      "temperatures": [
+        -40,
+        -40
+      ],
+      "dischargeMosState": 1,
+      "chargeMosState": 2,
+      "cellVoltages": [
+        3.54,
+        3.541,
+        3.541,
+        3.541,
+        3.541,
+        3.54,
+        3.541,
+        3.541
+      ]
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "new-rsp-status-16s-remaining-time",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "7EA11100009E01040410000000000000000010008801000000000000000000000000CA0CC40CC70CCC0CC50CC90CC30CC80CCB0CC40C9B0CC70CCA0CC20CC80CC50C1B001D0019001E002E001C006D14B4004800620001010000402C42068090810450622500AD0300005A7E170100000000CC0C04009B0C0B003100C40C3400340000000000F2FA18100000541000001055220060361E0000000000000000000000FB00D3E6AA55",
+    "source": "https://github.com/yosle/ant-bms-web tests/protocol.test.js (REALTIME_HEX, captured from ANT-BLE22AAUB-YCE7 firmware 22AAUB00-240510A)",
+    "description": "Status 0x11, 16S LFP, 4 NTC, data length 158 = 106+32+8+12: carries the 12 byte remaining-time block (discharge time remaining 0x00FB = 251 min). Discharging +18.0 A, system state 4. Values as asserted by ant-bms-web tests.",
+    "expected": {
+      "cellCount": 16,
+      "tempSensorCount": 4,
+      "cellVoltages": [
+        3.274,
+        3.268,
+        3.271,
+        3.276,
+        3.269,
+        3.273,
+        3.267,
+        3.272,
+        3.275,
+        3.268,
+        3.227,
+        3.271,
+        3.274,
+        3.266,
+        3.272,
+        3.269
+      ],
+      "temperatures": [
+        27,
+        29,
+        25,
+        30
+      ],
+      "mosTemperature": 46,
+      "balancerTemperature": 28,
+      "packVoltage": 52.29,
+      "current": 18.0,
+      "soc": 72,
+      "soh": 98,
+      "capacityAh": 105.0,
+      "remainingAh": 75.6,
+      "cycleAh": 2450.0,
+      "power": 941,
+      "cellVoltageMax": 3.276,
+      "cellVoltageMaxCell": 4,
+      "cellVoltageMin": 3.227,
+      "cellVoltageMinCell": 11,
+      "cellVoltageDelta": 0.049,
+      "cellVoltageAverage": 3.268,
+      "batteryType": 64242,
+      "systemState": 4,
+      "dischargeMosState": 1,
+      "chargeMosState": 1
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-rsp-status-20s-standby-14b-block",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "7EA1110000A8010304140000000000000000000080050000000000000000000000007810781078107810781078107810781078107910771078107810781078107810781079107810781019001900190019001B001C00F3200100640064000101000080A4BF07C917A80711BB000008000000546210000000000079100A0077100B0002007810000081007C00AB02F1FA77840000ACF10000922A00001E850000000000009A27040000008608000064FFAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/174 (syssi 2026-06-16, ANT@BLE22AAUB-Q2U3, 22PHB8TB130A)",
+    "description": "Status 0x11, 20S NMC, 4 NTC, permission 1, system state 3 (standby, warning bit 26 sleep). Data length 168 = 106+40+8+14: optional block of 14 bytes (12 known + 2 unknown trailing bytes). Values computed with the layout in docs/protocols/ant.md.",
+    "expected": {
+      "permission": 1,
+      "systemState": 3,
+      "tempSensorCount": 4,
+      "cellCount": 20,
+      "protectionMask0": 0,
+      "protectionMask1": 0,
+      "warningMask0": 92274688,
+      "warningMask1": 0,
+      "cellVoltages": [
+        4.216,
+        4.216,
+        4.216,
+        4.216,
+        4.216,
+        4.216,
+        4.216,
+        4.216,
+        4.216,
+        4.217,
+        4.215,
+        4.216,
+        4.216,
+        4.216,
+        4.216,
+        4.216,
+        4.216,
+        4.217,
+        4.216,
+        4.216
+      ],
+      "temperatures": [
+        25,
+        25,
+        25,
+        25
+      ],
+      "mosTemperature": 27,
+      "balancerTemperature": 28,
+      "packVoltage": 84.35,
+      "current": 0.1,
+      "soc": 100,
+      "soh": 100,
+      "dischargeMosState": 1,
+      "chargeMosState": 1,
+      "balanceState": 0,
+      "capacityAh": 130.0,
+      "remainingAh": 128.456649,
+      "cycleAh": 47.889,
+      "power": 8,
+      "uptimeS": 1073748,
+      "balancingCellMask": 0,
+      "cellVoltageMax": 4.217,
+      "cellVoltageMaxCell": 10,
+      "cellVoltageMin": 4.215,
+      "cellVoltageMinCell": 11,
+      "cellVoltageDelta": 0.002,
+      "cellVoltageAverage": 4.216,
+      "batteryType": 64241,
+      "totalDischargeAh": 33.911,
+      "totalChargeAh": 61.868,
+      "totalDischargeTimeS": 10898,
+      "totalChargeTimeS": 34078,
+      "optionalBlockBytes": 14,
+      "chargeDurationS": 0,
+      "chargeIntervalS": 272282,
+      "chargeTimeRemainingMin": 0,
+      "dischargeTimeRemainingMin": 2182
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "new-rsp-status-30s",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "7EA1110000AE0501041E000000000000000000008001000000000000000000000000030F040F060F050F060F060F050F060F040F060F060F040F020F030F030F030F030F040F060F060F020F050F030F050F040F060F060F000F000F050F0F0010000F00D8FF100010000C2D00004600640001010000C09BC001EF20390198D6040000000000A5E4BE0100000000060F0300000F1C000600040F00006B006800AE02F1FADA7A0400573205002ECB000027830300797BAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/78 (laksa19 2023-12-04 log, reassembled from 20 byte notifications)",
+    "description": "Status 0x11, 30S NMC (115.32 V), 4 NTC (fourth absent, -40), data length 174 = 106+60+8. Values computed with the layout in docs/protocols/ant.md.",
+    "expected": {
+      "permission": 5,
+      "systemState": 1,
+      "tempSensorCount": 4,
+      "cellCount": 30,
+      "protectionMask0": 0,
+      "protectionMask1": 0,
+      "warningMask0": 25165824,
+      "warningMask1": 0,
+      "cellVoltages": [
+        3.843,
+        3.844,
+        3.846,
+        3.845,
+        3.846,
+        3.846,
+        3.845,
+        3.846,
+        3.844,
+        3.846,
+        3.846,
+        3.844,
+        3.842,
+        3.843,
+        3.843,
+        3.843,
+        3.843,
+        3.844,
+        3.846,
+        3.846,
+        3.842,
+        3.845,
+        3.843,
+        3.845,
+        3.844,
+        3.846,
+        3.846,
+        3.84,
+        3.84,
+        3.845
+      ],
+      "temperatures": [
+        15,
+        16,
+        15,
+        -40
+      ],
+      "mosTemperature": 16,
+      "balancerTemperature": 16,
+      "packVoltage": 115.32,
+      "current": 0.0,
+      "soc": 70,
+      "soh": 100,
+      "dischargeMosState": 1,
+      "chargeMosState": 1,
+      "balanceState": 0,
+      "capacityAh": 29.4,
+      "remainingAh": 20.521199,
+      "cycleAh": 317.08,
+      "power": 0,
+      "uptimeS": 29287589,
+      "balancingCellMask": 0,
+      "cellVoltageMax": 3.846,
+      "cellVoltageMaxCell": 3,
+      "cellVoltageMin": 3.84,
+      "cellVoltageMinCell": 28,
+      "cellVoltageDelta": 0.006,
+      "cellVoltageAverage": 3.844,
+      "batteryType": 64241,
+      "totalDischargeAh": 293.594,
+      "totalChargeAh": 340.567,
+      "totalDischargeTimeS": 52014,
+      "totalChargeTimeS": 230183,
+      "optionalBlockBytes": 0
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "new-rsp-status-16s-soc-low",
+    "variant": "ANT_NEW",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "7EA11100008E010102100000000000000000003080010000000000000000000000003B0C480CEE0B3D0C540C410C370C320C260C4A0C4C0C2C0C210C2B0C3F0C3F0C100010001300120089130000040064000101000000D8B805B3875F000F736A0100000000B35A980200000000540C0500EE0B03006600350C000082007E00120200000F486B010F9E6901C389BB00DDD38400560BAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/18 (dl4mea 2023-02-27)",
+    "description": "Status 0x11, 16S, permission 1, SOC 4 %: warning bits 12 and 13 (SOC low level 1 and 2) plus 23 and 24 (charge and discharge MOS on). Battery type field reads 0. Values computed with the layout in docs/protocols/ant.md.",
+    "expected": {
+      "permission": 1,
+      "systemState": 1,
+      "tempSensorCount": 2,
+      "cellCount": 16,
+      "protectionMask0": 0,
+      "protectionMask1": 0,
+      "warningMask0": 25178112,
+      "warningMask1": 0,
+      "cellVoltages": [
+        3.131,
+        3.144,
+        3.054,
+        3.133,
+        3.156,
+        3.137,
+        3.127,
+        3.122,
+        3.11,
+        3.146,
+        3.148,
+        3.116,
+        3.105,
+        3.115,
+        3.135,
+        3.135
+      ],
+      "temperatures": [
+        16,
+        16
+      ],
+      "mosTemperature": 19,
+      "balancerTemperature": 18,
+      "packVoltage": 50.01,
+      "current": 0.0,
+      "soc": 4,
+      "soh": 100,
+      "dischargeMosState": 1,
+      "chargeMosState": 1,
+      "balanceState": 0,
+      "capacityAh": 96.0,
+      "remainingAh": 6.260659,
+      "cycleAh": 23753.487,
+      "power": 0,
+      "uptimeS": 43539123,
+      "balancingCellMask": 0,
+      "cellVoltageMax": 3.156,
+      "cellVoltageMaxCell": 5,
+      "cellVoltageMin": 3.054,
+      "cellVoltageMinCell": 3,
+      "cellVoltageDelta": 0.102,
+      "cellVoltageAverage": 3.125,
+      "batteryType": 0,
+      "totalDischargeAh": 23808.015,
+      "totalChargeAh": 23698.959,
+      "totalDischargeTimeS": 12290499,
+      "totalChargeTimeS": 8704989,
+      "optionalBlockBytes": 0
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "new-rsp-status-22s-discharging",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "7EA11100009E050404160000000000000000000088010000000000000000000000001E091B091E091D091D091E0920091E098F088E0890082209EC08200920091F091E091F091E091F0921091F091D001D001D001D001E001E00E01316000A0064000101000000B4C404724F98002EEDE8006F00000079F2C0030000000022090C008E080A009400080900006D006A00AF02F3FA3474E5002866EC009C5D6200CCB392007C47AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/docs/btsnoop_hci_ANT-BLE24BHUB-commands.log (reassembled from 20 byte ATT notifications on handle 0x0010)",
+    "description": "Status 0x11 right after connect: system state 4, current +2.2 A, power +111 W, warning bits 19 (discharging), 23, 24. Shows positive current = discharge. Values computed with the layout in docs/protocols/ant.md.",
+    "expected": {
+      "permission": 5,
+      "systemState": 4,
+      "tempSensorCount": 4,
+      "cellCount": 22,
+      "protectionMask0": 0,
+      "protectionMask1": 0,
+      "warningMask0": 25690112,
+      "warningMask1": 0,
+      "cellVoltages": [
+        2.334,
+        2.331,
+        2.334,
+        2.333,
+        2.333,
+        2.334,
+        2.336,
+        2.334,
+        2.191,
+        2.19,
+        2.192,
+        2.338,
+        2.284,
+        2.336,
+        2.336,
+        2.335,
+        2.334,
+        2.335,
+        2.334,
+        2.335,
+        2.337,
+        2.335
+      ],
+      "temperatures": [
+        29,
+        29,
+        29,
+        29
+      ],
+      "mosTemperature": 30,
+      "balancerTemperature": 30,
+      "packVoltage": 50.88,
+      "current": 2.2,
+      "soc": 10,
+      "soh": 100,
+      "dischargeMosState": 1,
+      "chargeMosState": 1,
+      "balanceState": 0,
+      "capacityAh": 80.0,
+      "remainingAh": 9.98181,
+      "cycleAh": 15265.07,
+      "power": 111,
+      "uptimeS": 62976633,
+      "balancingCellMask": 0,
+      "cellVoltageMax": 2.338,
+      "cellVoltageMaxCell": 12,
+      "cellVoltageMin": 2.19,
+      "cellVoltageMinCell": 10,
+      "cellVoltageDelta": 0.148,
+      "cellVoltageAverage": 2.312,
+      "batteryType": 64243,
+      "totalDischargeAh": 15037.492,
+      "totalChargeAh": 15492.648,
+      "totalDischargeTimeS": 6446492,
+      "totalChargeTimeS": 9614284,
+      "optionalBlockBytes": 0
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "new-rsp-status-22s-both-mos-off",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "7EA11100009E0501041600002200000000000000000000000000000000000000000020091D091F091F091F091F0921091F0990088F0890082309EB082109210921091F0921091F092109220921091C001D001D001D001E001E00E21300000A0064000F0F000000B4C404F89F970044EDE80000000000CDF2C0030000000023090C008F080A0094000A09010001000000AF02F3FA6174E5002866EC00E75D6200CCB39200DFCBAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/docs/btsnoop_hci_ANT-BLE24BHUB-commands.log (reassembled from 20 byte ATT notifications on handle 0x0010)",
+    "description": "Status 0x11 after 7EA151040000C8E4AA55 (charge off) and 7EA151010000D8E5AA55 (discharge off): both MOS state bytes 0x0F (manually off), protection bits 17 (manual discharge MOS off) and 21 (manual charge MOS off). Values computed with the layout in docs/protocols/ant.md.",
+    "expected": {
+      "permission": 5,
+      "systemState": 1,
+      "tempSensorCount": 4,
+      "cellCount": 22,
+      "protectionMask0": 2228224,
+      "protectionMask1": 0,
+      "warningMask0": 0,
+      "warningMask1": 0,
+      "cellVoltages": [
+        2.336,
+        2.333,
+        2.335,
+        2.335,
+        2.335,
+        2.335,
+        2.337,
+        2.335,
+        2.192,
+        2.191,
+        2.192,
+        2.339,
+        2.283,
+        2.337,
+        2.337,
+        2.337,
+        2.335,
+        2.337,
+        2.335,
+        2.337,
+        2.338,
+        2.337
+      ],
+      "temperatures": [
+        28,
+        29,
+        29,
+        29
+      ],
+      "mosTemperature": 30,
+      "balancerTemperature": 30,
+      "packVoltage": 50.9,
+      "current": 0.0,
+      "soc": 10,
+      "soh": 100,
+      "dischargeMosState": 15,
+      "chargeMosState": 15,
+      "balanceState": 0,
+      "capacityAh": 80.0,
+      "remainingAh": 9.936888,
+      "cycleAh": 15265.092,
+      "power": 0,
+      "uptimeS": 62976717,
+      "balancingCellMask": 0,
+      "cellVoltageMax": 2.339,
+      "cellVoltageMaxCell": 12,
+      "cellVoltageMin": 2.191,
+      "cellVoltageMinCell": 10,
+      "cellVoltageDelta": 0.148,
+      "cellVoltageAverage": 2.314,
+      "batteryType": 64243,
+      "totalDischargeAh": 15037.537,
+      "totalChargeAh": 15492.648,
+      "totalDischargeTimeS": 6446567,
+      "totalChargeTimeS": 9614284,
+      "optionalBlockBytes": 0
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "new-rsp-status-22s-discharge-mos-off",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "7EA11100009E050104160000020000000000000080000000000000000000000000001F091C091F091E091E091F0921091F098F088E0890082309EB082109210921091F0921091F092109210920091C001C001C001D001E001F00E01300000A0064000F01000000B4C404725F97004CEDE8000000000027F3C0030000000023090C008E080A0095000909000001006800AF02F3FA7074E5002866EC00005E6200CCB39200D335AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/docs/btsnoop_hci_ANT-BLE24BHUB-commands.log (reassembled from 20 byte ATT notifications on handle 0x0010)",
+    "description": "Status 0x11 after discharge off only: byte at 46+offset = 0x0F (discharge MOS manually off), byte at 47+offset = 0x01 (charge MOS on), protection bit 17, warning bit 23 only. Proves discharge MOS state comes first. Values computed with the layout in docs/protocols/ant.md.",
+    "expected": {
+      "permission": 5,
+      "systemState": 1,
+      "tempSensorCount": 4,
+      "cellCount": 22,
+      "protectionMask0": 131072,
+      "protectionMask1": 0,
+      "warningMask0": 8388608,
+      "warningMask1": 0,
+      "cellVoltages": [
+        2.335,
+        2.332,
+        2.335,
+        2.334,
+        2.334,
+        2.335,
+        2.337,
+        2.335,
+        2.191,
+        2.19,
+        2.192,
+        2.339,
+        2.283,
+        2.337,
+        2.337,
+        2.337,
+        2.335,
+        2.337,
+        2.335,
+        2.337,
+        2.337,
+        2.336
+      ],
+      "temperatures": [
+        28,
+        28,
+        28,
+        29
+      ],
+      "mosTemperature": 30,
+      "balancerTemperature": 31,
+      "packVoltage": 50.88,
+      "current": 0.0,
+      "soc": 10,
+      "soh": 100,
+      "dischargeMosState": 15,
+      "chargeMosState": 1,
+      "balanceState": 0,
+      "capacityAh": 80.0,
+      "remainingAh": 9.92037,
+      "cycleAh": 15265.1,
+      "power": 0,
+      "uptimeS": 62976807,
+      "balancingCellMask": 0,
+      "cellVoltageMax": 2.339,
+      "cellVoltageMaxCell": 12,
+      "cellVoltageMin": 2.19,
+      "cellVoltageMinCell": 10,
+      "cellVoltageDelta": 0.149,
+      "cellVoltageAverage": 2.313,
+      "batteryType": 64243,
+      "totalDischargeAh": 15037.552,
+      "totalChargeAh": 15492.648,
+      "totalDischargeTimeS": 6446592,
+      "totalChargeTimeS": 9614284,
+      "optionalBlockBytes": 0
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "new-rsp-device-info-16zm",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "7EA1126C022031365A4D00000000000000000000000031365A4D554230302D323131303236417208FF0B000041F2AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/tests/components/ant_bms_ble/frames_16s_status.h (DEVICE_INFO_FRAME); docs/pdus/btsnoop_hci_ANT-BLE16ZMUB-reduced.txt",
+    "description": "Device info 0x12 at 0x026C, 32 data bytes, primary CRC, then extra section FF 0B 00 00 with its own CRC (41 F2), then AA 55. Total 48 bytes.",
+    "expected": {
+      "hardwareVersion": "16ZM",
+      "softwareVersion": "16ZMUB00-211026A",
+      "extraStatus": 11,
+      "extraLength": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-rsp-device-info-22aaub-u-in-version",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "7EA1126C02203232504842385442313330410000000032324141554230302D32343130303841EF2FFF0B000041F2AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/tests/components/ant_bms_ble/frames_16s_status.h (DEVICE_INFO_FRAME_ISSUE_172); issue #172",
+    "description": "Device info 0x12 at 0x026C, 32 data bytes, primary CRC, then extra section FF 0B 00 00 with its own CRC (41 F2), then AA 55. Total 48 bytes. Contains 'U' (0x55) inside the version string: do not end a frame on a bare 0x55.",
+    "expected": {
+      "hardwareVersion": "22PHB8TB130A",
+      "softwareVersion": "22AAUB00-241008A",
+      "extraStatus": 11,
+      "extraLength": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-rsp-device-info-24bha0tb120a",
+    "variant": "ANT_NEW",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "7EA1126C02203234424841305442313230410000000032344248554230302D3232303330314106FDFF0B000041F2AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/18 (bchiu 2022-10-26 20:25:23)",
+    "description": "Device info 0x12 at 0x026C, 32 data bytes, primary CRC, then extra section FF 0B 00 00 with its own CRC (41 F2), then AA 55. Total 48 bytes.",
+    "expected": {
+      "hardwareVersion": "24BHA0TB120A",
+      "softwareVersion": "24BHUB00-220301A",
+      "extraStatus": 11,
+      "extraLength": 0
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "new-rsp-device-info-24bh",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "7EA1126C02203234424800000000000000000000000032344248554230302D323131303236415796FF0B000041F2AA55",
+    "source": "https://github.com/patman15/aiobmsble tests/bms/test_ant_bms.py (RESP[0x2], test_device_info); https://github.com/syssi/esphome-ant-bms/blob/main/docs/btsnoop_hci_ANT-BLE24BHUB-commands.log",
+    "description": "Device info 0x12 at 0x026C, 32 data bytes, primary CRC, then extra section FF 0B 00 00 with its own CRC (41 F2), then AA 55. Total 48 bytes.",
+    "expected": {
+      "hardwareVersion": "24BH",
+      "softwareVersion": "24BHUB00-211026A",
+      "extraStatus": 11,
+      "extraLength": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-rsp-device-info-32bha0tb120a",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "7EA1126C02203332424841305442313230410000000033324248554230302D323131303035411FB7FF0B000041F2AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/78 (laksa19 log)",
+    "description": "Device info 0x12 at 0x026C, 32 data bytes, primary CRC, then extra section FF 0B 00 00 with its own CRC (41 F2), then AA 55. Total 48 bytes.",
+    "expected": {
+      "hardwareVersion": "32BHA0TB120A",
+      "softwareVersion": "32BHUB00-211005A",
+      "extraStatus": 11,
+      "extraLength": 0
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "new-rsp-device-info-22pha1tb080a",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "7EA1126C02203232504841315442303830410000000032324141554230302D32343035313041EDE0FF0B000041F2AA55",
+    "source": "https://github.com/yosle/ant-bms-web tests/protocol.test.js (CASE_C_VERSION); https://github.com/yosle/ant-bms-ble tests/test_protocol.py",
+    "description": "Device info 0x12 at 0x026C, 32 data bytes, primary CRC, then extra section FF 0B 00 00 with its own CRC (41 F2), then AA 55. Total 48 bytes.",
+    "expected": {
+      "hardwareVersion": "22PHA1TB080A",
+      "softwareVersion": "22AAUB00-240510A",
+      "extraStatus": 11,
+      "extraLength": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-rsp-read-cell-ovp-4150mv",
+    "variant": "ANT_NEW",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "7EA11200000236101F14FF0B000041F2AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/18 (bchiu 2022-10-24); https://github.com/syssi/esphome-ant-bms/blob/main/tests/components/ant_bms_ble/frames_settings.h (SETTINGS_RESP_CELL_HIGH_PROTECT, short form without extra section)",
+    "description": "Settings read response 0x12 for CellOvervoltageProtection (0x0000): raw 0x1036 = 4150 = 4.150 V, followed by extra section FF 0B 00 00 + CRC.",
+    "expected": {
+      "address": 0,
+      "length": 2,
+      "rawValue": 4150,
+      "value": 4.15
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-rsp-read-0x0002",
+    "variant": "ANT_NEW",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "7EA112020002041073B4FF0B000041F2AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/18 (bchiu 2022-10-26 20:21, Voltage tab dump of a 24BHUB board)",
+    "description": "Settings read response 0x12 for register 0x0002: raw 4100, scale 0.001.",
+    "expected": {
+      "address": 2,
+      "length": 2,
+      "rawValue": 4100,
+      "value": 4.1
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "new-rsp-read-0x0004",
+    "variant": "ANT_NEW",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "7EA112040002CC10AC74FF0B000041F2AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/18 (bchiu 2022-10-26 20:21, Voltage tab dump of a 24BHUB board)",
+    "description": "Settings read response 0x12 for register 0x0004: raw 4300, scale 0.001.",
+    "expected": {
+      "address": 4,
+      "length": 2,
+      "rawValue": 4300,
+      "value": 4.3
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "new-rsp-read-0x0006",
+    "variant": "ANT_NEW",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "7EA1120600026810AF74FF0B000041F2AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/18 (bchiu 2022-10-26 20:21, Voltage tab dump of a 24BHUB board)",
+    "description": "Settings read response 0x12 for register 0x0006: raw 4200, scale 0.001.",
+    "expected": {
+      "address": 6,
+      "length": 2,
+      "rawValue": 4200,
+      "value": 4.2
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "new-rsp-read-0x0008",
+    "variant": "ANT_NEW",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "7EA112080002580252B8FF0B000041F2AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/18 (bchiu 2022-10-26 20:21, Voltage tab dump of a 24BHUB board)",
+    "description": "Settings read response 0x12 for register 0x0008: raw 600, scale 0.1.",
+    "expected": {
+      "address": 8,
+      "length": 2,
+      "rawValue": 600,
+      "value": 60.0
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "new-rsp-read-0x000a",
+    "variant": "ANT_NEW",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "7EA1120A0002440223B8FF0B000041F2AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/18 (bchiu 2022-10-26 20:21, Voltage tab dump of a 24BHUB board)",
+    "description": "Settings read response 0x12 for register 0x000A: raw 580, scale 0.1.",
+    "expected": {
+      "address": 10,
+      "length": 2,
+      "rawValue": 580,
+      "value": 58.0
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "new-rsp-read-0x000c",
+    "variant": "ANT_NEW",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "7EA1120C0002540B667EFF0B000041F2AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/18 (bchiu 2022-10-26 20:21, Voltage tab dump of a 24BHUB board)",
+    "description": "Settings read response 0x12 for register 0x000C: raw 2900, scale 0.001.",
+    "expected": {
+      "address": 12,
+      "length": 2,
+      "rawValue": 2900,
+      "value": 2.9
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "new-rsp-read-0x000e",
+    "variant": "ANT_NEW",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "7EA1120E0002800C017CFF0B000041F2AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/18 (bchiu 2022-10-26 20:21, Voltage tab dump of a 24BHUB board)",
+    "description": "Settings read response 0x12 for register 0x000E: raw 3200, scale 0.001.",
+    "expected": {
+      "address": 14,
+      "length": 2,
+      "rawValue": 3200,
+      "value": 3.2
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "new-rsp-read-0x0010",
+    "variant": "ANT_NEW",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "7EA112100002280A56BCFF0B000041F2AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/18 (bchiu 2022-10-26 20:21, Voltage tab dump of a 24BHUB board)",
+    "description": "Settings read response 0x12 for register 0x0010: raw 2600, scale 0.001.",
+    "expected": {
+      "address": 16,
+      "length": 2,
+      "rawValue": 2600,
+      "value": 2.6
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "new-rsp-read-0x0012",
+    "variant": "ANT_NEW",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "7EA112120002540BCE7CFF0B000041F2AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/18 (bchiu 2022-10-26 20:21, Voltage tab dump of a 24BHUB board)",
+    "description": "Settings read response 0x12 for register 0x0012: raw 2900, scale 0.001.",
+    "expected": {
+      "address": 18,
+      "length": 2,
+      "rawValue": 2900,
+      "value": 2.9
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "new-rsp-read-0x0014",
+    "variant": "ANT_NEW",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "7EA1121400026801D77BFF0B000041F2AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/18 (bchiu 2022-10-26 20:21, Voltage tab dump of a 24BHUB board)",
+    "description": "Settings read response 0x12 for register 0x0014: raw 360, scale 0.1.",
+    "expected": {
+      "address": 20,
+      "length": 2,
+      "rawValue": 360,
+      "value": 36.0
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "new-rsp-read-0x0016",
+    "variant": "ANT_NEW",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "7EA1121600027C01A1BBFF0B000041F2AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/18 (bchiu 2022-10-26 20:21, Voltage tab dump of a 24BHUB board)",
+    "description": "Settings read response 0x12 for register 0x0016: raw 380, scale 0.1.",
+    "expected": {
+      "address": 22,
+      "length": 2,
+      "rawValue": 380,
+      "value": 38.0
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "new-rsp-read-0x0018",
+    "variant": "ANT_NEW",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "7EA112180002E803277BFF0B000041F2AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/18 (bchiu 2022-10-26 20:21, Voltage tab dump of a 24BHUB board)",
+    "description": "Settings read response 0x12 for register 0x0018: raw 1000, scale 0.001.",
+    "expected": {
+      "address": 24,
+      "length": 2,
+      "rawValue": 1000,
+      "value": 1.0
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "new-rsp-read-0x001a",
+    "variant": "ANT_NEW",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "7EA1121A00022003097BFF0B000041F2AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/18 (bchiu 2022-10-26 20:21, Voltage tab dump of a 24BHUB board)",
+    "description": "Settings read response 0x12 for register 0x001A: raw 800, scale 0.001.",
+    "expected": {
+      "address": 26,
+      "length": 2,
+      "rawValue": 800,
+      "value": 0.8
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "new-rsp-read-0x0020",
+    "variant": "ANT_NEW",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "7EA1122000029A10E3D3FF0B000041F2AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/18 (bchiu 2022-10-26 20:21, Voltage tab dump of a 24BHUB board)",
+    "description": "Settings read response 0x12 for register 0x0020: raw 4250, scale 0.001.",
+    "expected": {
+      "address": 32,
+      "length": 2,
+      "rawValue": 4250,
+      "value": 4.25
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "new-rsp-read-0x0022",
+    "variant": "ANT_NEW",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "7EA1122200026810DF73FF0B000041F2AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/18 (bchiu 2022-10-26 20:21, Voltage tab dump of a 24BHUB board)",
+    "description": "Settings read response 0x12 for register 0x0022: raw 4200, scale 0.001.",
+    "expected": {
+      "address": 34,
+      "length": 2,
+      "rawValue": 4200,
+      "value": 4.2
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "new-rsp-read-0x0024",
+    "variant": "ANT_NEW",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "7EA1122400025802C37EFF0B000041F2AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/18 (bchiu 2022-10-26 20:21, Voltage tab dump of a 24BHUB board)",
+    "description": "Settings read response 0x12 for register 0x0024: raw 600, scale 0.1.",
+    "expected": {
+      "address": 36,
+      "length": 2,
+      "rawValue": 600,
+      "value": 60.0
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "new-rsp-read-0x0026",
+    "variant": "ANT_NEW",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "7EA1122600024402B27EFF0B000041F2AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/18 (bchiu 2022-10-26 20:21, Voltage tab dump of a 24BHUB board)",
+    "description": "Settings read response 0x12 for register 0x0026: raw 580, scale 0.1.",
+    "expected": {
+      "address": 38,
+      "length": 2,
+      "rawValue": 580,
+      "value": 58.0
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "new-rsp-read-0x0028",
+    "variant": "ANT_NEW",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "7EA112280002800C08BBFF0B000041F2AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/18 (bchiu 2022-10-26 20:21, Voltage tab dump of a 24BHUB board)",
+    "description": "Settings read response 0x12 for register 0x0028: raw 3200, scale 0.001.",
+    "expected": {
+      "address": 40,
+      "length": 2,
+      "rawValue": 3200,
+      "value": 3.2
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "new-rsp-read-0x002a",
+    "variant": "ANT_NEW",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "7EA1122A0002E40C5BBBFF0B000041F2AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/18 (bchiu 2022-10-26 20:21, Voltage tab dump of a 24BHUB board)",
+    "description": "Settings read response 0x12 for register 0x002A: raw 3300, scale 0.001.",
+    "expected": {
+      "address": 42,
+      "length": 2,
+      "rawValue": 3300,
+      "value": 3.3
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "new-rsp-read-0x002c",
+    "variant": "ANT_NEW",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "7EA1122C0002680176BEFF0B000041F2AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/18 (bchiu 2022-10-26 20:21, Voltage tab dump of a 24BHUB board)",
+    "description": "Settings read response 0x12 for register 0x002C: raw 360, scale 0.1.",
+    "expected": {
+      "address": 44,
+      "length": 2,
+      "rawValue": 360,
+      "value": 36.0
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "new-rsp-read-0x002e",
+    "variant": "ANT_NEW",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "7EA1122E00027C01007EFF0B000041F2AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/18 (bchiu 2022-10-26 20:21, Voltage tab dump of a 24BHUB board)",
+    "description": "Settings read response 0x12 for register 0x002E: raw 380, scale 0.1.",
+    "expected": {
+      "address": 46,
+      "length": 2,
+      "rawValue": 380,
+      "value": 38.0
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "new-rsp-read-0x0030",
+    "variant": "ANT_NEW",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "7EA112300002200310BDFF0B000041F2AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/18 (bchiu 2022-10-26 20:21, Voltage tab dump of a 24BHUB board)",
+    "description": "Settings read response 0x12 for register 0x0030: raw 800, scale 0.001.",
+    "expected": {
+      "address": 48,
+      "length": 2,
+      "rawValue": 800,
+      "value": 0.8
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "new-rsp-read-0x0032",
+    "variant": "ANT_NEW",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "7EA112320002BC02C1BDFF0B000041F2AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/18 (bchiu 2022-10-26 20:21, Voltage tab dump of a 24BHUB board)",
+    "description": "Settings read response 0x12 for register 0x0032: raw 700, scale 0.001.",
+    "expected": {
+      "address": 50,
+      "length": 2,
+      "rawValue": 700,
+      "value": 0.7
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "new-rsp-read-block-0-56",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "7EA112000038420EDE0DD80E740E600248023408C409D007C409C800C80020035802FFFFFFFF100EAC0D48022802B80B1C0CC800C80058029001FFFFFFFFD944FF0B000041F2AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/docs/pdus/btsnoop_hci_ANT-BLE16ZMUB-reduced.txt (answer to 7EA10200003899B3AA55)",
+    "description": "Block read response 0x12: 28 u16 little endian registers from address 0 (LiFePO4 16S pack). 0xFFFF = not configured. Extra section FF 0B 00 00.",
+    "expected": {
+      "address": 0,
+      "length": 56,
+      "rawValues": [
+        3650,
+        3550,
+        3800,
+        3700,
+        608,
+        584,
+        2100,
+        2500,
+        2000,
+        2500,
+        200,
+        200,
+        800,
+        600,
+        65535,
+        65535,
+        3600,
+        3500,
+        584,
+        552,
+        3000,
+        3100,
+        200,
+        200,
+        600,
+        400,
+        65535,
+        65535
+      ],
+      "cellOvervoltageProtection": 3.65,
+      "cellOvervoltageRecovery": 3.55,
+      "packOvervoltageProtection": 60.8,
+      "cellUndervoltageProtection": 2.1,
+      "cellVoltageDifferenceProtection": 0.8,
+      "cellVoltageDifferenceWarningRecovery": 0.4
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "new-rsp-read-pack-id",
+    "variant": "ANT_NEW",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "7EA112060120444F4741544900000000000000000000000000000000000000000000000000003F12FF0B000041F2AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/18 (bchiu 2022-10-26 20:32:19)",
+    "description": "Pack ID read response (address 262, 32 ASCII bytes, NUL padded).",
+    "expected": {
+      "address": 262,
+      "length": 32,
+      "packId": "DOGATI"
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-rsp-read-voltage-block-unconfigured",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "7EA112000034FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF49A7FF01000432010300B187AA55",
+    "source": "https://github.com/yosle/ant-bms-web tests/protocol.test.js (CASE_C_VOLTAGE); https://github.com/yosle/ant-bms-ble PROTOCOL.md (Long frame layout)",
+    "description": "Block read response (0, 52) from a 2024 firmware: all registers 0xFFFF (not configured). Extra section FF 01 00 04 + 32 01 03 00: last served address 50 (0x32), page 1, group 3.",
+    "expected": {
+      "address": 0,
+      "length": 52,
+      "extraStatus": 1,
+      "extraLength": 4,
+      "extraLastAddress": 50,
+      "extraPage": 1,
+      "extraGroup": 3
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-rsp-read-sysid-unconfigured",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "7EA112400210FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF1D3FF0100044E1209005F72AA55",
+    "source": "https://github.com/yosle/ant-bms-web tests/protocol.test.js (CASE_C_SYSID); https://github.com/yosle/ant-bms-ble PROTOCOL.md",
+    "description": "Block read response (576, 16) all 0xFFFF with extra section FF 01 00 04 + 4E 12 09 00 (last address 590 = 0x24E, page 18, group 9).",
+    "expected": {
+      "address": 576,
+      "length": 16,
+      "extraStatus": 1,
+      "extraLength": 4,
+      "extraLastAddress": 590,
+      "extraPage": 18,
+      "extraGroup": 9
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-rsp-write-charge-ocp",
+    "variant": "ANT_NEW",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "7EA142680002F401E3E1FF0A00001032AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/18 (bchiu 2022-10-26 20:30:48)",
+    "description": "Write response 0x42: echoes address, length and value, then extra section FF 0A 00 00 (CRC 10 32). The 0x0A code was the same whether authenticated or not (bchiu).",
+    "expected": {
+      "address": 104,
+      "length": 2,
+      "rawValue": 500,
+      "extraStatus": 10,
+      "extraLength": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-rsp-write-charge-ocp-delay",
+    "variant": "ANT_NEW",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "7EA1426A000205001E71FF0A00001032AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/18 (bchiu 2022-10-26 20:30:50)",
+    "description": "Write response 0x42: echoes address, length and value, then extra section FF 0A 00 00 (CRC 10 32). The 0x0A code was the same whether authenticated or not (bchiu).",
+    "expected": {
+      "address": 106,
+      "length": 2,
+      "rawValue": 5,
+      "extraStatus": 10,
+      "extraLength": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-rsp-write-discharge-ocp",
+    "variant": "ANT_NEW",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "7EA1426C0002B80BA6E6FF0A00001032AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/18 (bchiu 2022-10-26 20:30:51)",
+    "description": "Write response 0x42: echoes address, length and value, then extra section FF 0A 00 00 (CRC 10 32). The 0x0A code was the same whether authenticated or not (bchiu).",
+    "expected": {
+      "address": 108,
+      "length": 2,
+      "rawValue": 3000,
+      "extraStatus": 10,
+      "extraLength": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-rsp-write-discharge-ocp-delay",
+    "variant": "ANT_NEW",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "7EA1426E00020500EFB1FF0A00001032AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/18 (bchiu 2022-10-26 20:30:53)",
+    "description": "Write response 0x42: echoes address, length and value, then extra section FF 0A 00 00 (CRC 10 32). The 0x0A code was the same whether authenticated or not (bchiu).",
+    "expected": {
+      "address": 110,
+      "length": 2,
+      "rawValue": 5,
+      "extraStatus": 10,
+      "extraLength": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-rsp-write-cell-ovp",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "7EA142000002420EB44CFF0A00001032AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/docs/pdus/btsnoop_hci_ANT-BLE16ZMUB-reduced.txt",
+    "description": "Write response 0x42: echoes address, length and value, then extra section FF 0A 00 00 (CRC 10 32). The 0x0A code was the same whether authenticated or not (bchiu).",
+    "expected": {
+      "address": 0,
+      "length": 2,
+      "rawValue": 3650,
+      "extraStatus": 10,
+      "extraLength": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-rsp-write-cell-ovp-recovery",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "7EA142020002DE0DE48DFF0A00001032AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/docs/pdus/btsnoop_hci_ANT-BLE16ZMUB-reduced.txt",
+    "description": "Write response 0x42: echoes address, length and value, then extra section FF 0A 00 00 (CRC 10 32). The 0x0A code was the same whether authenticated or not (bchiu).",
+    "expected": {
+      "address": 2,
+      "length": 2,
+      "rawValue": 3550,
+      "extraStatus": 10,
+      "extraLength": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-rsp-control-ack-charge-off",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "7EA1610400020100F22BAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/20 (syssi 2022-02-28); https://github.com/syssi/esphome-ant-bms/blob/main/components/ant_bms/ant_bms.cpp (comment)",
+    "description": "ACK 0x61 for control 0x04 (charge MOS off), result 0x0001.",
+    "expected": {
+      "address": 4,
+      "length": 2,
+      "result": 1
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-rsp-control-ack-charge-on",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "7EA16106000201008BEBAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/20 (syssi 2022-02-28)",
+    "description": "ACK 0x61 for control 0x06 (charge MOS on), result 0x0001.",
+    "expected": {
+      "address": 6,
+      "length": 2,
+      "result": 1
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-rsp-control-ack-save",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "7EA1610700020100B62BAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/docs/pdus/btsnoop_hci_ANT-BLE16ZMUB-reduced.txt",
+    "description": "ACK 0x61 for control 0x07 (save), result 0x0001.",
+    "expected": {
+      "address": 7,
+      "length": 2,
+      "result": 1
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-rsp-control-ack-balance-on",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "7EA1610D000201002E2AAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/docs/btsnoop_hci_ANT-BLE24BHUB-commands.log",
+    "description": "ACK 0x61 for control 0x0D (manual balance on), result 0x0001.",
+    "expected": {
+      "address": 13,
+      "length": 2,
+      "result": 1
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-rsp-control-ack-clear-log",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "7EA1610F00020300568AAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/docs/pdus/btsnoop_hci_ANT-BLE16ZMUB-reduced.txt",
+    "description": "ACK 0x61 for control 0x0F (clear system log), result 0x0003 (meaning of 3 unknown).",
+    "expected": {
+      "address": 15,
+      "length": 2,
+      "result": 3
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-rsp-auth-level5-short",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "7EA1436A010205001E5CAA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/components/ant_bms/ant_bms.cpp (comment Password ACK); issue #20",
+    "description": "Auth response 0x43 to the level 5 password at 0x016A: data 05 00 = permission level 5, no extra section.",
+    "expected": {
+      "address": 362,
+      "length": 2,
+      "permissionLevel": 5
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-rsp-auth-level1-with-extra",
+    "variant": "ANT_NEW",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "7EA1434A010205009F9BFF0500002031AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/18 (bchiu 2022-10-26 20:25:23)",
+    "description": "Auth response 0x43 to the level 1 password 12345678 at 0x014A on a 24BHUB board: data 05 00 (level 5 reported), extra section FF 05 00 00.",
+    "expected": {
+      "address": 330,
+      "length": 2,
+      "permissionLevel": 5,
+      "extraStatus": 5,
+      "extraLength": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-rsp-chip-id-16zmub",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "7EA11400000C40703B18DC8F9E1137428401A8F9AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/docs/pdus/btsnoop_hci_ANT-BLE16ZMUB-reduced.txt",
+    "description": "Chip ID response 0x14: 12 bytes.",
+    "expected": {
+      "length": 12,
+      "dataHex": "40703B18DC8F9E1137428401"
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-rsp-chip-id-24bhub",
+    "variant": "ANT_NEW",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "7EA11400000C54C1EE89778993CD8B94760103D5AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/18 (bchiu 2022-10-26)",
+    "description": "Chip ID response 0x14: 12 bytes.",
+    "expected": {
+      "length": 12,
+      "dataHex": "54C1EE89778993CD8B947601"
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-rsp-system-info-24bhub",
+    "variant": "ANT_NEW",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "7EA1150000280A0000000A0000000A00000000000000000000000000000000000A000000070000000200000000004460AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/18 (bchiu 2022-10-26 20:32:19)",
+    "description": "System info response 0x15: 40 bytes, meaning unknown (reads as ten u32 values 10,10,10,0,0,0,0,10,7,2).",
+    "expected": {
+      "length": 40,
+      "dataHex": "0A0000000A0000000A00000000000000000000000000000000000A00000007000000020000000000"
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "new-stream-device-info-then-status",
+    "variant": "ANT_NEW",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "7EA1126C02203234424800000000000000000000000032344248554230302D323131303236415796FF0B000041F2AA557EA11100009E050404160000000000000000000088010000000000000000000000001E091B091E091D091D091E0920091E098F088E0890082209EC08200920091F091E091F091E091F0921091F091D001D001D001D001E001E00E01316000A0064000101000000B4C404724F98002EEDE8006F00000079F2C0030000000022090C008E080A009400080900006D006A00AF02F3FA3474E5002866EC009C5D6200CCB392007C47AA55",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/docs/btsnoop_hci_ANT-BLE24BHUB-commands.log (ATT notifications 33 to 43)",
+    "description": "Byte stream of two back to back frames as delivered in 20 byte notifications: notification 3 carries the end of the 48 byte device info frame (FF 0B 00 00 41 F2 AA 55) and the start of the 168 byte status frame. A reassembler must yield both frames.",
+    "expected": {
+      "frameCount": 2,
+      "frameLengths": [
+        48,
+        168
+      ],
+      "frameFunctions": [
+        18,
+        17
+      ]
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "old-req-status-ble",
+    "variant": "ANT_OLD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "DBDB00000000",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/components/ant_bms_old_ble/ant_bms_old_ble.cpp (read_registers_()); https://github.com/klotztech/VBMS/wiki/Serial-protocol (Live data); vendor PDF docs/ANT_communication_protocol_EN.1.pdf",
+    "description": "Old status request used over Bluetooth (BLE and classic SPP); also answered on UART (dbus-serialbattery uses it at 19200 baud). Checksum = (address + value_hi + value_lo) & 0xFF.",
+    "expected": {
+      "header": 219,
+      "address": 0,
+      "value": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "old-req-status-uart",
+    "variant": "ANT_OLD",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "5A5A00000101",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/components/ant_bms_old/ant_bms_old.cpp (read_registers_()); https://github.com/fl4p/batmon-ha bmslib/models/ant_uart.py (OLD_REQUEST_STATUS); imval/AntBMS AntBMS.cpp",
+    "description": "Old status request used on the wired UART by ESPHome, batmon-ha and imval/AntBMS. Checksum = (address + value_hi + value_lo) & 0xFF.",
+    "expected": {
+      "header": 90,
+      "address": 0,
+      "value": 1
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "old-req-status-uart-pdf",
+    "variant": "ANT_OLD",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "5A5A00000000",
+    "source": "https://github.com/klotztech/VBMS/wiki/Serial-protocol (Live data: BMS serial port); vendor PDF; RoboDurden/AntBms-Arduino include.h",
+    "description": "Old status request for the serial port as written in the vendor PDF. Checksum = (address + value_hi + value_lo) & 0xFF.",
+    "expected": {
+      "header": 90,
+      "address": 0,
+      "value": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "old-req-read-param-0xff",
+    "variant": "ANT_OLD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "5A5AFF0000FF",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/docs/pdus/btsnoop_hci_model2019-BMS-ANT24C-rfcomm.txt",
+    "description": "Read parameter address 0xFF, polled by the 2019 Android app over Bluetooth SPP; the BMS answered with the same 6 bytes. Checksum = (address + value_hi + value_lo) & 0xFF.",
+    "expected": {
+      "header": 90,
+      "address": 255,
+      "value": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "old-req-read-param-capacity-low",
+    "variant": "ANT_OLD",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "5A5A1F00001F",
+    "source": "https://github.com/mr-manuel/venus-os_dbus-serialbattery dbus-serialbattery/bms/ant.py (command_capacity_low, commented out); issue #18 (bchiu read parameter format)",
+    "description": "Read parameter 31 (physical capacity, low 16 bits). Checksum = (address + value_hi + value_lo) & 0xFF.",
+    "expected": {
+      "header": 90,
+      "address": 31,
+      "value": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "old-req-read-param-capacity-high",
+    "variant": "ANT_OLD",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "5A5A20000020",
+    "source": "https://github.com/mr-manuel/venus-os_dbus-serialbattery dbus-serialbattery/bms/ant.py (command_capacity_high, commented out)",
+    "description": "Read parameter 32 (physical capacity, high 16 bits). Checksum = (address + value_hi + value_lo) & 0xFF.",
+    "expected": {
+      "header": 90,
+      "address": 32,
+      "value": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "old-req-charge-mos-on",
+    "variant": "ANT_OLD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "A5A5FA0001FB",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/5 (syssi 2022-02-21); docs/pdus/btsnoop_hci_model2019-BMS-ANT24C-rfcomm.txt",
+    "description": "Charge MOSFET on (address 250, value 1). Follow with the apply frame A5A5FF0000FF. Checksum = (address + value_hi + value_lo) & 0xFF.",
+    "expected": {
+      "header": 165,
+      "address": 250,
+      "value": 1
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "old-req-charge-mos-off",
+    "variant": "ANT_OLD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "A5A5FA0000FA",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/5; docs/pdus/btsnoop_hci_model2019-BMS-ANT24C-rfcomm.txt",
+    "description": "Charge MOSFET off (address 250, value 0). Checksum = (address + value_hi + value_lo) & 0xFF.",
+    "expected": {
+      "header": 165,
+      "address": 250,
+      "value": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "old-req-discharge-mos-on",
+    "variant": "ANT_OLD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "A5A5F90001FA",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/5; docs/pdus/btsnoop_hci_model2019-BMS-ANT24C-rfcomm.txt",
+    "description": "Discharge MOSFET on (address 249, value 1). Checksum = (address + value_hi + value_lo) & 0xFF.",
+    "expected": {
+      "header": 165,
+      "address": 249,
+      "value": 1
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "old-req-discharge-mos-off",
+    "variant": "ANT_OLD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "A5A5F90000F9",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/5",
+    "description": "Discharge MOSFET off (address 249, value 0). Checksum = (address + value_hi + value_lo) & 0xFF.",
+    "expected": {
+      "header": 165,
+      "address": 249,
+      "value": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "old-req-balance-toggle",
+    "variant": "ANT_OLD",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "A5A5FC0000FC",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/5; https://github.com/syssi/esphome-ant-bms/blob/main/components/ant_bms_old/button/__init__.py",
+    "description": "Automatic balancing (address 252); a button, toggles. Checksum = (address + value_hi + value_lo) & 0xFF.",
+    "expected": {
+      "header": 165,
+      "address": 252,
+      "value": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "old-req-reboot",
+    "variant": "ANT_OLD",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "A5A5FE0000FE",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/5; vendor PDF (254 Reboot button)",
+    "description": "Reboot (address 254). Checksum = (address + value_hi + value_lo) & 0xFF.",
+    "expected": {
+      "header": 165,
+      "address": 254,
+      "value": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "old-req-factory-default",
+    "variant": "ANT_OLD",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "A5A5FD0000FD",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/components/ant_bms_old/button/__init__.py; vendor PDF (253)",
+    "description": "Factory default settings (address 253). Checksum = (address + value_hi + value_lo) & 0xFF.",
+    "expected": {
+      "header": 165,
+      "address": 253,
+      "value": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "old-req-shutdown",
+    "variant": "ANT_OLD",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "A5A5F70000F7",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/components/ant_bms_old/button/__init__.py; vendor PDF (247)",
+    "description": "BMS power off (address 247). Checksum = (address + value_hi + value_lo) & 0xFF.",
+    "expected": {
+      "header": 165,
+      "address": 247,
+      "value": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "old-req-current-zero",
+    "variant": "ANT_OLD",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "A5A5F80000F8",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/components/ant_bms_old/button/__init__.py (clear_counter); vendor PDF (248 current to zero)",
+    "description": "Current zero calibration (address 248; ESPHome labels it clear counter). Checksum = (address + value_hi + value_lo) & 0xFF.",
+    "expected": {
+      "header": 165,
+      "address": 248,
+      "value": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "old-req-lfp-params",
+    "variant": "ANT_OLD",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "A5A5FB0000FB",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/components/ant_bms_old/button/__init__.py (comment); vendor PDF (251)",
+    "description": "Apply LiFePO4 parameter set (address 251). Checksum = (address + value_hi + value_lo) & 0xFF.",
+    "expected": {
+      "header": 165,
+      "address": 251,
+      "value": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "old-req-lto-params",
+    "variant": "ANT_OLD",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "A5A5F00000F0",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/components/ant_bms_old/button/__init__.py (comment 0xF0 Apply LTO settings)",
+    "description": "Apply LTO parameter set (address 240). Not listed in the vendor PDF. Checksum = (address + value_hi + value_lo) & 0xFF.",
+    "expected": {
+      "header": 165,
+      "address": 240,
+      "value": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "old-req-apply",
+    "variant": "ANT_OLD",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "A5A5FF0000FF",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/components/ant_bms_old/ant_bms_old.cpp (REGISTER_APPLY_WRITE); vendor PDF (255 apply button); issue #5",
+    "description": "Apply: sent after every write. Checksum = (address + value_hi + value_lo) & 0xFF.",
+    "expected": {
+      "header": 165,
+      "address": 255,
+      "value": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "old-req-password-1",
+    "variant": "ANT_OLD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "A5A5F1313254",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/61 (btsnoop extraction); https://github.com/syssi/esphome-ant-bms/blob/main/components/ant_bms_old_ble/ant_bms_old_ble.cpp (authenticate_())",
+    "description": "Password characters 1-2 ('1','2') at address 241. Checksum = (address + value_hi + value_lo) & 0xFF.",
+    "expected": {
+      "header": 165,
+      "address": 241,
+      "value": 12594
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "old-req-password-2",
+    "variant": "ANT_OLD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "A5A5F2333459",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/61",
+    "description": "Password characters 3-4 at address 242. Checksum = (address + value_hi + value_lo) & 0xFF.",
+    "expected": {
+      "header": 165,
+      "address": 242,
+      "value": 13108
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "old-req-password-3",
+    "variant": "ANT_OLD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "A5A5F335365E",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/61",
+    "description": "Password characters 5-6 at address 243. Checksum = (address + value_hi + value_lo) & 0xFF.",
+    "expected": {
+      "header": 165,
+      "address": 243,
+      "value": 13622
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "old-req-password-4",
+    "variant": "ANT_OLD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "A5A5F4373863",
+    "source": "https://github.com/syssi/esphome-ant-bms/issues/61",
+    "description": "Password characters 7-8 at address 244 (default password 12345678). Checksum = (address + value_hi + value_lo) & 0xFF.",
+    "expected": {
+      "header": 165,
+      "address": 244,
+      "value": 14136
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "old-rsp-write-rejected",
+    "variant": "ANT_OLD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "A5A5F50001F6",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/docs/btsnoop_hci_model2019-BMS-ANT24C-rfcomm.log (RFCOMM payload received after A5A5FA0001FB without password)",
+    "description": "Answer seen when a write is not accepted (no or wrong password): address 245 (password check), value 1. Accepted writes were echoed byte for byte. Interpretation inferred from the capture.",
+    "expected": {
+      "header": 165,
+      "address": 245,
+      "value": 1
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "old-rsp-read-param-0xff",
+    "variant": "ANT_OLD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "5A5AFF0000FF",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/docs/btsnoop_hci_model2019-BMS-ANT24C-rfcomm.log",
+    "description": "Answer to 5A5AFF0000FF: same layout as the request (header, address, value hi, value lo, sum).",
+    "expected": {
+      "header": 90,
+      "address": 255,
+      "value": 0
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "old-rsp-status-14s-ble",
+    "variant": "ANT_OLD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "AA55AAFF01E80DAA0D9C0DA40D8E0D9C0D900DB40D970DB50DB50DA80D910D9E0D8C00000000000000000000000000000000000000000000000000000000000000000000000000000050290A21FE800419589300A9840F00FA083100160015001500150015001501010003E800170000000186090DB50E0D8C0D9F0E00000070006B02AC00000000400115F4",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/tests/components/ant_bms_old_ble/frames_14s.h (STATUS_FRAME_14S), ant_bms_old_ble_test.cpp; docs/pdus/model2019-req-dbdb00000000.txt",
+    "description": "Old 140 byte status (answer to DBDB00000000 over BLE, 2019 board). Values as asserted by ESPHome tests; temperatures listed in ESPHome order (offsets 91 to 101).",
+    "expected": {
+      "packVoltage": 48.8,
+      "cellCount": 14,
+      "cellVoltages": [
+        3.498,
+        3.484,
+        3.492,
+        3.47,
+        3.484,
+        3.472,
+        3.508,
+        3.479,
+        3.509,
+        3.509,
+        3.496,
+        3.473,
+        3.486,
+        3.468
+      ],
+      "current": 8.0,
+      "soc": 41,
+      "capacityAh": 170.0,
+      "remainingAh": 68.77,
+      "cycleAh": 11109.391,
+      "uptimeS": 16386097,
+      "temperatureRaw91to101": [
+        22,
+        21,
+        21,
+        21,
+        21,
+        21
+      ],
+      "chargeMosState": 1,
+      "dischargeMosState": 1,
+      "balanceState": 0,
+      "cellVoltageMax": 3.509,
+      "cellVoltageMaxCell": 9,
+      "cellVoltageMin": 3.468,
+      "cellVoltageMinCell": 14,
+      "cellVoltageAverage": 3.487,
+      "power": 390
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "old-rsp-status-8s-charging",
+    "variant": "ANT_OLD",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "AA55AAFF010B0D0C0D0C0D0B0D0A0D0C0D0B0D0C0D0C000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000FFFFFF95290000000002E3DB950126226301B16EBA000F000F000D000D000000000101000000000000FFFFFEE3010D0C040D0A0D0B080000007E007A000000000000040F0EDF",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/tests/components/ant_bms_old/frames_8s.h (STATUS_FRAME_8S); https://github.com/fl4p/batmon-ha bmslib/test/data/ant_uart_fixtures.py (OLD_2020_8S) and test_ant_uart.py",
+    "description": "Old 140 byte status of a 2020 board at 19200 baud. Current -10.7 A and power -285 W while the pack was charging (batmon-ha: remaining charge rises between polls), so negative = charging. ESPHome labels it discharging.",
+    "expected": {
+      "packVoltage": 26.7,
+      "cellCount": 8,
+      "cellVoltages": [
+        3.34,
+        3.34,
+        3.339,
+        3.338,
+        3.34,
+        3.339,
+        3.34,
+        3.34
+      ],
+      "current": -10.7,
+      "power": -285,
+      "soc": 41,
+      "capacityAh": 0.0,
+      "remainingAh": 48.487,
+      "cycleAh": 19276.387,
+      "uptimeS": 28405434,
+      "temperatureRaw91to101": [
+        15,
+        15,
+        13,
+        13,
+        0,
+        0
+      ],
+      "chargeMosState": 1,
+      "dischargeMosState": 1,
+      "balanceState": 0,
+      "cellVoltageMaxCell": 1,
+      "cellVoltageMinCell": 4,
+      "cellVoltageAverage": 3.339
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "old-rsp-status-8s-charging-2",
+    "variant": "ANT_OLD",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "AA55AAFF010D0D2B0D2A0D2A0D290D2A0D2A0D2A0D2A000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000FFFFFFB64F0000000005A2CA9401276D3101B30A900011001200100011000000000101000000000000FFFFFF3C010D2B040D290D2A080000007E007A00000000000064050F73",
+    "source": "https://github.com/fl4p/batmon-ha bmslib/test/data/ant_uart_fixtures.py (OLD_2020_8S_CHARGING, from esphome-ant-bms issue #28 log 8304995)",
+    "description": "Old 140 byte status of a 2020 board while charging: current -7.4 A, power -196 W. The capture had 10 extra 0xFF bytes appended by the adapter (not included here).",
+    "expected": {
+      "packVoltage": 26.9,
+      "current": -7.4,
+      "soc": 79,
+      "remainingAh": 94.55477,
+      "cycleAh": 19361.07227,
+      "uptimeS": 28510864,
+      "cellVoltages": [
+        3.371,
+        3.37,
+        3.37,
+        3.369,
+        3.37,
+        3.37,
+        3.37,
+        3.37
+      ],
+      "temperatureRaw91to97": [
+        17,
+        18,
+        16,
+        17
+      ],
+      "power": -196,
+      "chargeMosState": 1,
+      "dischargeMosState": 1,
+      "balanceState": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "old-rsp-status-2021-board-power-9999",
+    "variant": "ANT_OLD",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "AA55AAFF010A0D060D060D0B0CF10CF30D0E0D100CE8000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000005B127A398010A22CA5000011F8000F44D0001200110011000EFFD8FFD80F0F0000000000000000270F070D10100CE80D0008010E0000000002120000000000000E64",
+    "source": "https://github.com/fl4p/batmon-ha bmslib/test/data/ant_uart_fixtures.py (OLD_2021_8S, from esphome-ant-bms issue #37 log 8599527)",
+    "description": "A 2021 board answering the old request: both MOS states 0x0F (manually off) and power field 9999 (placeholder, compute V x I instead). Last two NTC slots read -40 (absent).",
+    "expected": {
+      "chargeMosState": 15,
+      "dischargeMosState": 15,
+      "balanceState": 0,
+      "power": 9999
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "old-rsp-status-16s-2021-board",
+    "variant": "ANT_OLD",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "AA55AAFF027D0F8F0F8F0F8E0F8D0F8D0F8F0F900F900F8E0F900F8F0F8C0F8C0F8E0F8D0F8F000000000000000000000000000000000000000000000000000000000000000000000000540DF28E800BA4F04E000434E20017B7660017001900150016FFD8FFD801010000000000FF00000000070F90100F8C0F8E100002007F007B02AF00000000000019A4",
+    "source": "https://github.com/syssi/esphome-ant-bms/blob/main/docs/pdus/model2021-req-5a5a00000101.txt (first line)",
+    "description": "A 2021 board answering 5A5A00000101 on UART: 16S, temperatures MOS 23, balancer 25, NTC 21, 22, then two absent sensors (-40). Values computed with the layout in docs/protocols/ant.md.",
+    "expected": {
+      "packVoltage": 63.7,
+      "cellCount": 16,
+      "cellVoltages": [
+        3.983,
+        3.983,
+        3.982,
+        3.981,
+        3.981,
+        3.983,
+        3.984,
+        3.984,
+        3.982,
+        3.984,
+        3.983,
+        3.98,
+        3.98,
+        3.982,
+        3.981,
+        3.983
+      ],
+      "current": 0.0,
+      "soc": 84,
+      "capacityAh": 234.0,
+      "remainingAh": 195.358798,
+      "cycleAh": 275.682,
+      "uptimeS": 1554278,
+      "mosTemperature": 23,
+      "balancerTemperature": 25,
+      "temperatures": [
+        21,
+        22,
+        -40,
+        -40
+      ],
+      "chargeMosState": 1,
+      "dischargeMosState": 1,
+      "balanceState": 0,
+      "tireLengthMm": 0,
+      "pulsesPerRevolution": 0,
+      "relay": 255,
+      "power": 0,
+      "cellVoltageMaxCell": 7,
+      "cellVoltageMax": 3.984,
+      "cellVoltageMinCell": 16,
+      "cellVoltageMin": 3.98,
+      "cellVoltageAverage": 3.982,
+      "balancingCellMask": 0,
+      "systemLog": 0
+    },
+    "expectedComputed": true
+  }
+]
