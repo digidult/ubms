@@ -412,7 +412,20 @@ export class AppController {
   }
 
   exportLog({ includeDecoded = true } = {}) {
-    const data = this.log.export({ includeDecoded, meta: { app: 'ubms', version: __APP_VERSION__ } });
+    const { device, info, snapshot, settings } = this.state;
+    const data = this.log.export({
+      includeDecoded,
+      meta: {
+        app: 'ubms',
+        version: __APP_VERSION__,
+        revision: __APP_REVISION__,
+        userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : '',
+        device,
+        info,
+        snapshot,
+        settings: settings.values,
+      },
+    });
     downloadFile(`ubms-log-${new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)}.json`, JSON.stringify(data, null, 1));
   }
 

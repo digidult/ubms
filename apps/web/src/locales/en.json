@@ -1,1 +1,11 @@
-{}
+{
+  "{count} change(s)": { "one": "{count} change", "other": "{count} changes" },
+  "{count} change(s) loaded from the file. Review and apply them.": {
+    "one": "{count} change loaded from the file. Review and apply it.",
+    "other": "{count} changes loaded from the file. Review and apply them."
+  },
+  "{count} setting(s) failed: {list}": { "one": "{count} setting failed: {list}", "other": "{count} settings failed: {list}" },
+  "{count} setting(s) written": { "one": "{count} setting written", "other": "{count} settings written" },
+  "Show {count} older entries": { "one": "Show {count} older entry", "other": "Show {count} older entries" },
+  "Write {count} setting(s) to the device?": { "one": "Write {count} setting to the device?", "other": "Write {count} settings to the device?" }
+}
