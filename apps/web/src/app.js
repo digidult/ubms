@@ -145,6 +145,10 @@ export class UbmsApp extends UiElement {
       info: s.info,
     }));
     this.nav = new StoreController(this, router, (s) => s.route);
+    // A new screen or settings group starts at the top (matters on phones after long lists).
+    this.unsubRoute = router.subscribe((s, prev) => {
+      if (s.route.path !== prev.route.path) window.scrollTo({ top: 0 });
+    });
     this.timer = setInterval(() => (this.tick = (this.tick + 1) % 1e6), 1000);
     window.addEventListener('scroll', this.onScroll, { passive: true });
     this.unsub = this.ctrl.store.subscribe((s, prev) => {
@@ -158,6 +162,7 @@ export class UbmsApp extends UiElement {
     clearInterval(this.timer);
     window.removeEventListener('scroll', this.onScroll);
     this.unsub?.();
+    this.unsubRoute?.();
     super.disconnectedCallback();
   }
 
