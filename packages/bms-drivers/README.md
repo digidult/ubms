@@ -4,9 +4,9 @@ Protocol drivers, one folder per brand family:
 
 | Folder | Definitions | Specification |
 | --- | --- | --- |
-| `jk/` | JK BMS: JK02 and JK04 over Bluetooth, JK-PB over RS485 (Modbus trigger), JK-B over UART ("4E 57") | [docs/protocols/jk.md](../../docs/protocols/jk.md) |
-| `ant/` | ANT BMS: 2021+ protocol and legacy protocol | [docs/protocols/ant.md](../../docs/protocols/ant.md) |
-| `daly/` | Daly BMS: classic protocol and Modbus style protocol | [docs/protocols/daly.md](../../docs/protocols/daly.md) |
+| `jk/` | `jk-ble` (JK02 24S/32S, JK04), `jk-pb-rs485` (JK-PB, Modbus trigger), `jk-uart` (JK-B, "4E 57") | [docs/protocols/jk.md](../../docs/protocols/jk.md) |
+| `ant/` | `ant` (2021+ protocol), `ant-legacy` (legacy protocol) | [docs/protocols/ant.md](../../docs/protocols/ant.md) |
+| `daly/` | `daly-modbus` (D2 and 0x81 flavours), `daly` (classic A5) | [docs/protocols/daly.md](../../docs/protocols/daly.md) |
 
 Each family folder follows the same layout:
 

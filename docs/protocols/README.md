@@ -10,6 +10,20 @@ the frames in `packages/bms-drivers/test/vectors/<family>.json` are the referenc
 | ANT BMS | [ant.md](ant.md) | 2021+ protocol (7E A1 frames), legacy protocol (AA 55 AA FF status) | BLE, UART |
 | Daly BMS | [daly.md](daly.md) | classic 13-byte protocol, newer Modbus style protocol | BLE, UART, RS485 |
 
+## Drivers
+
+| Driver id | Family | Specification sections | Detection |
+| --- | --- | --- | --- |
+| `jk-ble` | JK | JK02 24S and 32S, JK04 | device info request 0x97, variant from the software version and the first cell frame |
+| `jk-pb-rs485` | JK | JK-PB RS485 | FC 0x10 frame trigger to the configured address |
+| `jk-uart` | JK | 4E 57 UART | read-all command |
+| `ant` | ANT | 2021+ protocol | status request 7E A1 01 |
+| `ant-legacy` | ANT | legacy protocol | status request DB DB 00 00 00 00 (BLE) or 5A 5A 00 00 01 01 (UART) |
+| `daly-modbus` | Daly | Modbus D2 and 0x81 | status register read (D2 first, then the 0x81 map) |
+| `daly` | Daly | classic A5 | 0x90 request (twice, Daly modules sleep) then 0x94 |
+
+Within a family the order above is also the detection order.
+
 ## Common notes
 
 - **Byte order and units.** Each table states the byte order and scaling. Drivers convert to the
