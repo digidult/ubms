@@ -62,6 +62,8 @@ const browser = spawn(
     '--disable-background-networking',
     '--hide-scrollbars',
     '--mute-audio',
+    '--lang=en-US',
+    '--accept-lang=en-US,en',
     `--user-data-dir=${profile}`,
     '--remote-debugging-port=0',
     '--allow-file-access-from-files',
@@ -254,6 +256,18 @@ const scenarios = [
   [
     'fixture-phone',
     { ...phone, hash: '/connect', steps: [{ eval: fixture, hash: '/overview', shot: 'fixture-overview-phone' }, { hash: '/cells', shot: 'fixture-cells-phone' }] },
+  ],
+  [
+    'i18n-uk-phone',
+    {
+      ...phone,
+      hash: '/connect',
+      steps: [
+        { eval: `(window.ubms.setPref('lang', 'uk'), true)`, shot: 'i18n-uk-connect-phone' },
+        { eval: fixture, hash: '/overview', shot: 'i18n-uk-overview-phone' },
+        { eval: `(window.ubms.setPref('lang', 'en'), true)` },
+      ],
+    },
   ],
   [
     'fixture-desktop',

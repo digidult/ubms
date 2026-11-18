@@ -219,7 +219,7 @@ export class ViewConnect extends UiElement {
     const avail = transport === 'demo' ? { available: true } : availability[transport];
     return html`<div class="card">
       <ui-segmented .options=${tabs} .value=${transport} label=${t('Connection type')} @change=${(/** @type {any} */ e) => this.ctrl.setPref('transport', e.detail.value)}></ui-segmented>
-      ${transport === 'demo' ? this.#demoOptions() : this.#typeSelect(transport)}
+      ${transport === 'demo' ? this.#demoOptions() : html`${this.#typeSelect(transport)}${this.#protocolNotes(transport)}`}
       ${transport === 'ble' ? this.#bleOptions() : nothing} ${transport === 'serial' ? this.#serialOptions() : nothing}
       ${!avail.available && avail.reason ? this.#unavailable(transport, avail.reason) : nothing}
       <button class="btn primary go" ?disabled=${!avail.available} @click=${this.#connect}>
@@ -247,6 +247,20 @@ export class ViewConnect extends UiElement {
         )}
       </select>
     </label>`;
+  }
+
+  /** Descriptions and wiring notes of the selected protocols. @param {'ble'|'serial'} kind */
+  #protocolNotes(kind) {
+    const { prefs } = this.sc.value;
+    if (prefs.selection === 'auto') return nothing;
+    const defs = this.ctrl.registry.select(prefs.selection, kind);
+    const notes = [];
+    for (const d of defs) {
+      if (d.description) notes.push(html`<div><b>${t(d.protocol)}</b>: ${t(d.description)}</div>`);
+      if (kind === 'serial' && d.links.serial?.note) notes.push(html`<div>${t(d.links.serial.note)}</div>`);
+    }
+    if (!notes.length) return nothing;
+    return html`<div class="note">${icon('info', { size: 18 })}<div style="display:flex;flex-direction:column;gap:6px">${notes}</div></div>`;
   }
 
   #bleOptions() {

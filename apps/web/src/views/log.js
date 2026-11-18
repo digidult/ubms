@@ -74,7 +74,7 @@ export class ViewLog extends UiElement {
       }
       .head {
         display: grid;
-        grid-template-columns: auto auto minmax(0, 1fr);
+        grid-template-columns: 7.5ch 5.5ch minmax(0, 1fr);
         gap: 8px;
         align-items: baseline;
         padding: 6px 10px;
@@ -88,7 +88,6 @@ export class ViewLog extends UiElement {
       }
       .kind {
         font-weight: 700;
-        min-width: 44px;
       }
       .k-tx {
         color: var(--ui-primary);
@@ -291,7 +290,7 @@ export class ViewLog extends UiElement {
     return html`<div class="entry">
       <div class="head" @click=${() => this.#toggle(e.id)}>
         <span class="time">${time}</span>
-        <span class="kind k-${e.kind}">${e.kind.toUpperCase()}</span>
+        <span class="kind k-${e.kind}">${e.kind === 'frame' ? 'FRM' : e.kind === 'event' ? 'EVT' : e.kind === 'debug' ? 'DBG' : e.kind.toUpperCase()}</span>
         <span class="text">
           ${e.name ? html`<span class="name">${e.name}</span>` : nothing}${e.text ? html`<span>${e.text}</span> ` : nothing}
           ${e.bytes ? html`<span class="bytes">[${e.bytes.length}] ${preview}</span>` : nothing}
