@@ -1,0 +1,23 @@
+{
+  "name": "@ubms/web",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ubms web app: single-page BMS viewer and configurator.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@ubms/bms-core": "0.1.0",
+    "@ubms/bms-drivers": "0.1.0",
+    "@ubms/transport": "0.1.0",
+    "@ubms/ui": "0.1.0",
+    "lit": "^3.3.3"
+  },
+  "devDependencies": {
+    "vite": "^8.3.8",
+    "vite-plugin-singlefile": "^2.3.4"
+  }
+}

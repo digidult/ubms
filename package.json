@@ -1,0 +1,23 @@
+{
+  "name": "ubms",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Universal BMS viewer and configurator: JK, ANT, Daly and more over Web Bluetooth and Web Serial.",
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w @ubms/web",
+    "build": "npm run build -w @ubms/web",
+    "preview": "npm run preview -w @ubms/web",
+    "test": "node --test \"packages/*/test/**/*.test.js\" \"apps/*/test/**/*.test.js\" \"scripts/test/**/*.test.js\"",
+    "i18n:check": "node scripts/i18n-check.mjs",
+    "i18n:extract": "node scripts/i18n-check.mjs --write-template",
+    "smoke": "node scripts/smoke.mjs"
+  },
+  "engines": {
+    "node": ">=20.19"
+  }
+}
