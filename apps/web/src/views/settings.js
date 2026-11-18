@@ -176,10 +176,10 @@ export class ViewSettings extends UiElement {
         font-variant-numeric: tabular-nums;
       }
       @media (max-width: 520px) {
-        .row {
+        .row:not(.inline) {
           grid-template-columns: 1fr;
         }
-        .control {
+        .row:not(.inline) .control {
           justify-content: flex-start;
         }
         .numwrap .input,
@@ -394,7 +394,8 @@ export class ViewSettings extends UiElement {
     const result = this.results[f.id];
     const range =
       f.type === 'number' && f.min !== undefined && f.max !== undefined ? `${num(f.min, f.decimals ?? 3)}–${num(f.max, f.decimals ?? 3)}${f.unit ? ` ${f.unit}` : ''}` : '';
-    return html`<div class="row ${dirty ? 'dirty' : ''}">
+    const inline = f.type === 'boolean' || f.type === 'action' || !writable;
+    return html`<div class="row ${dirty ? 'dirty' : ''} ${inline ? 'inline' : ''}">
       <div>
         <div class="label">${dirty ? html`<span class="dot"></span>` : nothing}${t(f.label)}</div>
         ${f.description ? html`<div class="desc">${t(f.description)}</div>` : nothing}

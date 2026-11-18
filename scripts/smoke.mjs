@@ -300,6 +300,8 @@ for (const id of demoIds) {
         { eval: `window.ubms.state.settings.values !== null` },
         { eval: writeCheck, wait: 300 },
         { hash: `/settings/${'cell_voltage'}`, shot: `demo-${id}-settings-group-phone` },
+        { hash: '/settings/controls', shot: `demo-${id}-settings-controls-phone` },
+        { hash: '/settings/actions', shot: `demo-${id}-settings-actions-phone` },
         { hash: '/info', shot: `demo-${id}-info-phone` },
         { hash: '/log', shot: `demo-${id}-log-phone` },
       ],
