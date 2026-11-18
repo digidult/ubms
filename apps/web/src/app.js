@@ -140,7 +140,7 @@ export class UbmsApp extends UiElement {
       state: s.state,
       device: s.device,
       soc: s.snapshot?.soc,
-      alarms: s.snapshot?.alarms?.length ?? 0,
+      alarms: s.snapshot?.alarms?.filter((a) => a.severity !== 'info').length ?? 0,
       worst: worstSeverity(s.snapshot?.alarms),
       info: s.info,
     }));
@@ -174,7 +174,7 @@ export class UbmsApp extends UiElement {
     const items = [];
     if (connected) {
       items.push(
-        { id: 'overview', label: t('Overview'), icon: 'gauge', href: '#/overview', badge: alarms || undefined, tone: worst === 'warning' ? 'warn' : 'danger' },
+        { id: 'overview', label: t('Overview'), icon: 'gauge', href: '#/overview', badge: alarms || undefined, tone: worst === 'fault' || worst === 'protection' ? 'danger' : 'warn' },
         { id: 'cells', label: t('Cells'), icon: 'cells', href: '#/cells' },
         { id: 'settings', label: t('Settings'), icon: 'sliders', href: '#/settings' },
       );
@@ -276,5 +276,5 @@ function worstSeverity(alarms) {
   const order = ['fault', 'protection', 'warning', 'info'];
   let best = 'info';
   for (const a of alarms) if (order.indexOf(a.severity ?? 'warning') < order.indexOf(best)) best = a.severity ?? 'warning';
-  return best;
+  return best === 'info' ? '' : best;
 }

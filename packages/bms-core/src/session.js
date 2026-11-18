@@ -128,6 +128,9 @@ export class BmsSession extends Emitter {
   async connect(target) {
     if (this.state !== 'idle' && this.state !== 'error') await this.disconnect();
     const gen = ++this.generation;
+    // One options object per target, shared by every driver instance created for it (probe
+    // candidates and reconnects), so drivers can keep local values such as passwords there.
+    if (!target.options) target.options = {};
     this.target = target;
     this.history.clear();
     this.snapshot = null;

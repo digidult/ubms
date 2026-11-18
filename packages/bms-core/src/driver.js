@@ -41,7 +41,9 @@ import { msg } from './msg.js';
  * @property {import('@ubms/transport').Link} link an open link
  * @property {import('@ubms/transport').ProtocolLog} log
  * @property {string} [profileId] BLE or serial profile that was opened
- * @property {Record<string, any>} [options] user options (for example RS485 device address)
+ * @property {Record<string, any>} [options] user options (for example RS485 device address). The
+ *   same object is passed to every driver instance created for one connection target (detection
+ *   candidates, reconnects), so drivers may keep app-local values such as passwords in it.
  *
  * @typedef {Object} ProbeResult
  * @property {string} [variant] protocol variant detected (for example 'JK02_32S')
