@@ -407,7 +407,7 @@ export class ViewSettings extends UiElement {
           ? html`<div class="res-ok">${t('Saved')}</div>`
           : result.ok
             ? html`<div class="res-warn">${t('Written, but the device reports {value}', { value: fieldValue(f, result.actual) })}</div>`
-            : html`<div class="err">${icon('alert', { size: 15 })}${t(result.error ?? 'Failed')}</div>`
+            : html`<div class="err">${icon('alert', { size: 15 })}${result.error ? t(result.error) : t('Failed')}</div>`
         : nothing}
     </div>`;
   }

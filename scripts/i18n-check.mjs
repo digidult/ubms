@@ -60,7 +60,11 @@ function extract(dirs) {
   const keys = new Map();
   for (const dir of dirs) {
     for (const file of walk(dir)) {
-      const text = readFileSync(file, 'utf8');
+      // Ignore block comments and whole-line comments (JSDoc examples are not UI strings);
+      // replacements keep line numbers stable.
+      const text = readFileSync(file, 'utf8')
+        .replace(/\/\*[\s\S]*?\*\//g, (c) => c.replace(/[^\r\n]/g, ' '))
+        .replace(/^\s*\/\/.*$/gm, (c) => ' '.repeat(c.length));
       for (const m of text.matchAll(CALL)) {
         const key = unescape(m[2]);
         if (!key.trim()) continue;

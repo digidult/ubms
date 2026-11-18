@@ -200,7 +200,7 @@ export class ViewCells extends UiElement {
         <span><i class="sw" style="background:var(--ui-info)"></i>${t('Lowest cell')}</span>
         <span><i class="sw" style="background:var(--ui-danger)"></i>${t('Highest cell')}</span>
         ${s.balancing ? html`<span>${icon('balance', { size: 14 })}${t('Balancing')}</span>` : nothing}
-        ${res.length ? html`<span>mΩ: ${t('cell connection resistance')}</span>` : nothing}
+        ${res.length ? html`<span>${t('mΩ: cell connection resistance')}</span>` : nothing}
       </div>
     `;
   }

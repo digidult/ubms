@@ -90,7 +90,7 @@ export class ViewPrefs extends UiElement {
           <div class="txt"><div class="title">${t('Theme')}</div></div>
           <ui-segmented
             .options=${[
-              { value: 'auto', label: t('System') },
+              { value: 'auto', label: t('theme|System') },
               { value: 'light', label: t('Light') },
               { value: 'dark', label: t('Dark') },
             ]}
