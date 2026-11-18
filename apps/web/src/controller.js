@@ -51,6 +51,10 @@ export const LANGUAGES = [
  * @property {import('@ubms/bms-core/session').SettingsState} settings
  * @property {number} historyRev
  * @property {RecentDevice[]} recent
+ * @property {{ active: boolean, devices: ScannedDevice[] }} scan native Bluetooth scan (desktop app)
+ * @property {{ loading: boolean, list: Array<{ path: string, name?: string, usbVendorId?: number, usbProductId?: number }> }} ports native port list (desktop app)
+ *
+ * @typedef {{ id: string, name: string, rssi?: number, services?: string[] }} ScannedDevice
  */
 
 const DEFAULT_PREFS = /** @type {Prefs} */ ({
@@ -110,8 +114,12 @@ export class AppController {
         settings: { schema: null, values: null, loading: false, error: null },
         historyRev: 0,
         recent: this.storage.get('recent', []),
+        scan: { active: false, devices: [] },
+        ports: { loading: false, list: [] },
       }),
     );
+    /** @type {(() => Promise<void>) | null} */
+    this.stopScanFn = null;
 
     i18n.setLocale(prefs.lang);
     applyTheme(prefs.theme);
@@ -225,6 +233,85 @@ export class AppController {
     const address = Number.parseInt(this.state.prefs.serialAddress, 10);
     const options = Number.isFinite(address) ? { address, board: address } : {};
     await this.#connect({ kind: 'serial', handle: port, selection, options });
+  }
+
+  /** True when Bluetooth devices are found by an in-app scan (desktop app) instead of a browser chooser. */
+  get nativeBle() {
+    return !!(/** @type {any} */ (this.providers.ble).capabilities?.scan);
+  }
+
+  /** True when serial ports are listed by the app (desktop app) instead of a browser chooser. */
+  get nativeSerial() {
+    return !!(/** @type {any} */ (this.providers.serial).capabilities?.list);
+  }
+
+  /** Start an in-app Bluetooth scan (desktop app). Results go to `state.scan.devices`. */
+  async startBleScan() {
+    await this.stopBleScan();
+    const { selection, showAllBle } = this.state.prefs;
+    const defs = this.registry.select(selection, 'ble');
+    const filters = showAllBle
+      ? {}
+      : {
+          namePrefixes: [...new Set(defs.flatMap((d) => d.links.ble?.namePrefixes ?? []))],
+          services: [...new Set(defs.flatMap((d) => d.links.ble?.advertisedServices ?? []))],
+          manufacturerIds: [...new Set(defs.flatMap((d) => d.links.ble?.manufacturerIds ?? []))],
+        };
+    this.store.set({ scan: { active: true, devices: [] } });
+    const provider = /** @type {any} */ (this.providers.ble);
+    try {
+      this.stopScanFn = await provider.scan({ ...filters, timeoutMs: 20000 }, (/** @type {ScannedDevice} */ d) => {
+        const devices = [...this.state.scan.devices];
+        const i = devices.findIndex((x) => x.id === d.id);
+        const entry = { id: d.id, name: d.name || t('Unnamed device'), rssi: d.rssi, services: d.services };
+        if (i >= 0) devices[i] = { ...devices[i], ...entry };
+        else devices.push(entry);
+        this.store.set({ scan: { active: this.state.scan.active, devices } });
+      });
+      setTimeout(() => {
+        if (this.state.scan.active) this.stopBleScan();
+      }, 20000);
+    } catch (err) {
+      this.store.set({ scan: { active: false, devices: this.state.scan.devices } });
+      toast(t(err instanceof Error ? err.message : String(err)), { tone: 'danger' });
+    }
+  }
+
+  async stopBleScan() {
+    const stop = this.stopScanFn;
+    this.stopScanFn = null;
+    if (stop) await stop().catch(() => {});
+    if (this.state.scan.active) this.store.set({ scan: { active: false, devices: this.state.scan.devices } });
+  }
+
+  /** @param {ScannedDevice} device */
+  async connectScannedDevice(device) {
+    await this.stopBleScan();
+    const handle = /** @type {any} */ (this.providers.ble).get(device);
+    await this.#connect({ kind: 'ble', handle, selection: this.state.prefs.selection });
+  }
+
+  /** Refresh the serial port list (desktop app). */
+  async listSerialPorts() {
+    this.store.set({ ports: { loading: true, list: this.state.ports.list } });
+    try {
+      const ports = await /** @type {any} */ (this.providers.serial).list();
+      this.serialHandles = ports;
+      this.store.set({ ports: { loading: false, list: ports.map((/** @type {any} */ p) => ({ ...p.info })) } });
+    } catch (err) {
+      this.store.set({ ports: { loading: false, list: [] } });
+      toast(t(err instanceof Error ? err.message : String(err)), { tone: 'danger' });
+    }
+  }
+
+  /** @param {{ path: string }} port */
+  async connectSerialPort(port) {
+    const handle = (this.serialHandles ?? []).find((/** @type {any} */ h) => h.info.path === port.path);
+    if (!handle) return;
+    const { selection } = this.state.prefs;
+    const address = Number.parseInt(this.state.prefs.serialAddress, 10);
+    const options = Number.isFinite(address) ? { address, board: address } : {};
+    await this.#connect({ kind: 'serial', handle, selection, options });
   }
 
   /** @param {RecentDevice} recent */

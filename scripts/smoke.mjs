@@ -166,6 +166,7 @@ async function scenario(name, sc) {
   await p.send('Page.enable');
   await p.send('Emulation.setDeviceMetricsOverride', { width: sc.width, height: sc.height, deviceScaleFactor: 1, mobile: sc.mobile });
   if (sc.dark) await p.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: 'dark' }] });
+  if (sc.initScript) await p.send('Page.addScriptToEvaluateOnNewDocument', { source: sc.initScript });
   await p.send('Page.navigate', { url: `${baseUrl}#${sc.hash}` });
   await sleep(sc.wait ?? 1500);
   const shots = [];
@@ -249,6 +250,9 @@ const fixture = `(() => {
   return true;
 })()`;
 
+/** Imitation of the Tauri bridge, see scripts/tauri-mock.js. */
+const tauriMock = readFileSync(path.join(root, 'scripts', 'tauri-mock.js'), 'utf8');
+
 const scenarios = [
   ['connect-phone', { ...phone, hash: '/connect', steps: [{ eval: hasText('ubms'), shot: 'connect-phone' }] }],
   ['connect-desktop-dark', { ...desktop, dark: true, hash: '/connect', steps: [{ shot: 'connect-desktop-dark' }] }],
@@ -279,6 +283,42 @@ const scenarios = [
         { hash: '/settings/cell_voltage', wait: 2500, shot: 'i18n-uk-jk-settings-phone' },
         { hash: '/settings/temperature', shot: 'i18n-uk-jk-temperature-phone' },
         { eval: `(window.ubms.setPref('lang', 'en'), true)` },
+      ],
+    },
+  ],
+  [
+    'tauri-mock-phone',
+    {
+      ...phone,
+      hash: '/connect',
+      initScript: tauriMock,
+      steps: [
+        { eval: `window.ubms.nativeBle === true && window.ubms.nativeSerial === true` },
+        {
+          eval: `(window.ubms.setPref('transport', 'ble'), window.ubms.setPref('selection', 'auto'), window.ubms.startBleScan().then(() => true))`,
+          wait: 900,
+          shot: 'tauri-scan-phone',
+        },
+        { eval: `window.ubms.state.scan.devices.length === 2` },
+        {
+          eval: `window.ubms.connectScannedDevice(window.ubms.state.scan.devices.find((d) => d.name.startsWith('JK'))).then(() => window.ubms.state.state === 'connected' && window.ubms.state.device.driverId === 'jk-ble')`,
+          wait: 2500,
+          shot: 'tauri-jk-overview-phone',
+        },
+        { eval: `(window.ubms.state.snapshot?.cells?.length ?? 0) > 0` },
+        {
+          eval: `window.ubms.disconnect().then(() => (window.ubms.setPref('transport', 'serial'), window.ubms.setPref('selection', 'family:daly'), true))`,
+          hash: '/connect',
+          wait: 1200,
+          shot: 'tauri-ports-phone',
+        },
+        {
+          eval: `window.ubms.connectSerialPort({ path: 'COM7' }).then(() => window.ubms.state.state === 'connected' && window.ubms.state.device.driverId === 'daly')`,
+          wait: 3000,
+          shot: 'tauri-daly-overview-phone',
+        },
+        { eval: `(window.ubms.state.snapshot?.cells?.length ?? 0) > 0` },
+        { eval: `window.ubms.disconnect().then(() => (window.ubms.setPref('transport', 'ble'), window.ubms.setPref('selection', 'auto'), true))` },
       ],
     },
   ],

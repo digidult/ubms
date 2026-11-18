@@ -56,14 +56,18 @@ export class TauriBleProvider {
 
   /**
    * Scan for devices. Calls `onDevice` for every advertisement.
-   * @param {{ namePrefixes?: string[], services?: (string|number)[], timeoutMs?: number }} filters
+   * @param {{ namePrefixes?: string[], services?: (string|number)[], manufacturerIds?: number[], timeoutMs?: number }} filters
    * @param {(device: { id: string, name: string, rssi?: number, services?: string[] }) => void} onDevice
    * @returns {Promise<() => Promise<void>>} stop function
    */
   async scan(filters, onDevice) {
     const unlisten = await listen('ble://device', onDevice);
     await invoke('ble_scan_start', {
-      filters: { namePrefixes: filters.namePrefixes ?? [], services: (filters.services ?? []).map(canonicalUuid) },
+      filters: {
+        namePrefixes: filters.namePrefixes ?? [],
+        services: (filters.services ?? []).map(canonicalUuid),
+        manufacturerIds: filters.manufacturerIds ?? [],
+      },
       timeoutMs: filters.timeoutMs ?? 15000,
     });
     return async () => {

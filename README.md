@@ -50,6 +50,13 @@ Device access needs a secure context: `https://`, `http://localhost` or a local 
 > Changing BMS settings is at your own risk. Wrong values can damage cells, the BMS or connected
 > equipment.
 
+## Desktop app
+
+`apps/desktop` wraps the same app in Tauri 2 with native Bluetooth (btleplug) and serial ports
+(serialport): devices are found by an in-app scan and a port list, no browser needed. Binaries
+for Windows, Linux and macOS are built by GitHub Actions (workflow "Desktop"); see
+[docs/tauri.md](docs/tauri.md) to build locally.
+
 ## Develop
 
 ```
@@ -74,6 +81,7 @@ Read [AGENTS.md](AGENTS.md) and [docs/development.md](docs/development.md) befor
 
 ```
 apps/web               the application
+apps/desktop           Tauri 2 desktop shell (Rust: btleplug, serialport)
 packages/transport     device link layer: Web Bluetooth, Web Serial, Tauri bridge, framing, log
 packages/ui            UI kit: Lit components, theme, i18n, router, store
 packages/bms-core      BMS model, catalogs, driver contract, detection, session

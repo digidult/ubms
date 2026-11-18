@@ -129,6 +129,18 @@ export class ViewConnect extends UiElement {
       .recent {
         padding: 6px;
       }
+      .devlist {
+        display: flex;
+        flex-direction: column;
+        border: 1px solid var(--ui-border);
+        border-radius: var(--ui-radius-sm);
+        padding: 4px;
+        max-height: 360px;
+        overflow-y: auto;
+      }
+      .devlist ui-list-row {
+        cursor: pointer;
+      }
       .recent-row {
         display: flex;
         align-items: center;
@@ -156,7 +168,17 @@ export class ViewConnect extends UiElement {
       detect: s.detect,
       recent: s.recent,
       env: s.env,
+      scan: s.scan,
+      ports: s.ports,
     }));
+  }
+
+  updated() {
+    const v = this.sc.value;
+    if (v.prefs.transport === 'serial' && this.ctrl.nativeSerial && !this.portsRequested) {
+      this.portsRequested = true;
+      this.ctrl.listSerialPorts();
+    }
   }
 
   render() {
@@ -222,11 +244,64 @@ export class ViewConnect extends UiElement {
       ${transport === 'demo' ? this.#demoOptions() : html`${this.#typeSelect(transport)}${this.#protocolNotes(transport)}`}
       ${transport === 'ble' ? this.#bleOptions() : nothing} ${transport === 'serial' ? this.#serialOptions() : nothing}
       ${!avail.available && avail.reason ? this.#unavailable(transport, avail.reason) : nothing}
-      <button class="btn primary go" ?disabled=${!avail.available} @click=${this.#connect}>
-        ${icon(transport === 'ble' ? 'bluetooth' : transport === 'serial' ? 'usb' : 'play')}
-        ${transport === 'ble' ? t('Search for devices') : transport === 'serial' ? t('Choose serial port') : t('Start demo')}
-      </button>
+      ${transport === 'ble' && this.ctrl.nativeBle
+        ? this.#scanList(avail.available)
+        : transport === 'serial' && this.ctrl.nativeSerial
+          ? this.#portList(avail.available)
+          : html`<button class="btn primary go" ?disabled=${!avail.available} @click=${this.#connect}>
+              ${icon(transport === 'ble' ? 'bluetooth' : transport === 'serial' ? 'usb' : 'play')}
+              ${transport === 'ble' ? t('Search for devices') : transport === 'serial' ? t('Choose serial port') : t('Start demo')}
+            </button>`}
     </div>`;
+  }
+
+  /** In-app Bluetooth scan (desktop app: there is no browser chooser). @param {boolean} available */
+  #scanList(available) {
+    const { scan } = this.sc.value;
+    return html`
+      <button class="btn primary go" ?disabled=${!available} @click=${() => (scan.active ? this.ctrl.stopBleScan() : this.ctrl.startBleScan())}>
+        ${icon(scan.active ? 'pause' : 'bluetooth')} ${scan.active ? t('Stop scanning') : t('Scan for devices')}
+      </button>
+      ${scan.active && !scan.devices.length ? html`<div class="steps" role="status">${t('Scanning…')}</div>` : nothing}
+      ${scan.devices.length
+        ? html`<div class="devlist" role="list" aria-label=${t('Devices found')}>
+            ${scan.devices.map(
+              (d) => html`<ui-list-row
+                role="listitem"
+                icon="bluetooth"
+                heading=${d.name}
+                text=${d.rssi !== undefined && d.rssi !== null ? `${d.rssi} dBm` : ''}
+                trailing=${t('Connect')}
+                @click=${() => this.ctrl.connectScannedDevice(d)}
+              ></ui-list-row>`,
+            )}
+          </div>`
+        : nothing}
+    `;
+  }
+
+  /** Serial port list (desktop app: the app lists ports itself). @param {boolean} available */
+  #portList(available) {
+    const { ports } = this.sc.value;
+    return html`
+      <button class="btn go" ?disabled=${!available || ports.loading} @click=${() => this.ctrl.listSerialPorts()}>${icon('refresh')} ${t('Refresh port list')}</button>
+      ${ports.list.length
+        ? html`<div class="devlist" role="list" aria-label=${t('Serial ports')}>
+            ${ports.list.map(
+              (p) => html`<ui-list-row
+                role="listitem"
+                icon="usb"
+                heading=${p.name ?? p.path}
+                text=${p.usbVendorId !== undefined && p.usbVendorId !== null
+                  ? `${p.path} · ${p.usbVendorId.toString(16).padStart(4, '0')}:${(p.usbProductId ?? 0).toString(16).padStart(4, '0')}`
+                  : p.path}
+                trailing=${t('Connect')}
+                @click=${() => this.ctrl.connectSerialPort(p)}
+              ></ui-list-row>`,
+            )}
+          </div>`
+        : html`<div class="steps">${ports.loading ? t('Looking for ports…') : t('No serial ports found. Connect the adapter and refresh the list.')}</div>`}
+    `;
   }
 
   /** @param {'ble'|'serial'} kind */
@@ -255,9 +330,14 @@ export class ViewConnect extends UiElement {
     if (prefs.selection === 'auto') return nothing;
     const defs = this.ctrl.registry.select(prefs.selection, kind);
     const notes = [];
+    const seen = new Set();
     for (const d of defs) {
       if (d.description) notes.push(html`<div><b>${t(d.protocol)}</b>: ${t(d.description)}</div>`);
-      if (kind === 'serial' && d.links.serial?.note) notes.push(html`<div>${t(d.links.serial.note)}</div>`);
+      const note = kind === 'serial' ? d.links.serial?.note : undefined;
+      if (note && !seen.has(note)) {
+        seen.add(note);
+        notes.push(html`<div>${t(note)}</div>`);
+      }
     }
     if (!notes.length) return nothing;
     return html`<div class="note">${icon('info', { size: 18 })}<div style="display:flex;flex-direction:column;gap:6px">${notes}</div></div>`;

@@ -7,6 +7,34 @@ cannot do: native Bluetooth scanning without the browser chooser, Bluetooth on F
 platforms where Web Bluetooth is missing, full serial port lists with names and paths, and
 background operation.
 
+## Status
+
+Implemented in `apps/desktop` (Tauri 2, btleplug 0.13, serialport 4):
+
+- `src-tauri/src/ble.rs`: adapter state, scan with name prefix, service and manufacturer filters,
+  connect with timeout, service discovery, notifications, writes, disconnect events.
+- `src-tauri/src/serial.rs`: port list with USB ids, open with all serial options and output
+  signals, one reader thread per port, writes, close.
+- The web app shows an in-app scan list and a port list instead of the browser choosers when it
+  runs inside Tauri (`AppController.nativeBle`, `nativeSerial`).
+- The JavaScript side of the bridge is covered by the headless smoke test with an imitation of
+  the bridge (`scripts/tauri-mock.js`) that feeds the real protocol simulators; the Rust side is
+  built and unit tested on Windows, Linux and macOS by `.github/workflows/desktop.yml`.
+
+Build locally (needs Rust and the Tauri prerequisites of your platform, see
+https://v2.tauri.app/start/prerequisites/):
+
+```
+npm install
+npm run build              # web app into dist/
+npm run desktop:build      # desktop binary (add -- --no-bundle to skip installers)
+npm run dev                # in one terminal: Vite dev server
+npm run desktop:dev        # in another terminal: desktop window on the dev server
+```
+
+Not done yet: installers and code signing, macOS Bluetooth usage description in a bundled
+Info.plist, Android and iOS targets.
+
 ## Approach
 
 - `apps/web` is loaded in the Tauri webview as is (the single-file build or the Vite dev server).

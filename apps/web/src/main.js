@@ -1,4 +1,5 @@
 import { applyGlobalStyles, i18n } from '@ubms/ui';
+import * as transport from '@ubms/transport';
 import { AppController } from './controller.js';
 import { registerTranslations } from './locales/index.js';
 import './app.js';
@@ -14,8 +15,10 @@ const app = /** @type {any} */ (document.createElement('ubms-app'));
 app.ctrl = ctrl;
 /** @type {HTMLElement} */ (document.getElementById('app')).replaceChildren(app);
 
-// Handy for debugging from the browser console; not used by the app itself.
+// Handy for debugging from the browser console and for test harnesses (for example a mocked
+// Tauri bridge that feeds a protocol simulator); not used by the app itself.
 /** @type {any} */ (window).ubms = ctrl;
+/** @type {any} */ (window).ubmsDebug = { transport };
 
 // Installable app with offline cache when served over https (the single file opened from disk
 // skips this: there is no manifest or service worker next to it).
