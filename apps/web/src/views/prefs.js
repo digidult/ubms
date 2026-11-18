@@ -1,5 +1,5 @@
 import { html, css } from 'lit';
-import { UiElement, define, sharedStyles, StoreController, icon, t, confirmDialog } from '@ubms/ui';
+import { UiElement, define, sharedStyles, StoreController, icon, t, i18n, confirmDialog } from '@ubms/ui';
 import { LANGUAGES } from '../controller.js';
 
 export class ViewPrefs extends UiElement {
@@ -110,7 +110,7 @@ export class ViewPrefs extends UiElement {
             <div class="sub">${t('How often live data is requested. Some BMS push data on their own.')}</div>
           </div>
           <select @change=${(/** @type {any} */ e) => set('pollMs', Number(e.target.value))}>
-            ${[500, 1000, 2000, 5000, 10000].map((ms) => html`<option value=${ms} ?selected=${p.pollMs === ms}>${t('{s} s', { s: ms / 1000 })}</option>`)}
+            ${[500, 1000, 2000, 5000, 10000].map((ms) => html`<option value=${ms} ?selected=${p.pollMs === ms}>${t('{s} s', { s: i18n.formatNumber(ms / 1000, { decimals: 1, minDecimals: 0 }) })}</option>`)}
           </select>
         </div>
         <div class="item">

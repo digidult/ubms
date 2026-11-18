@@ -196,6 +196,29 @@ const desktop = { width: 1366, height: 860, mobile: false };
 const hasText = (s) =>
   `(() => { const walk = (n) => { if (n.shadowRoot && walk(n.shadowRoot)) return true; for (const c of n.children ?? []) if (walk(c)) return true; return (n.textContent ?? '').includes(${JSON.stringify(s)}); }; return walk(document.querySelector('ubms-app')); })()`;
 
+/** Write one plain number setting through the app controller, check the read-back, restore it. */
+const writeCheck = `(async () => {
+  const c = window.ubms;
+  const s = c.session;
+  if (!s.driver?.capabilities.writeSettings) return true;
+  const schema = s.driver.getSettingsSchema();
+  const values = s.settings.values ?? {};
+  for (const g of schema.groups) for (const f of g.fields) {
+    if (f.type !== 'number' || f.readOnly || f.danger || f.advanced || f.validate) continue;
+    const v = values[f.id];
+    if (typeof v !== 'number') continue;
+    const step = f.step ?? 1;
+    let nv = Math.round((v + step) / step) * step;
+    if (f.max !== undefined && nv > f.max) nv = Math.round((v - step) / step) * step;
+    const res = await c.writeSettings([{ id: f.id, value: nv }], { quiet: true });
+    const ok = res[0]?.ok && res[0]?.verified !== false;
+    await c.writeSettings([{ id: f.id, value: v }], { quiet: true });
+    if (!ok) console.error('write check failed for ' + f.id + ': ' + JSON.stringify(res[0]));
+    return !!ok;
+  }
+  return true;
+})()`;
+
 const scenarios = [
   ['connect-phone', { ...phone, hash: '/connect', steps: [{ eval: hasText('ubms'), shot: 'connect-phone' }] }],
   ['connect-desktop-dark', { ...desktop, dark: true, hash: '/connect', steps: [{ shot: 'connect-desktop-dark' }] }],
@@ -225,6 +248,7 @@ for (const id of demoIds) {
         { hash: '/cells', shot: `demo-${id}-cells-phone` },
         { hash: '/settings', wait: 2500, shot: `demo-${id}-settings-phone` },
         { eval: `window.ubms.state.settings.values !== null` },
+        { eval: writeCheck, wait: 300 },
         { hash: `/settings/${'cell_voltage'}`, shot: `demo-${id}-settings-group-phone` },
         { hash: '/info', shot: `demo-${id}-info-phone` },
         { hash: '/log', shot: `demo-${id}-log-phone` },

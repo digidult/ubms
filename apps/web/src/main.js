@@ -17,6 +17,16 @@ app.ctrl = ctrl;
 // Handy for debugging from the browser console; not used by the app itself.
 /** @type {any} */ (window).ubms = ctrl;
 
+// Installable app with offline cache when served over https (the single file opened from disk
+// skips this: there is no manifest or service worker next to it).
+if (location.protocol === 'https:' && 'serviceWorker' in navigator) {
+  const manifest = document.createElement('link');
+  manifest.rel = 'manifest';
+  manifest.href = './manifest.webmanifest';
+  document.head.append(manifest);
+  navigator.serviceWorker.register('./sw.js').catch((err) => console.warn('Service worker not registered', err));
+}
+
 // Dev helper: #/connect?demo=jk-ble starts a demo session directly (used by the smoke test).
 const demo = new URLSearchParams(location.hash.split('?')[1] ?? '').get('demo');
 if (demo) ctrl.connectDemo(demo).catch((err) => console.error(err));

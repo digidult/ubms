@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Translation check
+        run: npm run i18n:check
+
+      - name: Build single-file app
+        run: npm run build
+
+      - name: Headless smoke test
+        run: npm run smoke -- --browser "$(command -v google-chrome || command -v chromium)"
+
+      - name: Upload app
+        uses: actions/upload-artifact@v4
+        with:
+          name: ubms-html
+          path: dist/index.html
+          if-no-files-found: error
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-screenshots
+          path: .smoke/
+          if-no-files-found: ignore

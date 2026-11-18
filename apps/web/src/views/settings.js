@@ -16,6 +16,7 @@ export class ViewSettings extends UiElement {
     edits: { state: true },
     busy: { state: true },
     results: { state: true },
+    query: { state: true },
   };
 
   static styles = [
@@ -36,6 +37,14 @@ export class ViewSettings extends UiElement {
         min-width: 140px;
         font-size: 0.82rem;
         color: var(--ui-text-muted);
+      }
+      .search {
+        flex: 1 1 200px;
+        max-width: 360px;
+        min-height: 36px;
+      }
+      .results .section-title:first-child {
+        margin-top: 4px;
       }
       .layout {
         display: grid;
@@ -234,6 +243,7 @@ export class ViewSettings extends UiElement {
     /** @type {Record<string, import('@ubms/bms-core/session').WriteResult>} */
     this.results = {};
     this.requested = false;
+    this.query = '';
   }
 
   connectedCallback() {
@@ -281,6 +291,9 @@ export class ViewSettings extends UiElement {
     const current = groups.find((g) => g.id === this.group) ?? groups[0];
     const hasGroup = !!this.group && !!groups.find((g) => g.id === this.group);
     const dirty = Object.keys(this.edits).length;
+    if (this.query.trim()) {
+      return html`${this.#toolbar(settings)}${this.#searchResults(groups)}${dirty ? this.#applyBar(dirty) : nothing}`;
+    }
     return html`
       ${this.#toolbar(settings)}
       <div class="layout ${hasGroup ? 'has-group' : ''}">
@@ -307,6 +320,14 @@ export class ViewSettings extends UiElement {
   #toolbar(settings) {
     const writable = this.ctrl.session.driver?.capabilities.writeSettings;
     return html`<div class="toolbar">
+      <input
+        class="input search"
+        type="search"
+        placeholder=${t('Search settings')}
+        aria-label=${t('Search settings')}
+        .value=${this.query}
+        @input=${(/** @type {any} */ e) => (this.query = e.target.value)}
+      />
       <span class="meta">${settings.readAt ? t('Read {time}', { time: ago(settings.readAt) }) : ''}${!writable ? html` · ${t('read only')}` : nothing}</span>
       <button class="btn small" ?disabled=${settings.loading} @click=${() => this.ctrl.loadSettings()} title=${t('Read again from the device')}>
         ${icon('refresh', { size: 16 })}${t('Reload')}
@@ -315,6 +336,23 @@ export class ViewSettings extends UiElement {
       ${writable
         ? html`<button class="btn small" @click=${this.#import} title=${t('Load settings from a file')}>${icon('upload', { size: 16 })}${t('Import')}</button>`
         : nothing}
+    </div>`;
+  }
+
+  /** @param {import('@ubms/bms-core/settings').SettingGroup[]} groups */
+  #searchResults(groups) {
+    const q = this.query.trim().toLowerCase();
+    const values = this.sc.value.settings.values ?? {};
+    const errors = validateAll(/** @type {any} */ (this.#schema), this.#mergedValues());
+    const hit = (/** @type {SettingField} */ f) =>
+      [f.id, f.label, t(f.label), f.description ?? '', f.description ? t(f.description) : ''].some((x) => x.toLowerCase().includes(q));
+    const matches = groups.map((g) => ({ g, fields: g.fields.filter(hit) })).filter((m) => m.fields.length);
+    if (!matches.length) return html`<ui-empty icon="search" heading=${t('Nothing found')} text=${t('No setting matches "{query}".', { query: this.query })}></ui-empty>`;
+    return html`<div class="results">
+      ${matches.map(
+        ({ g, fields }) => html`<div class="section-title">${t(g.label)}</div>
+          <div class="card fields">${fields.map((f) => this.#row(f, values[f.id], errors[f.id]))}</div>`,
+      )}
     </div>`;
   }
 
