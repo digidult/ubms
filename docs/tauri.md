@@ -76,6 +76,9 @@ Notes:
 
 - Notifications must be forwarded in order and without merging, exactly like Web Bluetooth
   delivers them; the JavaScript framers handle reassembly.
+- Several characteristics may share one UUID within a service (JK BMS modules have a write-only
+  FFE1 and a notify FFE1). `ble_subscribe` must pick the one with notify or indicate, `ble_write`
+  the one with write or write without response, as the web transport does.
 - Serial reads should be forwarded as soon as bytes arrive (short read timeout, for example 10 ms).
 - Keep the Rust side protocol agnostic. All protocol logic stays in JavaScript drivers, so the
   web and desktop apps behave identically and share one protocol log format.

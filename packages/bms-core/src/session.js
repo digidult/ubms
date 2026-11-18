@@ -522,7 +522,7 @@ export class BmsSession extends Emitter {
       await this.loadSettings();
       const values = this.settings.values ?? {};
       for (const r of results) {
-        if (!r.ok || !(r.id in values)) continue;
+        if (!r.ok || !(r.id in values) || fields.get(r.id)?.writeOnly) continue;
         const requested = changes.find((c) => c.id === r.id)?.value;
         const f = fields.get(r.id);
         r.actual = values[r.id];

@@ -264,11 +264,26 @@ export class WebBleLink extends Link {
   async _open() {
     const gatt = this.handle.device.gatt;
     const service = await gatt.getPrimaryService(canonicalUuid(this.profile.service));
-    this.notifyChar = await service.getCharacteristic(canonicalUuid(this.profile.notify));
-    this.writeChar =
-      canonicalUuid(this.profile.write) === canonicalUuid(this.profile.notify)
-        ? this.notifyChar
-        : await service.getCharacteristic(canonicalUuid(this.profile.write));
+    // Some modules expose two characteristics with the same UUID (for example JK BMS: FFE1 for
+    // writing and another FFE1 for notifications), so list all matches and pick by properties.
+    const all = async (/** @type {string} */ uuid) => {
+      try {
+        const list = await service.getCharacteristics(uuid);
+        if (list?.length) return list;
+      } catch {
+        /* fall back to the single lookup below */
+      }
+      return [await service.getCharacteristic(uuid)];
+    };
+    const notifyUuid = canonicalUuid(this.profile.notify);
+    const writeUuid = canonicalUuid(this.profile.write);
+    const notifyList = await all(notifyUuid);
+    const writeList = writeUuid === notifyUuid ? notifyList : await all(writeUuid);
+    this.notifyChar = notifyList.find((/** @type {any} */ c) => c.properties.notify || c.properties.indicate) ?? notifyList[0];
+    this.writeChar = writeList.find((/** @type {any} */ c) => c.properties.write || c.properties.writeWithoutResponse) ?? writeList[0];
+    if (notifyList.length > 1 || writeList.length > 1) {
+      this.log?.debug(`Several characteristics share a UUID; notify and write were chosen by their properties`, { source: this.id });
+    }
     this.notifyChar.addEventListener('characteristicvaluechanged', this.onValue);
     await this.notifyChar.startNotifications();
     this.offDisconnect = this.handle.on('disconnect', () => this._remoteClosed('Bluetooth disconnected'));

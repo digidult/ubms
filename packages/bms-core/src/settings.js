@@ -21,6 +21,10 @@ import { msg } from './msg.js';
  * @property {Array<{ value: number|string, label: string }>} [options] for 'enum'
  * @property {number} [maxLength] for 'text'
  * @property {boolean} [readOnly]
+ * @property {boolean} [writeOnly] the device does not report this value (calibration inputs): no
+ *   read-back verification, the input starts empty
+ * @property {{ label?: string, unit?: string, min?: number, max?: number, step?: number, decimals?: number, default?: number }} [argument]
+ *   for 'action' fields that take a number (for example "set SOC to N %")
  * @property {boolean} [danger] confirm before writing / running
  * @property {boolean} [advanced] hidden unless the user enables advanced settings
  * @property {string} [description] English help text

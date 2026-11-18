@@ -17,6 +17,7 @@ export class ViewSettings extends UiElement {
     busy: { state: true },
     results: { state: true },
     query: { state: true },
+    actionArgs: { state: true },
   };
 
   static styles = [
@@ -155,6 +156,9 @@ export class ViewSettings extends UiElement {
         align-items: center;
         gap: 6px;
       }
+      .control .numwrap + .btn {
+        margin-left: 4px;
+      }
       .numwrap .input {
         width: 120px;
         text-align: right;
@@ -244,6 +248,8 @@ export class ViewSettings extends UiElement {
     this.results = {};
     this.requested = false;
     this.query = '';
+    /** @type {Record<string, string>} raw argument input of action fields */
+    this.actionArgs = {};
   }
 
   connectedCallback() {
@@ -402,7 +408,7 @@ export class ViewSettings extends UiElement {
     const result = this.results[f.id];
     const range =
       f.type === 'number' && f.min !== undefined && f.max !== undefined ? `${num(f.min, f.decimals ?? 3)}–${num(f.max, f.decimals ?? 3)}${f.unit ? ` ${f.unit}` : ''}` : '';
-    const inline = f.type === 'boolean' || f.type === 'action' || !writable;
+    const inline = f.type === 'boolean' || (f.type === 'action' && !f.argument) || !writable;
     return html`<div class="row ${dirty ? 'dirty' : ''} ${inline ? 'inline' : ''}">
       <div>
         <div class="label">${dirty ? html`<span class="dot"></span>` : nothing}${t(f.label)}</div>
@@ -413,7 +419,9 @@ export class ViewSettings extends UiElement {
       ${error ? html`<div class="err">${icon('alert', { size: 15 })}${error}</div>` : nothing}
       ${!error && warning && (dirty || this.#touchesWarning(f.id)) ? html`<div class="res-warn">${icon('warning', { size: 15 })} ${t(warning)}</div>` : nothing}
       ${!dirty && result
-        ? result.ok && result.verified !== false
+        ? result.ok && f.writeOnly
+          ? html`<div class="res-ok">${t('Sent. The device does not report this value, so it cannot be checked.')}</div>`
+          : result.ok && result.verified !== false
           ? html`<div class="res-ok">${t('Saved')}</div>`
           : result.ok
             ? html`<div class="res-warn">${t('Written, but the device reports {value}', { value: fieldValue(f, result.actual) })}</div>`
@@ -448,7 +456,7 @@ export class ViewSettings extends UiElement {
           @input=${(/** @type {any} */ e) => this.#set(f, e.target.value, value)}
         />`;
       default: {
-        const shown = edit ? edit.raw : value === undefined ? '' : num(value, f.decimals ?? 3).replace(/\s/g, '');
+        const shown = edit ? edit.raw : value === undefined || f.writeOnly ? '' : num(value, f.decimals ?? 3).replace(/\s/g, '');
         return html`<span class="numwrap"
           ><input
             class="input"
@@ -484,21 +492,47 @@ export class ViewSettings extends UiElement {
 
   /** @param {SettingField} f */
   #action(f) {
-    return html`<button class="btn small ${f.danger ? 'danger' : ''}" ?disabled=${this.busy} @click=${() => this.#runAction(f)}>${icon(f.danger ? 'warning' : 'wrench', { size: 16 })}${t('Run')}</button>`;
+    const a = f.argument;
+    const button = html`<button class="btn small ${f.danger ? 'danger' : ''}" ?disabled=${this.busy} @click=${() => this.#runAction(f)}>${icon(f.danger ? 'warning' : 'wrench', { size: 16 })}${t('Run')}</button>`;
+    if (!a) return button;
+    const raw = this.actionArgs[f.id] ?? (a.default !== undefined ? num(a.default, a.decimals ?? 0).replace(/\s/g, '') : '');
+    return html`<span class="numwrap"
+        ><input
+          class="input"
+          type="text"
+          inputmode="decimal"
+          autocomplete="off"
+          aria-label=${a.label ? t(a.label) : t(f.label)}
+          .value=${raw}
+          @input=${(/** @type {any} */ e) => (this.actionArgs = { ...this.actionArgs, [f.id]: e.target.value })}
+        /><span class="unit">${a.unit ?? ''}</span></span
+      >${button}`;
   }
 
   /** @param {SettingField} f */
   async #runAction(f) {
+    /** @type {number | undefined} */
+    let arg;
+    const a = f.argument;
+    if (a) {
+      const raw = this.actionArgs[f.id] ?? String(a.default ?? '');
+      arg = Number(String(raw).trim().replace(',', '.'));
+      if (!Number.isFinite(arg) || (a.min !== undefined && arg < a.min) || (a.max !== undefined && arg > a.max)) {
+        toast(t('Enter a value from {min} to {max}', { min: num(a.min ?? 0, a.decimals ?? 0), max: num(a.max ?? 0, a.decimals ?? 0) }), { tone: 'warn' });
+        return;
+      }
+    }
     const ok = await confirmDialog({
       title: t(f.label),
       message: f.description ? t(f.description) : t('Run this action on the device?'),
+      details: a ? [`${a.label ? t(a.label) : t('Value')}: ${num(arg, a.decimals ?? 0)}${a.unit ? ` ${a.unit}` : ''}`] : [],
       confirmLabel: t('Run'),
       danger: !!f.danger,
     });
     if (!ok) return;
     this.busy = true;
     try {
-      await this.ctrl.runAction(f.id);
+      await this.ctrl.runAction(f.id, arg);
     } finally {
       this.busy = false;
     }
