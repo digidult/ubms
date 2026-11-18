@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "ubms desktop app (Tauri 2): the web app with native Bluetooth and serial ports.",
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "tauri": "tauri",

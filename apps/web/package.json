@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "ubms web app: single-page BMS viewer and configurator.",
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "vite",

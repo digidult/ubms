@@ -27,8 +27,16 @@
     "active": true,
     "targets": "all",
     "category": "Utility",
+    "copyright": "Copyright (c) 2026 ubms contributors",
+    "license": "MIT",
     "shortDescription": "BMS viewer and configurator",
     "longDescription": "Monitor and configure JK, ANT and Daly battery management systems over Bluetooth and serial ports.",
-    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.png", "icons/icon.ico"]
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.png",
+      "icons/icon.ico"
+    ]
   }
 }

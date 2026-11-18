@@ -74,6 +74,7 @@ export class ViewMore extends UiElement {
         <p>${t('Open source viewer and configurator for battery management systems. Works offline: the whole app is a single HTML file and talks to the device directly from the browser.')}</p>
         <p>${t('Supported now: JK BMS, ANT BMS and Daly BMS over Bluetooth and serial (UART, RS485).')}</p>
         <p>${t('Changing BMS settings is at your own risk. Wrong values can damage cells, the BMS or connected equipment.')}</p>
+        <p class="faint" style="font-size:.8rem">MIT License · © 2026 ubms contributors</p>
         <p class="faint" style="font-size:.8rem">
           ${t('Browser support: {details}', {
             details: `Bluetooth ${env.webBluetooth ? '✓' : '✗'} · ${t('Serial')} ${env.webSerial ? '✓' : '✗'} · ${env.tauri ? 'Tauri' : env.platform}`,

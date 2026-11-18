@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "Universal BMS viewer and configurator: JK, ANT, Daly and more over Web Bluetooth and Web Serial.",
+  "license": "MIT",
   "type": "module",
   "workspaces": [
     "packages/*",

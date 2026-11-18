@@ -92,3 +92,8 @@ scripts                smoke test and checks
 
 `packages/transport` and `packages/ui` contain nothing BMS specific and are meant to become a
 separate base for other device web apps.
+
+## License
+
+[MIT](LICENSE). The protocol specifications in `docs/protocols` describe public facts from the
+sources listed in each document; no third-party source code is copied into this repository.

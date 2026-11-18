@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "Protocol drivers (JK, ANT, Daly) with device simulators for demo mode and tests.",
+  "license": "MIT",
   "type": "module",
   "sideEffects": false,
   "exports": {
