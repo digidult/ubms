@@ -270,6 +270,19 @@ const scenarios = [
     },
   ],
   [
+    'i18n-uk-jk-phone',
+    {
+      ...phone,
+      hash: '/connect',
+      steps: [
+        { eval: `(window.ubms.setPref('lang', 'uk'), window.ubms.connectDemo('jk-ble').then(() => true))`, wait: 3500, shot: 'i18n-uk-jk-overview-phone' },
+        { hash: '/settings/cell_voltage', wait: 2500, shot: 'i18n-uk-jk-settings-phone' },
+        { hash: '/settings/temperature', shot: 'i18n-uk-jk-temperature-phone' },
+        { eval: `(window.ubms.setPref('lang', 'en'), true)` },
+      ],
+    },
+  ],
+  [
     'fixture-desktop',
     { ...desktop, hash: '/connect', steps: [{ eval: fixture, hash: '/overview', shot: 'fixture-overview-desktop' }, { hash: '/cells', shot: 'fixture-cells-desktop' }] },
   ],
