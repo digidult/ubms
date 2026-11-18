@@ -109,7 +109,9 @@ Settings are declarative (`packages/bms-core/src/settings.js`). A driver returns
 `SettingsSchema` (groups of fields) and implements `readSettings()`, `writeSetting(id, value)` and
 `runAction(id)`. A field has a type (`number`, `boolean`, `enum`, `text`, `action`), unit, limits,
 step, options, read-only and danger flags, an `advanced` flag, help text and an optional
-cross-field validator (for example "recovery must be below protection"). Driver private data such
+cross-field validator (for example "recovery must be below protection") and an optional
+non-blocking warning check (for example "pack limit does not match cell limit times cell count"),
+which is shown next to pending edits and repeated in the write confirmation. Driver private data such
 as the register address and scaling lives in `meta`.
 
 The settings screen is generated from the schema: no device specific UI code is needed for new
@@ -135,7 +137,11 @@ reports `capabilities` (settings, writeSettings, streaming, recommended poll int
 
 ## Device selection and auto-detection
 
-Selection in the UI is `auto`, a brand (`jk`) or one protocol (`jk-ble`).
+Selection in the UI is `auto`, a whole brand (`family:jk`) or one protocol (`jk-ble`). The
+`family:` prefix matters when a driver id equals its family id (`ant`, `daly`). Serial targets
+may carry options such as the RS485 device address or board number (`options.address`,
+`options.board`); the same options object is shared by every driver instance created for that
+target, so drivers can keep app-local values (for example a password) across reconnects.
 
 **Bluetooth.** `DriverRegistry.bleRequest()` builds the chooser request: name prefix and
 service filters of the selected drivers, plus every GATT service any candidate might use as
