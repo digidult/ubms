@@ -39,6 +39,10 @@ const CAPACITY_UNCONFIRMED = msg(
   'Sources disagree on the unit of this register (Ah or micro Ah). The app derives it from the status frame; the value is shown but never written until the encoding is confirmed.',
 );
 const LEGACY_READ_ONLY = msg('Parameter writes of the old protocol are not confirmed yet, so this value is shown but never written.');
+/** Charge and discharge switches show the command state, not the MOSFET state (driver `switchOn`). */
+const MOS_SWITCH_NOTE = msg(
+  'Off only after an off command. While a protection or a full battery holds the MOSFET off, the switch stays On, because the BMS turns the MOSFET back on by itself. The overview shows the actual MOSFET state.',
+);
 
 const PROT_ABOVE_REC = msg('Protection must be above its recovery value');
 const REC_BELOW_PROT = msg('Recovery must be below protection');
@@ -371,8 +375,8 @@ export function buildAntSchema({ serial = false } = {}) {
     ),
 
     // Switches (spec 8).
-    field('switch.charge', { meta: { kind: 'control', on: CONTROL.CHARGE_ON, off: CONTROL.CHARGE_OFF } }),
-    field('switch.discharge', { meta: { kind: 'control', on: CONTROL.DISCHARGE_ON, off: CONTROL.DISCHARGE_OFF } }),
+    field('switch.charge', { description: MOS_SWITCH_NOTE, meta: { kind: 'control', on: CONTROL.CHARGE_ON, off: CONTROL.CHARGE_OFF } }),
+    field('switch.discharge', { description: MOS_SWITCH_NOTE, meta: { kind: 'control', on: CONTROL.DISCHARGE_ON, off: CONTROL.DISCHARGE_OFF } }),
     field('switch.balance', {
       description: msg('Starts or stops manual balancing. The state shows whether the balancer is working, automatically or manually.'),
       meta: { kind: 'control', on: CONTROL.BALANCE_ON, off: CONTROL.BALANCE_OFF },
@@ -648,8 +652,8 @@ export function buildAntLegacySchema() {
       msg('Password sent as four A5 A5 F1..F4 frames before every switch and action command. It is kept in this app only and never read from the BMS. 12345678 is the value seen in captured sessions.'),
       8,
     ),
-    field('switch.charge', { meta: { kind: 'old-control', address: OLD_CONTROL.CHARGE } }),
-    field('switch.discharge', { meta: { kind: 'old-control', address: OLD_CONTROL.DISCHARGE } }),
+    field('switch.charge', { description: MOS_SWITCH_NOTE, meta: { kind: 'old-control', address: OLD_CONTROL.CHARGE } }),
+    field('switch.discharge', { description: MOS_SWITCH_NOTE, meta: { kind: 'old-control', address: OLD_CONTROL.DISCHARGE } }),
     field('ant.balance_toggle', {
       label: msg('Toggle automatic balancing'),
       group: 'actions',

@@ -46,11 +46,11 @@ export function createI18n({ fallback = 'en' } = {}) {
   function t(key, params) {
     let entry = catalogs.get(locale)?.[key];
     let loc = locale;
-    if (entry === undefined || entry === '') {
+    if (!translated(entry)) {
       entry = catalogs.get(fallback)?.[key];
       loc = fallback;
     }
-    if (entry === undefined || entry === '') {
+    if (!translated(entry)) {
       const bar = key.indexOf('|');
       entry = bar > 0 && !key.slice(0, bar).includes(' ') ? key.slice(bar + 1) : key;
       loc = fallback;
@@ -59,7 +59,8 @@ export function createI18n({ fallback = 'en' } = {}) {
     if (typeof entry === 'object') {
       const n = Number(params?.count ?? 0);
       const cat = plural(loc).select(n);
-      text = entry[cat] ?? entry.other ?? Object.values(entry)[0] ?? key;
+      // An empty form is untranslated like an empty string: use `other`, then any filled form.
+      text = entry[cat] || entry.other || Object.values(entry).find(Boolean) || key;
     } else {
       text = entry;
     }
@@ -141,6 +142,17 @@ export function createI18n({ fallback = 'en' } = {}) {
       return [...catalogs.keys()];
     },
   };
+}
+
+/**
+ * Catalogs mark untranslated entries with empty strings. A value counts as translated when it is
+ * a non-empty string or a plural object with at least one non-empty form; anything else falls
+ * back to English.
+ * @param {CatalogValue | undefined} entry
+ */
+function translated(entry) {
+  if (typeof entry === 'string') return entry !== '';
+  return !!entry && typeof entry === 'object' && Object.values(entry).some((v) => typeof v === 'string' && v !== '');
 }
 
 /**

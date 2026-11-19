@@ -30,7 +30,8 @@ import { CMD, D2_BATTERY_TYPES, D2_REG, P81_REG, rtcText } from './protocol.js';
  * - `{ kind: 'switch', key, register? }` MOSFET or feature switch; the value is the state the BMS
  *   reports, the command is 0xDA / 0xD9 (classic) or a register write (Modbus)
  * - `{ kind: 'action', action, register?, value? }` one-shot command
- * - `{ kind: 'local' }` value kept in the driver instance (current sign)
+ * - `{ kind: 'local' }` value kept in the driver and in the target options, so it survives
+ *   reconnects (current sign)
  *
  * @typedef {import('@ubms/bms-core/settings').SettingField} SettingField
  * @typedef {import('@ubms/bms-core/settings').SettingsSchema} SettingsSchema

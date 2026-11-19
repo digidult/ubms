@@ -6,6 +6,12 @@
 export function createStorage(namespace) {
   /** @type {Map<string, any>} */
   const memory = new Map();
+  /**
+   * Keys whose last write or removal failed: their in-memory state is newer than whatever
+   * localStorage still holds, so reads must not return the stale persisted value.
+   * @type {Set<string>}
+   */
+  const unsaved = new Set();
   const prefix = `${namespace}:`;
 
   /** @returns {Storage | null} */
@@ -25,11 +31,13 @@ export function createStorage(namespace) {
      * @returns {T}
      */
     get(key, fallback) {
-      try {
-        const raw = ls()?.getItem(prefix + key);
-        if (raw !== null && raw !== undefined) return JSON.parse(raw);
-      } catch {
-        /* fall through */
+      if (!unsaved.has(key)) {
+        try {
+          const raw = ls()?.getItem(prefix + key);
+          if (raw !== null && raw !== undefined) return JSON.parse(raw);
+        } catch {
+          /* fall through */
+        }
       }
       return memory.has(key) ? memory.get(key) : fallback;
     },
@@ -38,8 +46,10 @@ export function createStorage(namespace) {
       memory.set(key, value);
       try {
         ls()?.setItem(prefix + key, JSON.stringify(value));
+        unsaved.delete(key);
       } catch {
-        /* keep the in-memory copy */
+        /* keep the in-memory copy, it is newer than the persisted one */
+        unsaved.add(key);
       }
     },
     /** @param {string} key */
@@ -47,8 +57,10 @@ export function createStorage(namespace) {
       memory.delete(key);
       try {
         ls()?.removeItem(prefix + key);
+        unsaved.delete(key);
       } catch {
-        /* ignore */
+        /* the persisted value may still be there: reads return the fallback */
+        unsaved.add(key);
       }
     },
     /** Remove every key of this namespace. */

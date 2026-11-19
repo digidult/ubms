@@ -13,7 +13,8 @@ import { msg } from './msg.js';
  *
  * @typedef {Object} RequestOptions
  * @property {(frame: Uint8Array) => boolean} match accepts the response frame
- * @property {number} [timeout] milliseconds per attempt (default 2000)
+ * @property {number} [timeout] milliseconds to wait for the response after the write, per attempt
+ *   (default 2000)
  * @property {number} [retries] extra attempts after a timeout (default 0)
  * @property {string} [name] command name for the log
  * @property {() => any} [decode] lazy decoder of the command bytes for the log
@@ -115,8 +116,19 @@ export class FrameChannel extends Emitter {
    * @returns {Promise<Uint8Array>}
    */
   waitFor(match, timeout = 2000) {
+    const { promise, cancel } = this.#listen(match);
+    return withTimeout(promise, timeout, msg('No response from the device')).finally(cancel);
+  }
+
+  /**
+   * Register a waiter for the next frame accepted by `match`, without a timeout.
+   * @param {(frame: Uint8Array) => boolean} match
+   * @returns {{ promise: Promise<Uint8Array>, cancel: () => void }}
+   */
+  #listen(match) {
     /** @type {any} */
     let waiter;
+    /** @type {Promise<Uint8Array>} */
     const promise = new Promise((resolve) => {
       waiter = {
         match,
@@ -127,7 +139,7 @@ export class FrameChannel extends Emitter {
       };
       this.waiters.add(waiter);
     });
-    return withTimeout(promise, timeout, msg('No response from the device')).finally(() => this.waiters.delete(waiter));
+    return { promise, cancel: () => void this.waiters.delete(waiter) };
   }
 
   /**
@@ -149,15 +161,18 @@ export class FrameChannel extends Emitter {
   async requestUnqueued(bytes, { match, timeout = 2000, retries = 0, name, decode }) {
     let lastErr;
     for (let attempt = 0; attempt <= retries; attempt++) {
-      const response = this.waitFor(match, timeout);
+      // Listen before the write so a fast answer is not missed, but start the timeout after it: a
+      // slow write (chunked, or a BLE write with response) must not use up the response time.
+      const response = this.#listen(match);
       try {
         await this.link.write(bytes, { name, decode });
-        return await response;
+        return await withTimeout(response.promise, timeout, msg('No response from the device'));
       } catch (err) {
-        response.catch(() => {});
         lastErr = err;
         if (/** @type {any} */ (err)?.code !== 'TIMEOUT') throw err;
         if (attempt < retries) this.log?.warn(`No response to ${name ?? 'request'}, retrying (${attempt + 1}/${retries})`, { source: this.source });
+      } finally {
+        response.cancel();
       }
     }
     throw lastErr;

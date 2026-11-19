@@ -42,6 +42,11 @@ test('settings schema helpers', () => {
   const schema = buildSchema([custom, sw, ovp], { x: { label: 'Extra' } });
   assert.deepEqual(schema.groups.map((g) => g.id), ['cell_voltage', 'controls', 'x']);
   assert.equal(coerce(ovp, '3,65'), 3.65);
+  // An emptied number input is not a value (Number('') would be 0).
+  assert.equal(coerce(ovp, ''), undefined);
+  assert.equal(coerce(ovp, '  '), undefined);
+  assert.equal(coerce(ovp, '0'), 0);
+  assert.equal(coerce(ovp, 0), 0);
   assert.equal(coerce(custom, '1'), 1);
   assert.equal(coerce(custom, '7'), undefined);
   assert.deepEqual(validateValue(ovp, 5), { message: 'Maximum is {max}', params: { max: 4.35, unit: 'V' } });

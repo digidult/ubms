@@ -214,7 +214,7 @@ test('JK-PB RS485 vectors: trigger and write encoders, 300 byte answers with the
       if (expectFrameType !== undefined) assert.equal(P.PB_TRIGGER_TYPE[req.register], expectFrameType, `${v.id} frame type`);
       continue;
     }
-    const { frames } = assemble(P.createPbAssembler(e.address ?? 1), bytes, [64]);
+    const { frames } = assemble(P.createPbAssembler(), bytes, [64]);
     if (bytes.length === 5) {
       assert.equal(frames.length, 1, v.id);
       assertClose(P.parseModbusResponse(frames[0]), e, v.id);
@@ -359,17 +359,20 @@ test('BLE assembler: fragmented, back-to-back, 320 byte notifications, AT text a
   }
 });
 
-test('JK-PB assembler skips adapter echo, other addresses and stray bytes', () => {
+test('JK-PB assembler skips adapter echo and stray bytes, keeps the answers of every address', () => {
   const answer = fromHex(byId('pb-rs485-response-type2-addr1').hex);
   const echo = P.pbTriggerRequest(1, P.PB_TRIGGER.CELL_INFO);
-  const other = P.modbusWriteAck(P.pbTriggerRequest(2, P.PB_TRIGGER.CELL_INFO));
-  const stream = concat(echo, Uint8Array.of(0), other, answer.subarray(0, 300), Uint8Array.of(0), answer.subarray(300), Uint8Array.of(0));
-  const { frames } = assemble(P.createPbAssembler(1), stream, [17]);
+  const master = P.pbTriggerRequest(2, P.PB_TRIGGER.CELL_INFO);
+  const other = P.modbusWriteAck(master);
+  const stream = concat(echo, Uint8Array.of(0), master, other, answer.subarray(0, 300), Uint8Array.of(0), answer.subarray(300), Uint8Array.of(0));
+  const { frames } = assemble(P.createPbAssembler(), stream, [17]);
+  // The answer of pack 2 stays as a separator: the 300 byte frames carry no address.
   assert.deepEqual(
     frames.map((f) => f.length),
-    [300, 8],
+    [8, 300, 8],
   );
-  assert.ok(P.isPbWriteAck(frames[1], 1, P.PB_TRIGGER.CELL_INFO));
+  assert.ok(P.isPbWriteAck(frames[0], 2, P.PB_TRIGGER.CELL_INFO));
+  assert.ok(P.isPbWriteAck(frames[2], 1, P.PB_TRIGGER.CELL_INFO));
 });
 
 test('variant helpers: software version boundary and JK04 detection', () => {
@@ -466,6 +469,29 @@ test('JK02 snapshot: units, current sign, temperatures, alarms, switches and ext
   const charging = jk02Snapshot(P.parseCellInfo(fromHex(byId('aiobmsble-jk02-24s-cell-info').hex), P.VARIANT.JK02_24S), { variant: P.VARIANT.JK02_24S });
   assert.equal(charging.current, 2.329);
   assert.ok(/** @type {number} */ (charging.power) > 0);
+});
+
+test('JK02_32S snapshot: temperatures 4 and 5 only from software 14 on (captured frames)', () => {
+  const ids = (/** @type {string} */ id, /** @type {number} */ firmwareMajor) =>
+    jk02Snapshot(P.parseCellInfo(fromHex(byId(id).hex).subarray(0, 300), P.VARIANT.JK02_32S), { variant: P.VARIANT.JK02_32S, firmwareMajor }).temperatures?.map((t) => [t.id, t.value]);
+  // JK-B2A8S20P sw 11.48 and 11.50: all presence bits set, C256 and C258 read 0.
+  assert.deepEqual(ids('aiobmsble-jk02-32s-cell-info', 11), [
+    ['mos', 31],
+    ['t1', 28.4],
+    ['t2', 29.2],
+    ['t3', 31],
+  ]);
+  assert.deepEqual(
+    ids('batmon-b2a8s20p-fw1150-cell-info', 11)?.map(([id]) => id),
+    ['mos', 't1', 't2', 't3'],
+  );
+  // Software 14.20 has them; an unknown version keeps them.
+  assert.deepEqual(ids('jk02-32s-v11-cell-info', 14)?.slice(3), [
+    ['t3', 17.3],
+    ['t4', 17.9],
+    ['t5', 18],
+  ]);
+  assert.equal(ids('aiobmsble-jk02-32s-cell-info', NaN)?.length, 6);
 });
 
 test('JK04 and 4E57 snapshots, device info mapping', () => {
@@ -834,6 +860,85 @@ test('BLE driver: no writes until the variant is confirmed by data', async () =>
   }
 });
 
+test('BLE driver: a JK04 frame that fails the strict JK04 test does not confirm JK02_24S', async () => {
+  const log = new ProtocolLog();
+  const { host, device } = createLinkPair({ log, deviceChunkSize: 20 });
+  await host.open();
+  await device.open();
+  const info = fromHex(byId('jk04-b2a16s-device-info').hex);
+  const settings = fromHex(byId('jk04-b5a24s-settings').hex);
+  const good = fromHex(byId('jk04-b5a24s-cell-info').hex);
+  const low = Uint8Array.from(good);
+  low.set(P.f32leBytes(0.3), 6 + 4 * 15); // cell 16 at 0.30 V: lead fault or deep discharge
+  low[299] = sum8(low, 0, 299);
+  assert.equal(P.looksLikeJk04CellInfo(low), false);
+  const asm = P.createCommandAssembler({
+    onFrame: (f) => {
+      if (f[4] === P.CMD.DEVICE_INFO) tx(device, info);
+      else if (f[4] === P.CMD.SETTINGS) {
+        tx(device, settings);
+        tx(device, low);
+      }
+    },
+  });
+  device.on('data', (c) => asm.push(c));
+  const driver = jkBleDefinition.create({ link: host, log });
+  const d = /** @type {any} */ (driver);
+  try {
+    const probe = await driver.probe({ timeout: 500 });
+    assert.equal(probe?.confidence, 0.6, 'detection from the data must not confirm JK02_24S');
+    assert.equal(driver.capabilities.writeSettings, false);
+    await assert.rejects(driver.writeSetting('capacity.nominal', 280), /not confirmed/);
+    d.lastCellAt = 0;
+    tx(device, low); // the same frame from the stream
+    await waitFor(() => d.lastCellAt > 0);
+    assert.equal(d.variantConfirmed, false);
+    tx(device, good);
+    await waitFor(() => d.variantConfirmed);
+    assert.equal(driver.variant, 'JK04');
+  } finally {
+    driver.dispose();
+  }
+});
+
+test('BLE driver: a stream of implausible cell info stays alive but the watchdog reports no data', async () => {
+  const log = new ProtocolLog();
+  const { host, device } = createLinkPair({ log, deviceChunkSize: 20 });
+  await host.open();
+  await device.open();
+  const info = fromHex(byId('jk02-32s-v19-device-info').hex);
+  const good = Uint8Array.from(fromHex(byId('jk02-32s-v19-cell-info').hex).subarray(0, 300));
+  const bad = Uint8Array.from(good);
+  bad[173] = 150; // SOC 150 %
+  bad[299] = sum8(bad, 0, 299);
+  /** @type {Uint8Array[]} */
+  const received = [];
+  const asm = P.createCommandAssembler({
+    onFrame: (f) => {
+      received.push(f);
+      if (f[4] === P.CMD.DEVICE_INFO) tx(device, info);
+    },
+  });
+  device.on('data', (c) => asm.push(c));
+  const driver = jkBleDefinition.create({ link: host, log });
+  const d = /** @type {any} */ (driver);
+  try {
+    assert.equal((await driver.probe({ timeout: 500 }))?.variant, 'JK02_32S');
+    d.streaming = true;
+    d.streamSince = Date.now() - 60000; // streaming for a minute
+    d.lastTriggerAt = 0;
+    tx(device, bad);
+    await waitFor(() => d.lastCellAt > 0);
+    await assert.rejects(driver.poll(), /No data from the BMS/);
+    assert.ok(!received.some((f) => f[4] === P.CMD.SETTINGS), 'frames arrive, so the stream is not requested again');
+    tx(device, good);
+    await waitFor(() => d.lastValidCellAt > 0);
+    await driver.poll();
+  } finally {
+    driver.dispose();
+  }
+});
+
 /**
  * Replay of captured JK04 frames: device info on 0x97, settings and cell info on 0x96, ACK for
  * writes.
@@ -990,6 +1095,89 @@ test('session: JK-PB over RS485 with trigger requests, Modbus writes and the con
 });
 
 /**
+ * Shared RS485 bus with packs 1 and 2 (spec 4.3). Right before every answer of pack 1, the answer
+ * of pack 2 to the master passes: a frame of the same type (99 A, DIP address 2), then its FC 0x10
+ * answer. `mode`: 'answer' (frame and answer of pack 1), 'answer only' (its frame is lost),
+ * 'silent'. `chatter()` sends pack 2's answers without any request of the host.
+ * @param {import('@ubms/transport').MemoryLink} device
+ */
+function sharedPbBus(device) {
+  /** @type {Record<number, Uint8Array>} */
+  const own = {
+    [P.PB_TRIGGER.DEVICE_INFO]: fromHex(byId('pb-rs485-response-type3-addr1').hex).subarray(0, 300),
+    [P.PB_TRIGGER.SETTINGS]: fromHex(byId('pb-rs485-response-type1-addr1').hex).subarray(0, 300),
+    [P.PB_TRIGGER.CELL_INFO]: fromHex(byId('pb-rs485-response-type2-addr1').hex).subarray(0, 300),
+  };
+  /** @type {Record<number, Uint8Array>} */
+  const other = {};
+  for (const [reg, f] of Object.entries(own)) {
+    const g = Uint8Array.from(f);
+    if (g[4] === P.FRAME_TYPE.CELL_INFO) setU32le(g, 158, 99000);
+    if (g[4] === P.FRAME_TYPE.SETTINGS) g[270] = 2;
+    g[299] = sum8(g, 0, 299);
+    other[Number(reg)] = g;
+  }
+  const bus = { mode: 'answer' };
+  /** @param {number} reg */
+  const pack2 = (reg) => {
+    tx(device, other[reg]);
+    tx(device, P.modbusWriteAck(P.pbTriggerRequest(2, reg)));
+  };
+  const asm = P.createModbusRequestAssembler(1)({
+    onFrame: (f) => {
+      const reg = P.parseModbusRequest(f).register;
+      if (!own[reg]) return;
+      pack2(reg);
+      if (bus.mode === 'answer') tx(device, own[reg]);
+      if (bus.mode !== 'silent') tx(device, P.modbusWriteAck(f));
+    },
+  });
+  device.on('data', (c) => asm.push(c));
+  return { bus, chatter: () => Object.values(P.PB_TRIGGER).forEach(pack2) };
+}
+
+test('JK-PB on a shared bus: frames of other packs are never taken for this address', async () => {
+  const log = new ProtocolLog();
+  const { host, device } = createLinkPair({ log, deviceChunkSize: 32 });
+  await host.open();
+  await device.open();
+  const { bus, chatter } = sharedPbBus(device);
+  const driver = jkPbDefinition.create({ link: host, log });
+  /** @type {any[]} */
+  const snapshots = [];
+  driver.on('snapshot', (s) => snapshots.push(s));
+  try {
+    assert.equal((await driver.probe({ timeout: 1000 }))?.info?.model, 'JK_PB2A16S15P');
+    await driver.start();
+    assert.equal(/** @type {any} */ (driver).settingsFrame?.[270], 1, 'settings frame of DIP address 1');
+    await driver.poll();
+    assert.equal(snapshots.at(-1)?.current, 17.841, 'pack 1, not pack 2 (99 A)');
+    bus.mode = 'answer only';
+    await assert.rejects(driver.poll(), /Incomplete response/);
+    await assert.rejects(driver.readSettings(), /Incomplete response/);
+    bus.mode = 'silent';
+    await assert.rejects(driver.poll(), /No response/);
+    assert.equal(snapshots.length, 1);
+  } finally {
+    driver.dispose();
+  }
+
+  // Address 3 is not on the bus, only pack 2 talks: nothing is detected.
+  const pair = createLinkPair({ log, deviceChunkSize: 32 });
+  await pair.host.open();
+  await pair.device.open();
+  const other = sharedPbBus(pair.device);
+  const timer = setInterval(other.chatter, 100);
+  const absent = jkPbDefinition.create({ link: pair.host, log, options: { address: 3 } });
+  try {
+    assert.equal(await absent.probe({ timeout: 1000 }), null);
+  } finally {
+    clearInterval(timer);
+    absent.dispose();
+  }
+});
+
+/**
  * Offset of a data id value in a 4E57 reply (walks the id list like the parser).
  * @param {Uint8Array} frame
  * @param {number} id
@@ -1075,11 +1263,12 @@ test('session: JK-B 4E57 over UART, read all and switch writes', async () => {
 // ---------------------------------------------------------------------------------------------
 
 test('definitions: order, links, demo and detection ranking', () => {
+  // The JK balancer drivers are registered here too (order checked in jk-balancer.test.js).
   assert.deepEqual(
     jkDrivers.map((d) => d.id),
-    ['jk-ble', 'jk-pb-rs485', 'jk-uart'],
+    ['jk-balancer-ble', 'jk-ble', 'jk-pb-rs485', 'jk-uart', 'jk-balancer-rs485'],
   );
-  assert.equal(drivers[0].id, 'jk-ble');
+  assert.equal(drivers[0].id, 'jk-balancer-ble');
   assert.equal(jkBleDefinition.demo?.chunkSize, 20);
   assert.match(jkBleDefinition.demo?.name ?? '', /\(demo\)$/);
   const profile = jkBleDefinition.links.ble?.profiles[0];
@@ -1094,7 +1283,14 @@ test('definitions: order, links, demo and detection ranking', () => {
   assert.equal(req.filterable, true);
   assert.ok(req.request.filters?.some((f) => f.namePrefix === 'JK-'));
   assert.ok(req.request.filters?.some((f) => f.manufacturerData?.[0].companyIdentifier === 0x0b65));
-  assert.equal(registry.bleCandidates({ name: 'JK_B2A8S20P' })[0].definition.id, 'jk-ble');
+  // JK names rank the balancer driver equally; its probe runs first and leaves JK BMSes to jk-ble.
+  assert.deepEqual(
+    registry
+      .bleCandidates({ name: 'JK_B2A8S20P' })
+      .slice(0, 2)
+      .map((c) => c.definition.id),
+    ['jk-balancer-ble', 'jk-ble'],
+  );
   assert.equal(registry.bleCandidates({ name: '506036N46002293-00' })[0].definition.id, 'jk-ble');
   assert.equal(registry.bleCandidates({ name: 'ANT-BLE16ZMUB' })[0].definition.family, 'ant');
 });

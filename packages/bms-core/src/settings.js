@@ -114,6 +114,8 @@ export function fieldMap(schema) {
 export function coerce(f, raw) {
   switch (f.type) {
     case 'number': {
+      // Number('') is 0: an emptied input must not turn into a write of 0.
+      if (typeof raw !== 'number' && String(raw ?? '').trim() === '') return undefined;
       const n = typeof raw === 'number' ? raw : Number(String(raw).trim().replace(',', '.'));
       return Number.isFinite(n) ? n : undefined;
     }

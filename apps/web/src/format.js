@@ -11,6 +11,16 @@ export function num(v, decimals = 2, { signed = false } = {}) {
 }
 
 /**
+ * Number as the text of an input field: locale decimals, no group separators. coerce() reads a
+ * group separator as the decimal point ("1,000" would become 1), so input text never has one.
+ * @param {number} v
+ * @param {number} [decimals]
+ */
+export function inputNum(v, decimals = 3) {
+  return i18n.formatNumber(v, { decimals, grouping: false });
+}
+
+/**
  * Decimals that keep a value readable: fewer for large magnitudes.
  * @param {number | undefined} v
  * @param {number} base
@@ -64,6 +74,17 @@ export function ago(ts) {
   if (diff < 3600) return rtf.format(-Math.round(diff / 60), 'minute');
   if (diff < 86400) return rtf.format(-Math.round(diff / 3600), 'hour');
   return rtf.format(-Math.round(diff / 86400), 'day');
+}
+
+/**
+ * Localized name of a link kind. The desktop app reports 'tauri-ble' and 'tauri-serial'.
+ * @param {string} kind
+ */
+export function linkKindLabel(kind) {
+  if (kind === 'ble' || kind === 'tauri-ble') return t('Bluetooth');
+  if (kind === 'serial' || kind === 'tauri-serial') return t('Serial');
+  if (kind === 'demo') return t('Demo');
+  return kind;
 }
 
 /**

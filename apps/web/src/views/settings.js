@@ -1,7 +1,7 @@
 import { html, css, nothing } from 'lit';
 import { UiElement, define, sharedStyles, StoreController, icon, t, confirmDialog, toast, pickFile } from '@ubms/ui';
 import { coerce, validateValue, validateAll, warnAll, fieldMap } from '@ubms/bms-core';
-import { num, fieldValue, ago } from '../format.js';
+import { num, inputNum, fieldValue, ago } from '../format.js';
 import { router } from '../app.js';
 
 /**
@@ -250,6 +250,8 @@ export class ViewSettings extends UiElement {
     this.query = '';
     /** @type {Record<string, string>} raw argument input of action fields */
     this.actionArgs = {};
+    /** @type {Record<string, { raw: string, current: any }>} typed text that equals the device value */
+    this.typed = {};
   }
 
   connectedCallback() {
@@ -456,7 +458,14 @@ export class ViewSettings extends UiElement {
           @input=${(/** @type {any} */ e) => this.#set(f, e.target.value, value)}
         />`;
       default: {
-        const shown = edit ? edit.raw : value === undefined || f.writeOnly ? '' : num(value, f.decimals ?? 3).replace(/\s/g, '');
+        const typed = this.typed[f.id];
+        const shown = edit
+          ? edit.raw
+          : value === undefined || f.writeOnly
+            ? ''
+            : typed && typed.current === value
+              ? typed.raw
+              : inputNum(value, f.decimals ?? 3);
         return html`<span class="numwrap"
           ><input
             class="input"
@@ -480,8 +489,15 @@ export class ViewSettings extends UiElement {
     const value = coerce(f, raw);
     const edits = { ...this.edits };
     const same = value !== undefined && current !== undefined && (f.type === 'number' ? Math.abs(value - current) < 1e-9 : String(value) === String(current));
-    if (same) delete edits[f.id];
-    else edits[f.id] = { raw: String(raw), value };
+    const typed = { ...this.typed };
+    delete typed[f.id];
+    if (same) {
+      delete edits[f.id];
+      // Keep showing the typed text: the formatted value would rewrite the field while the user
+      // is still typing (3.65 shown as 3.650, the caret jumps to the end, the next 5 gives 3.6505).
+      typed[f.id] = { raw: String(raw), current };
+    } else edits[f.id] = { raw: String(raw), value };
+    this.typed = typed;
     this.edits = edits;
     if (this.results[f.id]) {
       const r = { ...this.results };
@@ -495,7 +511,7 @@ export class ViewSettings extends UiElement {
     const a = f.argument;
     const button = html`<button class="btn small ${f.danger ? 'danger' : ''}" ?disabled=${this.busy} @click=${() => this.#runAction(f)}>${icon(f.danger ? 'warning' : 'wrench', { size: 16 })}${t('Run')}</button>`;
     if (!a) return button;
-    const raw = this.actionArgs[f.id] ?? (a.default !== undefined ? num(a.default, a.decimals ?? 0).replace(/\s/g, '') : '');
+    const raw = this.actionArgs[f.id] ?? (a.default !== undefined ? inputNum(a.default, a.decimals ?? 0) : '');
     return html`<span class="numwrap"
         ><input
           class="input"
@@ -549,7 +565,10 @@ export class ViewSettings extends UiElement {
     });
     return html`<div class="applybar" role="region" aria-label=${t('Pending changes')}>
       <span class="count">${t('{count} change(s)', { count })}</span>
-      <button class="btn small ghost" ?disabled=${this.busy} @click=${() => (this.edits = {})}>${t('Discard')}</button>
+      <button class="btn small ghost" ?disabled=${this.busy} @click=${() => {
+          this.typed = {};
+          this.edits = {};
+        }}>${t('Discard')}</button>
       <button class="btn small primary" ?disabled=${this.busy || invalid} @click=${this.#apply}>${icon('save', { size: 16 })}${this.busy ? t('Writing…') : t('Apply')}</button>
     </div>`;
   }
@@ -605,7 +624,7 @@ export class ViewSettings extends UiElement {
       const edits = { ...this.edits };
       for (const c of changes) {
         const f = fields.get(c.id);
-        edits[c.id] = { raw: f?.type === 'number' ? num(c.value, f.decimals ?? 3).replace(/\s/g, '') : String(c.value), value: c.value };
+        edits[c.id] = { raw: f?.type === 'number' ? inputNum(c.value, f.decimals ?? 3) : String(c.value), value: c.value };
       }
       this.edits = edits;
       toast(t('{count} change(s) loaded from the file. Review and apply them.', { count: changes.length }) + (skipped.length ? `\n${t('Skipped: {list}', { list: skipped.join(', ') })}` : ''), {

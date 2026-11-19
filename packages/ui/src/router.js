@@ -35,7 +35,7 @@ export class HashRouter extends Store {
       /** @type {Record<string, string>} */
       const params = {};
       r.keys.forEach((k, i) => {
-        if (m[i + 1] !== undefined) params[k] = decodeURIComponent(m[i + 1]);
+        if (m[i + 1] !== undefined) params[k] = decodeParam(m[i + 1]);
       });
       return { name: r.name, params, path, query };
     }
@@ -74,6 +74,19 @@ export class HashRouter extends Store {
 
   dispose() {
     if (typeof window !== 'undefined') window.removeEventListener('hashchange', this.onHash);
+  }
+}
+
+/**
+ * Decode a path parameter, keeping the raw text when its percent escape is malformed
+ * (`%E0%A4%A`, `100%`): a hand-typed or truncated hash must not throw at boot or on hashchange.
+ * @param {string} value
+ */
+function decodeParam(value) {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
   }
 }
 

@@ -369,6 +369,28 @@ test('P81 alarm codes and D2 fault bytes', () => {
     failureAlarms([0x03, 0, 0, 0, 0, 0, 0, 0]).map((a) => [a.id, a.severity]),
     [['cell_overvoltage', 'protection']],
   );
+  // Classic byte 6 is the low byte of the D2 register 0x003D (spec 9.2); its high byte is undocumented.
+  const regs = new Array(62).fill(0);
+  regs.fill(3300, 0, 4);
+  Object.assign(regs, { [0x20]: 65, [0x28]: 132, [0x29]: 30000, [0x2a]: 500, [0x31]: 4, [0x32]: 1 });
+  const byte6 = [
+    [0x0001, ['current_sensor_fault']],
+    [0x0002, ['voltage_sensor_fault']],
+    [0x0004, ['short_circuit']],
+    [0x0008, ['daly.low_voltage_no_charge']],
+    [0x0010, ['daly.soft_switch_off']],
+    [0x0020, ['daly.cabinet_offline']],
+    [0x0100, []],
+  ];
+  for (const [raw, ids] of byte6) {
+    regs[0x3d] = raw;
+    const st = parseD2Status(encodeModbusReadResponse(0xd2, regs));
+    assert.deepEqual(
+      failureAlarms(st.faultBytes).map((a) => a.id),
+      ids,
+      `0x003D = ${raw}`,
+    );
+  }
 });
 
 test('protocol log descriptions', () => {
@@ -397,6 +419,9 @@ test('current sign: majority default, state cross-check, user override', () => {
   const modbus = new CurrentSign(false);
   assert.equal(modbus.apply(6.5, 1).current, 6.5);
   assert.equal(modbus.apply(0, 0).current, 0);
+  // A choice remembered in the target options is restored; anything but a boolean is ignored.
+  assert.equal(new CurrentSign(true, false).invert, false);
+  assert.equal(new CurrentSign(false, 'yes').user, undefined);
 });
 
 test('settings schemas: groups, safety flags and counts', () => {
@@ -670,6 +695,35 @@ test('session: Modbus D2 driver with the simulator', async () => {
   assert.equal(session.info?.softwareVersion, 'T00K_240315_12');
   await session.disconnect();
   sim.stop();
+});
+
+test('session: the chosen current direction survives a reconnect', async () => {
+  for (const [selection, createSim, current] of /** @type {const} */ ([
+    ['daly', createDalySimulator, 12.3],
+    ['daly-modbus', createDalyModbusSimulator, -8.4],
+  ])) {
+    const { session, host, device } = setup();
+    await device.open();
+    const sim = createSim(device, { tickMs: 0 });
+    sim.battery.current = current;
+    await session.connect({ kind: 'link', link: host, selection });
+    const auto = /** @type {Record<string, any>} */ ((await session.loadSettings()).values)['daly.invert_current'];
+    const results = await session.writeSettings([{ id: 'daly.invert_current', value: !auto }]);
+    assert.deepEqual(
+      results.map((r) => [r.ok, r.verified]),
+      [[true, true]],
+      selection,
+    );
+    const driver = session.driver;
+    const after = nextSnapshot(session);
+    await session.reconnect();
+    assert.notEqual(session.driver, driver, `${selection}: a new driver instance`);
+    assert.equal(/** @type {any} */ (await after).current, -current, `${selection}: the user direction applies`);
+    const values = /** @type {Record<string, any>} */ ((await session.loadSettings()).values);
+    assert.equal(values['daly.invert_current'], !auto, selection);
+    await session.disconnect();
+    sim.stop();
+  }
 });
 
 test('session: Modbus D2 active balancer exposes its switch', async () => {

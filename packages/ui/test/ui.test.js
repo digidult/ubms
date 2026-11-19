@@ -4,6 +4,7 @@ import { createI18n, negotiateLocale, interpolate } from '../src/i18n.js';
 import { Store, shallowEqual } from '../src/store.js';
 import { HashRouter } from '../src/router.js';
 import { createStorage } from '../src/storage.js';
+import { lightDismiss } from '../src/components/overlays.js';
 
 test('i18n: English keys, fallback, context, plurals and numbers', () => {
   const i = createI18n();
@@ -78,4 +79,100 @@ test('createStorage works without localStorage', () => {
   assert.deepEqual(s.get('k', null), { v: 1 });
   s.remove('k');
   assert.equal(s.get('k', null), null);
+});
+
+test('i18n: empty plural forms count as untranslated like empty strings', () => {
+  const i = createI18n();
+  i.register('en', { '{count} cells': { one: '{count} cell', other: '{count} cells' } });
+  i.register('uk', { '{count} cells': { one: '', few: '', many: '', other: '' }, Cells: '' });
+  i.setLocale('uk');
+  assert.equal(i.t('{count} cells', { count: 2 }), '2 cells');
+  assert.equal(i.t('Cells'), 'Cells');
+  i.register('uk', { '{count} cells': { one: 'uk one {count}', few: '', many: '', other: 'uk other {count}' } });
+  assert.equal(i.t('{count} cells', { count: 1 }), 'uk one 1');
+  assert.equal(i.t('{count} cells', { count: 2 }), 'uk other 2');
+  i.register('uk', { '{count} cells': { one: 'uk one {count}', few: '', many: '', other: '' } });
+  assert.equal(i.t('{count} cells', { count: 5 }), 'uk one 5');
+});
+
+test('HashRouter keeps a malformed percent escape instead of throwing', () => {
+  const routes = [
+    { name: 'overview', path: '/overview' },
+    { name: 'settings', path: '/settings/:group?' },
+  ];
+  const r = new HashRouter(routes, '/overview');
+  assert.deepEqual(r.resolve('/settings/%E0%A4%A').params, { group: '%E0%A4%A' });
+  assert.deepEqual(r.resolve('/settings/cell%20voltage').params, { group: 'cell voltage' });
+  globalThis.location = /** @type {any} */ ({ hash: '#/settings/100%' });
+  try {
+    const booted = new HashRouter(routes, '/overview');
+    assert.equal(booted.route.name, 'settings');
+    assert.equal(booted.route.params.group, '100%');
+  } finally {
+    delete globalThis.location;
+  }
+});
+
+test('createStorage keeps the newer in-memory value when localStorage rejects a write', () => {
+  const data = new Map();
+  let failing = false;
+  globalThis.localStorage = /** @type {any} */ ({
+    getItem: (/** @type {string} */ k) => (data.has(k) ? data.get(k) : null),
+    setItem: (/** @type {string} */ k, /** @type {string} */ v) => {
+      if (failing) throw new Error('QuotaExceededError');
+      data.set(k, String(v));
+    },
+    removeItem: (/** @type {string} */ k) => {
+      if (failing) throw new Error('SecurityError');
+      data.delete(k);
+    },
+    key: (/** @type {number} */ n) => [...data.keys()][n] ?? null,
+    get length() {
+      return data.size;
+    },
+  });
+  try {
+    const s = createStorage('quota');
+    s.set('theme', 'light');
+    assert.equal(data.get('quota:theme'), '"light"');
+    failing = true;
+    s.set('theme', 'dark');
+    assert.equal(s.get('theme', 'auto'), 'dark');
+    s.remove('theme');
+    assert.equal(s.get('theme', 'auto'), 'auto');
+    failing = false;
+    s.set('theme', 'dark');
+    data.set('quota:theme', '"light"'); // written by another tab: localStorage is authoritative again
+    assert.equal(s.get('theme', 'auto'), 'light');
+  } finally {
+    delete globalThis.localStorage;
+  }
+});
+
+test('ui-dialog light dismiss needs a press that starts and ends on the backdrop', () => {
+  const dialog = { getBoundingClientRect: () => ({ left: 100, top: 100, right: 400, bottom: 300 }) };
+  const text = {};
+  let dismissed = 0;
+  const d = lightDismiss(/** @type {any} */ (() => dialog), () => dismissed++);
+  const at = (/** @type {object} */ target, /** @type {number} */ x, /** @type {number} */ y) =>
+    /** @type {any} */ ({ target, clientX: x, clientY: y });
+  // A text selection that starts inside and is released over the backdrop clicks the <dialog>.
+  d.pointerdown(at(text, 150, 150));
+  d.click(at(dialog, 20, 20));
+  assert.equal(dismissed, 0);
+  // A press on the dialog padding released outside it.
+  d.pointerdown(at(dialog, 110, 110));
+  d.click(at(dialog, 20, 20));
+  assert.equal(dismissed, 0);
+  // A press on the backdrop released inside the dialog.
+  d.pointerdown(at(dialog, 20, 20));
+  d.click(at(dialog, 150, 150));
+  assert.equal(dismissed, 0);
+  // A click without a press (keyboard or synthetic).
+  d.click(at(dialog, 20, 20));
+  assert.equal(dismissed, 0);
+  // A real backdrop click.
+  d.pointerdown(at(dialog, 20, 20));
+  d.click(at(dialog, 22, 21));
+  assert.equal(dismissed, 1);
 });

@@ -37,6 +37,8 @@ import { msg } from './msg.js';
  * @property {string} [error] English message
  * @property {boolean} [verified] read-back matched the requested value
  * @property {any} [actual] value read back from the device
+ * @property {string} [readBackError] English message: the write was accepted, but the values could
+ *   not be read back (read failed or the connection dropped), so the write is not verified
  */
 
 export class SessionError extends Error {
@@ -56,14 +58,17 @@ export class BmsSession extends Emitter {
    * @param {number} [opts.historySize]
    * @param {boolean} [opts.autoReconnect]
    * @param {number} [opts.probeTimeoutMs]
+   * @param {number} [opts.reconnectDelayMs] delay before the first reconnect attempt; it doubles per
+   *   attempt up to 15 times this value
    */
-  constructor({ registry, log, pollIntervalMs = 1000, historySize = 3600, autoReconnect = true, probeTimeoutMs = 2500 }) {
+  constructor({ registry, log, pollIntervalMs = 1000, historySize = 3600, autoReconnect = true, probeTimeoutMs = 2500, reconnectDelayMs = 1000 }) {
     super();
     this.registry = registry;
     this.log = log;
     this.pollIntervalMs = pollIntervalMs;
     this.autoReconnect = autoReconnect;
     this.probeTimeoutMs = probeTimeoutMs;
+    this.reconnectDelayMs = reconnectDelayMs;
     this.history = new HistoryBuffer(historySize);
     /** @type {SessionState} */
     this.state = 'idle';
@@ -96,6 +101,12 @@ export class BmsSession extends Emitter {
     this.wakers = new Set();
     /** @type {Array<() => void>} */
     this.unbind = [];
+    /**
+     * Links of probes in progress. disconnect() closes them, so a cancelled detection never keeps a
+     * serial port or a channel open until its probe times out.
+     * @type {Set<import('@ubms/transport').Link>}
+     */
+    this.probeLinks = new Set();
   }
 
   get connected() {
@@ -126,12 +137,19 @@ export class BmsSession extends Emitter {
    * @param {ConnectTarget} target
    */
   async connect(target) {
-    if (this.state !== 'idle' && this.state !== 'error') await this.disconnect();
+    // Pass through disconnect() from every state, 'error' included: it releases the previous device
+    // (its BLE connection may still be up), and 'idle' tells subscribers to drop the snapshot, info
+    // and settings of that device.
+    if (this.state !== 'idle') await this.disconnect();
     const gen = ++this.generation;
     // One options object per target, shared by every driver instance created for it (probe
     // candidates and reconnects), so drivers can keep local values such as passwords there.
     if (!target.options) target.options = {};
     this.target = target;
+    // The driver of an earlier target must not stick to this one (reconnect() reads it before).
+    this.definition = null;
+    this.profile = null;
+    this.variant = undefined;
     this.history.clear();
     this.snapshot = null;
     this.info = null;
@@ -139,17 +157,21 @@ export class BmsSession extends Emitter {
     this.#setState('connecting');
     try {
       const found =
-        target.kind === 'ble' ? await this.#detectBle(target, gen) : target.kind === 'serial' ? await this.#detectSerial(target, gen) : await this.#attachLink(target);
+        target.kind === 'ble' ? await this.#detectBle(target, gen) : target.kind === 'serial' ? await this.#detectSerial(target, gen) : await this.#attachLink(target, gen);
       if (gen !== this.generation) {
         await this.#release(found);
-        throw new SessionError('cancelled', msg('Connection cancelled'));
+        throw cancelled();
       }
       await this.#activate(found, gen);
     } catch (err) {
       if (gen === this.generation) {
         this.log.error(err instanceof Error ? err : String(err));
         await this.#teardown();
-        this.#setState('error', err);
+        // Detection can fail after the GATT connection is up: do not keep the device busy.
+        if (target.kind === 'ble' && gen === this.generation) await disconnectHandle(target.handle);
+        if (gen === this.generation) this.#setState('error', err);
+      } else if (target.kind === 'ble') {
+        await this.#releaseStaleBle(target.handle);
       }
       throw err;
     }
@@ -162,6 +184,8 @@ export class BmsSession extends Emitter {
   async #detectBle(target, gen) {
     const handle = target.handle;
     await handle.connect();
+    // Cancel cannot abort a pending GATT connect: a stale attempt must not touch the state.
+    if (gen !== this.generation) throw cancelled();
     this.#setState('detecting');
     /** @type {string[] | undefined} */
     let services;
@@ -170,36 +194,23 @@ export class BmsSession extends Emitter {
     } catch (err) {
       this.log.warn(`Service discovery failed: ${err instanceof Error ? err.message : err}`);
     }
+    if (gen !== this.generation) throw cancelled();
     const candidates = this.registry.bleCandidates({ name: handle.name, services: services?.length ? services : undefined, selection: target.selection });
     if (!candidates.length) {
       throw new SessionError('no-candidates', msg('The device exposes none of the Bluetooth services used by the selected BMS type'));
     }
     for (let i = 0; i < candidates.length; i++) {
-      if (gen !== this.generation) throw new SessionError('cancelled', msg('Connection cancelled'));
+      if (gen !== this.generation) throw cancelled();
       const { definition, profile } = candidates[i];
       this.emit('detect', { index: i, total: candidates.length, driverId: definition.id, protocol: definition.protocol, profileId: profile.id });
       this.log.event(`Probing ${definition.protocol} on ${profile.label ?? profile.id}`);
-      /** @type {any} */
-      let link = null;
-      /** @type {any} */
-      let driver = null;
-      try {
+      const found = await this.#probeCandidate(gen, target, definition, profile, async () => {
         if (!handle.connected) await handle.connect();
-        link = await handle.openChannel(profile);
-        driver = definition.create({ link, log: this.log, profileId: profile.id, options: target.options });
-        const probe = await driver.probe({ timeout: this.probeTimeoutMs });
-        if (probe) return { definition, profile, driver, link, probe };
-        this.log.event(`${definition.protocol}: no valid answer`);
-      } catch (err) {
-        this.log.warn(`${definition.protocol}: ${err instanceof Error ? err.message : err}`);
-      }
-      driver?.dispose();
-      try {
-        await link?.close();
-      } catch {
-        /* ignore */
-      }
+        return gen === this.generation ? handle.openChannel(profile) : null;
+      });
+      if (found) return found;
     }
+    if (gen !== this.generation) throw cancelled();
     throw new SessionError('not-detected', msg('No supported BMS protocol answered on this device'));
   }
 
@@ -213,41 +224,62 @@ export class BmsSession extends Emitter {
     const candidates = this.registry.serialCandidates({ selection: target.selection });
     if (!candidates.length) throw new SessionError('no-candidates', msg('The selected BMS type has no serial protocol'));
     for (let i = 0; i < candidates.length; i++) {
-      if (gen !== this.generation) throw new SessionError('cancelled', msg('Connection cancelled'));
+      if (gen !== this.generation) throw cancelled();
       const { definition, profile } = candidates[i];
       this.emit('detect', { index: i, total: candidates.length, driverId: definition.id, protocol: definition.protocol, profileId: profile.id });
       this.log.event(`Probing ${definition.protocol} at ${profile.baudRate} baud`);
       const { id: _id, label: _label, ...serialOptions } = profile;
-      /** @type {any} */
-      let link = null;
-      /** @type {any} */
-      let driver = null;
-      try {
-        link = await port.openLink(serialOptions);
+      const found = await this.#probeCandidate(gen, target, definition, profile, () => port.openLink(serialOptions));
+      if (found) return found;
+      await sleep(150);
+    }
+    if (gen !== this.generation) throw cancelled();
+    throw new SessionError('not-detected', msg('No supported BMS protocol answered on this port'));
+  }
+
+  /**
+   * Open a link for one candidate and probe it. The link is registered in `probeLinks` while the
+   * probe runs, and a link opened after Cancel is closed at once.
+   * @param {number} gen
+   * @param {ConnectTarget} target
+   * @param {any} definition
+   * @param {any} profile
+   * @param {() => Promise<any>} open opens the link; may return null when the attempt is stale
+   * @returns {Promise<{ definition: any, profile: any, driver: any, link: any, probe: import('./driver.js').ProbeResult } | null>}
+   */
+  async #probeCandidate(gen, target, definition, profile, open) {
+    /** @type {any} */
+    let link = null;
+    /** @type {any} */
+    let driver = null;
+    try {
+      link = await open();
+      if (link && gen === this.generation) {
+        this.probeLinks.add(link);
         driver = definition.create({ link, log: this.log, profileId: profile.id, options: target.options });
         const probe = await driver.probe({ timeout: this.probeTimeoutMs });
         if (probe) return { definition, profile, driver, link, probe };
         this.log.event(`${definition.protocol}: no valid answer`);
-      } catch (err) {
-        this.log.warn(`${definition.protocol}: ${err instanceof Error ? err.message : err}`);
       }
-      driver?.dispose();
-      try {
-        await link?.close();
-      } catch {
-        /* ignore */
-      }
-      await sleep(150);
+    } catch (err) {
+      this.log.warn(`${definition.protocol}: ${err instanceof Error ? err.message : err}`);
+    } finally {
+      if (link) this.probeLinks.delete(link);
     }
-    throw new SessionError('not-detected', msg('No supported BMS protocol answered on this port'));
+    await this.#release({ driver, link });
+    return null;
   }
 
-  /** @param {ConnectTarget} target */
-  async #attachLink(target) {
+  /**
+   * @param {ConnectTarget} target
+   * @param {number} gen
+   */
+  async #attachLink(target, gen) {
     const definition = target.selection ? this.registry.get(target.selection) : undefined;
     if (!definition) throw new SessionError('no-driver', msg('A driver id is required for direct links'));
     const link = /** @type {import('@ubms/transport').Link} */ (target.link);
     if (!link.isOpen) await link.open();
+    if (gen !== this.generation) throw cancelled();
     this.#setState('detecting');
     const driver = definition.create({ link, log: this.log, profileId: 'direct', options: target.options });
     const probe = await driver.probe({ timeout: this.probeTimeoutMs });
@@ -378,33 +410,41 @@ export class BmsSession extends Emitter {
       return;
     }
     this.#setState('reconnecting');
+    const handle = target.handle;
     for (let attempt = 1; attempt <= 6 && myGen === this.generation; attempt++) {
-      await sleep(Math.min(1000 * 2 ** (attempt - 1), 15000));
-      if (myGen !== this.generation) return;
+      await sleep(Math.min(this.reconnectDelayMs * 2 ** (attempt - 1), this.reconnectDelayMs * 15));
+      if (myGen !== this.generation) break;
       this.log.event(`Reconnecting (attempt ${attempt})`);
       /** @type {any} */
       let link = null;
       /** @type {any} */
       let driver = null;
       try {
-        await target.handle.connect();
-        link = await target.handle.openChannel(profile);
-        driver = definition.create({ link, log: this.log, profileId: profile.id, options: target.options });
-        if (variant) driver.variant = variant;
-        const probe = await driver.probe({ timeout: this.probeTimeoutMs });
-        if (!probe) throw new Error(msg('The device did not answer'));
-        if (myGen !== this.generation) {
-          await this.#release({ driver, link });
-          return;
+        // Check the generation after every step: Disconnect cannot abort a pending GATT connect.
+        await handle.connect();
+        if (myGen === this.generation) link = await handle.openChannel(profile);
+        if (myGen === this.generation) {
+          driver = definition.create({ link, log: this.log, profileId: profile.id, options: target.options });
+          if (variant) driver.variant = variant;
+          const probe = await driver.probe({ timeout: this.probeTimeoutMs });
+          if (!probe) throw new Error(msg('The device did not answer'));
+          if (myGen === this.generation) {
+            await this.#activate({ definition, profile, driver, link, probe }, myGen);
+            return;
+          }
         }
-        await this.#activate({ definition, profile, driver, link, probe }, myGen);
-        return;
       } catch (err) {
-        this.log.warn(`Reconnect attempt ${attempt} failed: ${err instanceof Error ? err.message : err}`);
-        await this.#release({ driver, link });
+        if (myGen === this.generation) this.log.warn(`Reconnect attempt ${attempt} failed: ${err instanceof Error ? err.message : err}`);
       }
+      await this.#release({ driver, link });
     }
-    if (myGen === this.generation) this.#setState('error', new SessionError('link-lost', `Connection lost: ${reason}`));
+    if (myGen === this.generation) {
+      // The last attempt may have connected GATT without an answer: do not keep the device busy.
+      await disconnectHandle(handle);
+      if (myGen === this.generation) this.#setState('error', new SessionError('link-lost', `Connection lost: ${reason}`));
+    } else {
+      await this.#releaseStaleBle(handle);
+    }
   }
 
   /** @param {{ keepTarget?: boolean }} [opts] */
@@ -429,6 +469,19 @@ export class BmsSession extends Emitter {
     if (!keepTarget) this.target = null;
   }
 
+  /**
+   * A cancelled attempt can complete its GATT connect after Cancel. Release that connection unless
+   * the session uses the same device again (compared by id: the app may create a new handle object
+   * for the same device).
+   * @param {any} handle
+   */
+  async #releaseStaleBle(handle) {
+    const current = this.target?.kind === 'ble' ? this.target.handle : null;
+    const sameDevice = !!current && (current === handle || (current.id !== undefined && current.id === handle?.id));
+    if (sameDevice && ['connecting', 'detecting', 'connected', 'reconnecting'].includes(this.state)) return;
+    await disconnectHandle(handle);
+  }
+
   /** Disconnect and return to idle. The last target is kept for a quick reconnect. */
   async disconnect() {
     this.generation++;
@@ -436,14 +489,20 @@ export class BmsSession extends Emitter {
     if (this.state === 'idle') return;
     this.#setState('disconnecting');
     const target = this.target;
+    // Close the link of a probe in progress, so the port or channel is free right away.
+    const probing = [...this.probeLinks];
+    this.probeLinks.clear();
+    await Promise.all(
+      probing.map(async (l) => {
+        try {
+          await l.close();
+        } catch {
+          /* ignore */
+        }
+      }),
+    );
     await this.#teardown();
-    if (target?.kind === 'ble') {
-      try {
-        await target.handle.disconnect();
-      } catch {
-        /* ignore */
-      }
-    }
+    if (target?.kind === 'ble') await disconnectHandle(target.handle);
     this.definition = null;
     this.profile = null;
     this.variant = undefined;
@@ -519,10 +578,28 @@ export class BmsSession extends Emitter {
       }
     }
     if (reload && driver.capabilities.settings && results.some((r) => r.ok)) {
-      await this.loadSettings();
-      const values = this.settings.values ?? {};
+      // Read back only while the same driver is still connected (the link may drop in the middle
+      // of a batch), and never throw: the per-field results must reach the caller.
+      /** @type {Record<string, any> | null} */
+      let values = null;
+      let readBackError = msg('Not connected');
+      if (this.driver === driver && this.state === 'connected') {
+        try {
+          const read = await this.loadSettings();
+          // A failed read keeps the values from before the write: never compare against those.
+          if (read.error) readBackError = read.error;
+          else values = read.values ?? {};
+        } catch (err) {
+          readBackError = err instanceof Error ? err.message : String(err);
+        }
+      }
       for (const r of results) {
-        if (!r.ok || !(r.id in values) || fields.get(r.id)?.writeOnly) continue;
+        if (!r.ok || fields.get(r.id)?.writeOnly) continue;
+        if (!values) {
+          r.readBackError = readBackError;
+          continue;
+        }
+        if (!(r.id in values)) continue;
         const requested = changes.find((c) => c.id === r.id)?.value;
         const f = fields.get(r.id);
         r.actual = values[r.id];
@@ -540,6 +617,19 @@ export class BmsSession extends Emitter {
     const driver = this.#requireDriver();
     await this.exclusive(() => driver.runAction(id, arg));
     this.log.event(`Action executed: ${id}`);
+  }
+}
+
+function cancelled() {
+  return new SessionError('cancelled', msg('Connection cancelled'));
+}
+
+/** Disconnect a BLE device handle; errors are ignored. @param {any} handle */
+async function disconnectHandle(handle) {
+  try {
+    await handle?.disconnect();
+  } catch {
+    /* ignore */
   }
 }
 

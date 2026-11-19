@@ -1159,17 +1159,24 @@ export const isPbWriteAck = (f, address, register) =>
 /** @param {Uint8Array} f @param {number} address */
 export const isModbusException = (f, address) => f.length === 5 && f[0] === address && (f[1] & 0x80) !== 0 && modbusCrcValid(f);
 
+/** Start bytes of FC 0x10 answers and exceptions of every DIP address 0..15 (spec 2.3). */
+const PB_ANSWER_SYNC = Array.from({ length: 16 }, (_, a) => [
+  [a, 0x10],
+  [a, 0x90],
+]).flat();
+
 /**
- * Host side assembler for the RS485 link of one JK-PB address: 300 byte frames, 8 byte FC 0x10
- * answers and 5 byte exceptions of that address. Adapter echo, other addresses' answers and the
- * stray 0x00 bytes seen around answers (spec 3.6.3) are discarded.
- * @param {number} address
+ * Host side assembler for the JK-PB RS485 bus: 300 byte frames, 8 byte FC 0x10 answers and 5
+ * byte exceptions of every address 0..15. The 300 byte frames carry no address (spec 3.6.3), so
+ * the answers of other packs on a shared bus are kept too: they separate the packs' frames, and
+ * the driver takes a frame only when its own address answers right after it (settings frames
+ * also by their DIP address). Adapter echo and the stray 0x00 bytes around answers are discarded.
  */
-export function createPbAssembler(address) {
+export function createPbAssembler() {
   /** @param {{ onFrame: (frame: Uint8Array) => void, onDiscard?: (bytes: Uint8Array, reason: string) => void }} handlers */
   return ({ onFrame, onDiscard }) =>
     new FrameAssembler({
-      sync: [DATA_HEADER, [address, 0x10], [address, 0x90]],
+      sync: [DATA_HEADER, ...PB_ANSWER_SYNC],
       length: (buf) => (buf[0] === DATA_HEADER[0] && buf[1] === DATA_HEADER[1] ? DATA_FRAME_LENGTH : buf[1] === 0x90 ? 5 : 8),
       validate: (f) => (f.length === DATA_FRAME_LENGTH ? isDataFrame(f) : modbusCrcValid(f)),
       onFrame,

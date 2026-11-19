@@ -248,16 +248,42 @@ const OLD_DISCHARGE_ALARMS = /** @type {Record<number, [string, Partial<AlarmSta
 });
 
 /**
+ * Which ANT_OLD NTC slots hold a probe (spec 6.8, 12.2 item 11). -40 marks an absent probe, but
+ * 2020 boards fill absent slots with 0 and never send -40. So in a frame without -40, a 0 after
+ * the last slot with another value is taken as absent (as batmon-ha does), unless that slot
+ * reported another value earlier on this connection: a real probe at 0 degC stays visible. A
+ * leading 0, or 0 in every slot, stays a real 0 degC.
+ * @param {number[]} temps NTC 1..4
+ * @param {Set<number>} seen slots that reported a value other than 0 and -40; updated in place
+ * @returns {boolean[]}
+ */
+function oldProbesPresent(temps, seen) {
+  let last = -1;
+  temps.forEach((t, j) => {
+    if (t !== 0 && t !== ABSENT_TEMPERATURE) {
+      seen.add(j);
+      last = j;
+    }
+  });
+  const zeroFill = !temps.includes(ABSENT_TEMPERATURE);
+  return temps.map((t, j) => t !== ABSENT_TEMPERATURE && !(zeroFill && t === 0 && last >= 0 && j > last && !seen.has(j)));
+}
+
+/**
  * Unified snapshot from an ANT_OLD status (spec 6.8). The old frame has no alarm bits; alarms
  * come from the documented reasons in the MOSFET state bytes.
  * @param {AntOldStatus} st
+ * @param {Set<number>} [seenProbes] NTC slots (0 based) that reported a temperature other than 0
+ *   and -40 on this connection; updated in place. Keeps a probe that reads 0 degC visible on 2020
+ *   boards, which report absent probes as 0.
  * @returns {Omit<BmsSnapshot, 'timestamp'>}
  */
-export function oldStatusSnapshot(st) {
+export function oldStatusSnapshot(st, seenProbes = new Set()) {
   /** @type {TemperatureReading[]} */
   const temperatures = [];
+  const present = oldProbesPresent(st.temperatures, seenProbes);
   st.temperatures.forEach((t, j) => {
-    if (t !== ABSENT_TEMPERATURE) temperatures.push({ id: `t${j + 1}`, label: NTC_LABELS[j], value: t, kind: 'cell' });
+    if (present[j]) temperatures.push({ id: `t${j + 1}`, label: NTC_LABELS[j], value: t, kind: 'cell' });
   });
   temperatures.push({ id: 'mos', label: msg('MOSFET temperature'), value: st.mosTemperature, kind: 'mos' });
   temperatures.push({ id: 'balancer', label: msg('Balancer temperature'), value: st.balancerTemperature, kind: 'balancer' });
@@ -290,6 +316,42 @@ export function oldStatusSnapshot(st) {
       balancer: { label: msg('Balancer state'), value: codeLabel(OLD_BALANCE_STATES, st.balanceState) },
     },
   };
+}
+
+/** MOSFET state "manually turned off" of both generations (spec 9.2, 9.3, 9.8, 9.9). */
+const MOS_MANUAL_OFF = 15;
+
+/**
+ * Settings value of a charge or discharge switch (spec 8). The switch reads Off while its MOSFET
+ * is off by command (state 15, or the "switched off manually" protection bit of ANT_NEW, which is
+ * set even while a protection holds the MOSFET) or plainly off (state 0). While the BMS itself
+ * holds the MOSFET off (a protection, battery full, waiting) the switch stays On: the BMS turns
+ * the MOSFET back on by itself, an Off command must stay possible, and a settings backup must not
+ * replay that state as an Off command. The snapshot keeps reporting the actual MOSFET state.
+ * @param {number} state MOSFET state code
+ * @param {boolean} [manualOffBit]
+ */
+const switchOn = (state, manualOffBit = false) => state !== 0 && state !== MOS_MANUAL_OFF && !manualOffBit;
+
+/**
+ * Switch values of the ANT_NEW settings form (manual off protection bits 17 and 21, spec 9.5).
+ * @param {AntStatus} st
+ */
+export function newSwitchValues(st) {
+  return {
+    'switch.charge': switchOn(st.chargeMosState, ((st.protectionMask0 >>> 21) & 1) === 1),
+    'switch.discharge': switchOn(st.dischargeMosState, ((st.protectionMask0 >>> 17) & 1) === 1),
+    // Manual balance on shows state 4 in the capture, 5 is "manual balancing" in the 2024 app (spec 8).
+    'switch.balance': st.balanceState === 4 || st.balanceState === 5,
+  };
+}
+
+/**
+ * Switch values of the ANT_OLD settings form.
+ * @param {AntOldStatus} st
+ */
+export function oldSwitchValues(st) {
+  return { 'switch.charge': switchOn(st.chargeMosState), 'switch.discharge': switchOn(st.dischargeMosState) };
 }
 
 /**
@@ -415,8 +477,8 @@ export class AntDriver extends BaseDriver {
   }
 
   /**
-   * Block reads of the parameter area (at most 64 bytes each, retried), a fresh status for the
-   * switch states and the capacity unit, and the local password.
+   * Block reads of the parameter area (at most 64 bytes each, retried) and a fresh status for the
+   * switch states and the capacity unit.
    */
   async readSettings() {
     return this.channel.exclusive(async () => {
@@ -447,13 +509,9 @@ export class AntDriver extends BaseDriver {
       if (!answered && !status) throw new Error(msg('The BMS did not answer the settings requests'));
       const st = status ?? this.status;
       const values = decodeSettings(this.schema, image, { capacityUnit: capacityUnit(image, st?.capacityAh) });
-      if (st) {
-        values['switch.charge'] = st.chargeMosState === 1;
-        values['switch.discharge'] = st.dischargeMosState === 1;
-        values['switch.balance'] = st.balanceState === 4 || st.balanceState === 5;
-      }
+      if (st) Object.assign(values, newSwitchValues(st));
       if (this.buzzer !== undefined) values['switch.buzzer'] = this.buzzer;
-      values['ant.password'] = this.password;
+      // The password is not returned: settings values end up in exports and log exports.
       return values;
     });
   }
@@ -486,18 +544,18 @@ export class AntDriver extends BaseDriver {
   }
 
   /**
-   * After a switch command, read the status a few times until the switch reports the requested
-   * state, and publish the snapshots so the UI follows at once.
+   * After a switch command, read the status a few times until the switch value (as the settings
+   * show it) is the requested one, and publish the snapshots so the UI follows at once.
    * @param {string} id
    * @param {boolean} wanted
    */
   async #awaitSwitch(id, wanted) {
-    const key = /** @type {'charge'|'discharge'|'balance'} */ (id.slice('switch.'.length));
     for (let i = 0; i < 4; i++) {
       await sleep(i === 0 ? 100 : 300);
       try {
-        const snap = this.publish(newStatusSnapshot(await this.#readStatus({ timeout: 1000, retries: 0 })));
-        if (snap.switches?.[key] === wanted) return;
+        const st = await this.#readStatus({ timeout: 1000, retries: 0 });
+        this.publish(newStatusSnapshot(st));
+        if (/** @type {Record<string, boolean>} */ (newSwitchValues(st))[id] === wanted) return;
       } catch {
         /* the next attempt or the next poll will tell */
       }
@@ -587,6 +645,14 @@ export class AntLegacyDriver extends BaseDriver {
     /** Whether the BMS answers parameter reads (unverified beyond two sources, spec 3.6). */
     /** @type {'unknown'|'ok'|'unsupported'} */
     this.paramReads = 'unknown';
+    /**
+     * Whether the link returns the bytes written to it, as some UART adapters do (spec 3.6):
+     * unknown on a serial port until a parameter answer tells, never on Bluetooth.
+     * @type {boolean | undefined}
+     */
+    this.echo = this.serial ? undefined : false;
+    /** NTC slots that reported a temperature other than 0 and -40 (see `oldStatusSnapshot`). */
+    this.seenProbes = new Set();
   }
 
   /** @returns {import('@ubms/bms-core/driver').DriverCapabilities} */
@@ -654,7 +720,7 @@ export class AntLegacyDriver extends BaseDriver {
 
   async poll() {
     const st = await this.channel.exclusive(() => this.#readStatus());
-    this.publish(oldStatusSnapshot(st));
+    this.publish(oldStatusSnapshot(st, this.seenProbes));
   }
 
   async readInfo() {
@@ -662,9 +728,12 @@ export class AntLegacyDriver extends BaseDriver {
   }
 
   /**
-   * Read parameter N. The answer has the request layout (`5A5A NN VH VL sum`); an adapter echo of
-   * the request looks the same, so a frame equal to the request only counts when nothing else
-   * arrives (value 0).
+   * Read parameter N. The answer has the request layout (`5A5A NN VH VL sum`), so an answer with
+   * value 0 equals the request, and so does an adapter echo of the request (spec 3.6). The echo
+   * arrives first: a copy of the request in front of another frame proves an echoing adapter, an
+   * answer alone proves none. Two copies are the echo and a 0 answer. A single copy is a 0 answer
+   * only on a link known not to echo; otherwise it is the echo of an unanswered read, so a BMS that
+   * does not answer parameter reads is not shown as zeros.
    * @param {number} param
    */
   async #readParam(param) {
@@ -681,8 +750,14 @@ export class AntLegacyDriver extends BaseDriver {
           name: d?.name,
           decode: d?.decode,
         });
-        const answer = frames.find((fr) => !equals(fr, req)) ?? frames[0];
-        return parseOldCommand(answer).value;
+        const answer = frames.find((fr) => !equals(fr, req));
+        if (this.serial && (answer || frames.length > 1)) {
+          if (equals(frames[0], req)) this.echo = true;
+          else this.echo ??= false;
+        }
+        if (answer) return parseOldCommand(answer).value;
+        if (frames.length > 1 || this.echo === false) return 0;
+        lastErr = new Error('Only the echo of the request arrived, no answer');
       } catch (err) {
         lastErr = err;
       }
@@ -702,11 +777,8 @@ export class AntLegacyDriver extends BaseDriver {
         this.log?.warn(`ANT status for settings: ${errorText(err)}`);
       }
       st ??= this.status;
-      if (st) {
-        values['switch.charge'] = st.chargeMosState === 1;
-        values['switch.discharge'] = st.dischargeMosState === 1;
-      }
-      values['ant.password'] = this.password;
+      if (st) Object.assign(values, oldSwitchValues(st));
+      // The password is not returned: settings values end up in exports and log exports.
       if (this.paramReads !== 'unsupported') {
         for (const g of this.schema.groups) {
           for (const f of g.fields) {
@@ -759,12 +831,12 @@ export class AntLegacyDriver extends BaseDriver {
    * @param {boolean} wanted
    */
   async #awaitSwitch(id, wanted) {
-    const key = /** @type {'charge'|'discharge'} */ (id.slice('switch.'.length));
     for (let i = 0; i < 3; i++) {
       await sleep(i === 0 ? 100 : 400);
       try {
-        const snap = this.publish(oldStatusSnapshot(await this.#readStatus({ timeout: 1500, retries: 0 })));
-        if (snap.switches?.[key] === wanted) return;
+        const st = await this.#readStatus({ timeout: 1500, retries: 0 });
+        this.publish(oldStatusSnapshot(st, this.seenProbes));
+        if (/** @type {Record<string, boolean>} */ (oldSwitchValues(st))[id] === wanted) return;
       } catch {
         /* the next poll will tell */
       }

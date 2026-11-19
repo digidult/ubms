@@ -40,6 +40,31 @@ function serial() {
 
 let portCounter = 0;
 
+/** One wrapper per SerialPort object, so a port keeps its id for the lifetime of the page. */
+const portWrappers = new WeakMap();
+
+/**
+ * Differs on every page load. Web Serial exposes no serial number, so ports that cannot be told
+ * apart (no USB ids, or several granted ports with the same USB ids) get ids with this token: an id
+ * remembered on an earlier page then never selects another adapter of the same type.
+ */
+const pageToken = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`;
+
+/** @param {any} port SerialPort @returns {{ usbVendorId?: number, usbProductId?: number }} */
+function portInfo(port) {
+  try {
+    return port.getInfo?.() ?? {};
+  } catch {
+    return {};
+  }
+}
+
+/** `usb-<vendor>-<product>`, or '' when the port has no USB ids. @param {any} port */
+function usbKey(port) {
+  const { usbVendorId, usbProductId } = portInfo(port);
+  return usbVendorId ? `usb-${usbVendorId.toString(16)}-${usbProductId?.toString(16)}` : '';
+}
+
 export class WebSerialProvider {
   /** @param {{ log?: import('./log.js').ProtocolLog }} [opts] */
   constructor({ log } = {}) {
@@ -66,7 +91,14 @@ export class WebSerialProvider {
     const filters = adaptersOnly ? USB_SERIAL_ADAPTERS.map(({ usbVendorId, usbProductId }) => ({ usbVendorId, usbProductId })) : [];
     this.log?.event(`Requesting serial port${adaptersOnly ? ' (known USB-UART adapters only)' : ''}`);
     const port = await s.requestPort(filters.length ? { filters } : {});
-    return new WebSerialPort(port, this.log);
+    /** @type {any[]} */
+    let granted = [];
+    try {
+      granted = await s.getPorts();
+    } catch {
+      /* without the list the port counts as ambiguous */
+    }
+    return this.#wrap([port, ...granted], granted)[0];
   }
 
   /** Ports this origin was already granted. @returns {Promise<WebSerialPort[]>} */
@@ -75,10 +107,30 @@ export class WebSerialProvider {
     if (!s) return [];
     try {
       const ports = await s.getPorts();
-      return ports.map((/** @type {any} */ p) => new WebSerialPort(p, this.log));
+      return this.#wrap(ports, ports);
     } catch {
       return [];
     }
+  }
+
+  /**
+   * Return the wrapper of each port and mark the ports that are the only granted one with their
+   * USB ids: their id stays the same across page loads.
+   * @param {any[]} ports SerialPort objects
+   * @param {any[]} granted every port this origin may use
+   * @returns {WebSerialPort[]}
+   */
+  #wrap(ports, granted) {
+    return ports.map((port) => {
+      let handle = portWrappers.get(port);
+      if (!handle) {
+        handle = new WebSerialPort(port, this.log);
+        portWrappers.set(port, handle);
+      }
+      const key = usbKey(port);
+      handle.unique = !!key && granted.includes(port) && !granted.some((p) => p !== port && usbKey(p) === key);
+      return handle;
+    });
   }
 }
 
@@ -89,19 +141,21 @@ export class WebSerialPort {
     this.log = log;
     this.kind = 'serial';
     this.serial = ++portCounter;
+    /** Set by the provider while no other granted port has the same USB ids. */
+    this.unique = false;
   }
 
   get info() {
-    try {
-      return this.port.getInfo?.() ?? {};
-    } catch {
-      return {};
-    }
+    return portInfo(this.port);
   }
 
+  /**
+   * `usb-<vendor>-<product>` for the only granted port with these USB ids (stable across page
+   * loads), otherwise an id that is valid for this page only.
+   */
   get id() {
-    const { usbVendorId, usbProductId } = this.info;
-    return usbVendorId ? `usb-${usbVendorId.toString(16)}-${usbProductId?.toString(16)}-${this.serial}` : `serial-${this.serial}`;
+    const key = usbKey(this.port);
+    return key && this.unique ? key : `${key || 'serial'}-${pageToken}-${this.serial}`;
   }
 
   get name() {
@@ -143,6 +197,8 @@ export class WebSerialLink extends Link {
     /** @type {Promise<void> | null} */
     this.readLoop = null;
     this.closing = false;
+    /** True while this link holds the port open, so a failed open never closes a port it did not open. */
+    this.portOpen = false;
     /** @param {any} e */
     this.onDisconnect = (e) => {
       if (e.target === this.handle.port || e.port === this.handle.port) this._remoteClosed('Serial port disconnected');
@@ -157,6 +213,7 @@ export class WebSerialLink extends Link {
     const { signals, ...rest } = this.options;
     const port = this.handle.port;
     await port.open({ dataBits: 8, stopBits: 1, parity: 'none', flowControl: 'none', bufferSize: 4096, ...rest });
+    this.portOpen = true;
     if (signals && port.setSignals) {
       try {
         await port.setSignals(signals);
@@ -217,6 +274,8 @@ export class WebSerialLink extends Link {
     } catch {
       /* ignore */
     }
+    if (!this.portOpen) return;
+    this.portOpen = false;
     try {
       await this.handle.port.close();
     } catch (err) {

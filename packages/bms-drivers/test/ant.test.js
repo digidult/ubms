@@ -451,7 +451,27 @@ test('snapshot mapping: sign, switches, temperatures, alarms, extras', () => {
   assert.ok(close(derived.power, /** @type {number} */ (placeholder.voltage) * /** @type {number} */ (placeholder.current)));
   assert.deepEqual(placeholder.switches, { charge: false, discharge: false });
   assert.deepEqual(placeholder.alarms?.map((a) => a.id).sort(), ['ant.charge_manual_off', 'ant.discharge_manual_off']);
-  const oldProt = oldStatusSnapshot(P.parseOldStatus(P.encodeOldStatus({ ...P.parseOldStatus(bytesOf('old-rsp-status-14s-ble')), chargeMosState: 2 })));
+  // Absent probes: 2020 boards fill 0 (NTC 3 and 4 of this frame), 2021 boards send -40 (spec 12.2 item 11).
+  assert.deepEqual(
+    oldCharging.temperatures?.map((t) => t.id),
+    ['t1', 't2', 'mos', 'balancer'],
+  );
+  assert.deepEqual(
+    placeholder.temperatures?.map((t) => t.id),
+    ['t1', 't2', 'mos', 'balancer'],
+  );
+  const base2020 = P.parseOldStatus(bytesOf('old-rsp-status-8s-charging'));
+  const ntc = (/** @type {number[]} */ temperatures, /** @type {Set<number>} */ seen = new Set()) =>
+    oldStatusSnapshot({ ...base2020, temperatures }, seen)
+      .temperatures?.filter((t) => t.kind === 'cell')
+      .map((t) => `${t.id}=${t.value}`);
+  assert.deepEqual(ntc([0, 15, 0, 0]), ['t1=0', 't2=15'], 'a leading 0 is a real 0 degC');
+  assert.deepEqual(ntc([0, 0, 0, 0]), ['t1=0', 't2=0', 't3=0', 't4=0'], 'nothing tells absent from 0 degC');
+  assert.deepEqual(ntc([5, 0, -40, -40]), ['t1=5', 't2=0'], 'with -40 for absent probes, 0 is a reading');
+  const seen = new Set();
+  ntc([3, 2, 0, 0], seen);
+  assert.deepEqual(ntc([1, 0, 0, 0], seen), ['t1=1', 't2=0'], 'a probe that reported a value stays visible at 0 degC');
+  const oldProt =oldStatusSnapshot(P.parseOldStatus(P.encodeOldStatus({ ...P.parseOldStatus(bytesOf('old-rsp-status-14s-ble')), chargeMosState: 2 })));
   assert.deepEqual(
     oldProt.alarms?.map((a) => [a.id, a.source]),
     [['cell_overvoltage', 'charge MOSFET state 2']],
@@ -681,17 +701,20 @@ test('session: ANT 2021+ protocol end to end (snapshot, info, settings, writes, 
       'capacity.remaining': 201.6,
       'charge.soc100_voltage': 3.45,
       'ant.pack_id': 'ubms demo',
-      'ant.password': P.DEFAULT_PASSWORD_L5,
       'switch.charge': true,
       'switch.discharge': true,
       'switch.balance': false,
     };
     for (const [id, v] of Object.entries(expected)) assert.equal(values[id], v, id);
     assert.ok(Object.keys(values).length >= 85, `${Object.keys(values).length} values`);
+    // The password stays in the app: settings values end up in exports and log exports.
+    assert.equal('ant.password' in values, false);
+    assert.equal(JSON.stringify(values).includes(P.DEFAULT_PASSWORD_L5), false);
 
     // Wrong password: the switch command is ignored and the read-back reports it.
     let r = await session.writeSettings([{ id: 'ant.password', value: 'not-the-one' }]);
-    assert.deepEqual([r[0].ok, r[0].verified], [true, true]);
+    assert.deepEqual([r[0].ok, r[0].verified], [true, undefined]);
+    assert.equal(JSON.stringify(session.settings.values).includes('not-the-one'), false);
     r = await session.writeSettings([{ id: 'switch.discharge', value: false }]);
     assert.deepEqual([r[0].ok, r[0].verified], [true, false]);
     assert.equal(sim.battery.switches.discharge, true);
@@ -845,9 +868,119 @@ test('session: legacy settings fall back to the status when parameter reads are 
     await s.session.connect({ kind: 'link', link: s.host, selection: 'ant-legacy' });
     const settings = await s.session.loadSettings();
     assert.equal(settings.error, null);
-    assert.deepEqual(Object.keys(/** @type {any} */ (settings.values)).sort(), ['ant.password', 'switch.charge', 'switch.discharge']);
+    assert.deepEqual(Object.keys(/** @type {any} */ (settings.values)).sort(), ['switch.charge', 'switch.discharge']);
     assert.ok(s.log.entries().some((e) => e.kind === 'event' && /does not answer parameter reads/.test(e.text ?? '')));
   } finally {
     await s.close();
   }
+});
+
+/**
+ * Serial host link that also receives every byte it writes, like a UART adapter with echo.
+ * @param {ProtocolLog} log
+ * @param {boolean} echo
+ */
+function serialPair(log, echo) {
+  const pair = createLinkPair({ log, kind: 'serial' });
+  if (echo) {
+    const write = pair.host._write.bind(pair.host);
+    pair.host._write = async (/** @type {Uint8Array} */ bytes) => {
+      const copy = Uint8Array.from(bytes);
+      queueMicrotask(() => {
+        if (pair.host.state === 'open') pair.host._receive(copy);
+      });
+      return write(bytes);
+    };
+  }
+  return pair;
+}
+
+test('session: legacy parameter reads on a UART adapter that echoes the requests', async () => {
+  for (const [echo, answerParams] of [
+    [true, false],
+    [true, true],
+    [false, true],
+  ]) {
+    const log = new ProtocolLog();
+    const { host, device } = serialPair(log, echo);
+    await host.open();
+    await device.open();
+    const sim = createAntLegacySimulator(device, { tickMs: 0, answerParams });
+    // One zero parameter is enough (a 0 answer equals the request, so it waits for the timeout).
+    sim.params.set(41, 1000);
+    sim.params.set(45, 1);
+    // A parameter this BMS does not answer: on the echoing adapter only the request comes back.
+    if (echo) sim.params.delete(16);
+    const session = new BmsSession({ registry: new DriverRegistry(antDrivers), log, pollIntervalMs: 100000 });
+    const label = `echo ${echo}, answers ${answerParams}`;
+    try {
+      await session.connect({ kind: 'link', link: host, selection: 'ant-legacy' });
+      const settings = await session.loadSettings();
+      assert.equal(settings.error, null, label);
+      const values = /** @type {Record<string, any>} */ (settings.values);
+      if (!answerParams) {
+        // The echo of an unanswered read is not a 0 answer: only the status values remain.
+        assert.deepEqual(Object.keys(values).sort(), ['switch.charge', 'switch.discharge'], label);
+        assert.ok(log.entries().some((e) => e.kind === 'event' && /does not answer parameter reads/.test(e.text ?? '')), label);
+        continue;
+      }
+      // A parameter that is really 0 still reads 0, with or without the echo.
+      for (const [id, v] of Object.entries({ 'cell.ovp': 4.2, 'capacity.nominal': 170, 'ant.wheel_circumference': 1000, 'ant.wheel_pulses': 0 })) {
+        assert.equal(values[id], v, `${label}: ${id}`);
+      }
+      if (echo) assert.equal(values['ant.balance_current'], undefined, `${label}: the echo of an unanswered read is not a 0`);
+    } finally {
+      await session.disconnect();
+      sim.stop();
+      await device.close();
+    }
+  }
+});
+
+test('settings switches stay On while the BMS holds a MOSFET off, and Off after an off command', async () => {
+  /**
+   * Run a session whose status answers are patched with `override`.
+   * @param {(device: any) => { stop: () => void }} make
+   * @param {string} selection
+   * @param {(frame: Uint8Array, override: Record<string, number>) => Uint8Array} patch
+   * @param {Array<[Record<string, number>, Record<string, boolean>]>} cases
+   */
+  const run = async (make, selection, patch, cases) => {
+    /** @type {Record<string, number>} */
+    let override = {};
+    const s = await startSession((device) => {
+      const write = device.write.bind(device);
+      device.write = (/** @type {Uint8Array} */ bytes, /** @type {any} */ meta) => write(patch(bytes, override), meta);
+      return make(device);
+    });
+    try {
+      await s.session.connect({ kind: 'link', link: s.host, selection });
+      for (const [o, want] of cases) {
+        override = o;
+        const values = /** @type {Record<string, any>} */ ((await s.session.loadSettings()).values);
+        for (const [id, v] of Object.entries(want)) assert.equal(values[id], v, `${selection} ${JSON.stringify(o)} ${id}`);
+      }
+      // The snapshot keeps the actual MOSFET state (off in the last case).
+      await until(() => s.session.snapshot?.switches?.charge === false);
+    } finally {
+      await s.close();
+    }
+  };
+  const newPatch = (/** @type {Uint8Array} */ f, /** @type {Record<string, number>} */ o) =>
+    P.isStatusFrame(f) && f[2] === P.RSP.STATUS ? P.encodeStatus({ ...P.parseStatus(f), ...o }) : f;
+  await run((device) => createAntSimulator(device, { tickMs: 0 }), 'ant', newPatch, [
+    [{ chargeMosState: 2, protectionMask0: 1 << 1 }, { 'switch.charge': true, 'switch.discharge': true }],
+    [{ chargeMosState: 4 }, { 'switch.charge': true }],
+    // Switched off by command while a protection holds the MOSFET: state 2 with protection bit 21.
+    [{ chargeMosState: 2, protectionMask0: (1 << 1) | (1 << 21) }, { 'switch.charge': false }],
+    [{ chargeMosState: 15, dischargeMosState: 15, protectionMask0: (1 << 17) | (1 << 21) }, { 'switch.charge': false, 'switch.discharge': false }],
+    [{ chargeMosState: 0 }, { 'switch.charge': false }],
+  ]);
+  const oldPatch = (/** @type {Uint8Array} */ f, /** @type {Record<string, number>} */ o) => (P.isOldStatusFrame(f) ? P.encodeOldStatus({ ...P.parseOldStatus(f), ...o }) : f);
+  // No parameter answers: the settings load stops after the first unanswered read.
+  await run((device) => createAntLegacySimulator(device, { tickMs: 0, answerParams: false }), 'ant-legacy', oldPatch, [
+    [{ chargeMosState: 4, dischargeMosState: 2 }, { 'switch.charge': true, 'switch.discharge': true }],
+    [{ chargeMosState: 15 }, { 'switch.charge': false }],
+    [{ chargeMosState: 0 }, { 'switch.charge': false }],
+  ]);
 });

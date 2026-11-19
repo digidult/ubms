@@ -135,8 +135,13 @@ export function jk02Snapshot(c, { variant = VARIANT.JK02_32S, settings = null, f
   add('t2', TEMP_LABELS[1], c.temperature2, 'cell', 2);
   if (is32) {
     add('t3', TEMP_LABELS[2], c.temperature3, 'cell', 3);
-    add('t4', TEMP_LABELS[3], c.temperature4, 'cell', 4);
-    add('t5', TEMP_LABELS[4], c.temperature5, 'cell', 5);
+    // C256 and C258 exist from software 14 on ([AIO] `_temp_pos`). Below that they read 0 with
+    // all presence bits set (captures of JK-B2A8S20P sw 11.48 [AIO] and 11.50 [BM]), which would
+    // show two sensors at 0 degrees C. An unknown version keeps them (mask and -2000 still apply).
+    if (!(firmwareMajor < 14)) {
+      add('t4', TEMP_LABELS[3], c.temperature4, 'cell', 4);
+      add('t5', TEMP_LABELS[4], c.temperature5, 'cell', 5);
+    }
   }
 
   /** @type {Record<string, ExtraValue>} */
@@ -314,6 +319,9 @@ const RETRIGGER_MS = 3000;
 const STREAM_LOST_MS = 15000;
 const ACK_TIMEOUT_MS = 1500;
 
+/** True when a cell info frame decodes plausibly in the JK02_24S layout (spec 3.4 step 7). @param {Uint8Array} frame */
+const plausibleAs24s = (frame) => cellInfoProblem(parseCellInfo(frame, VARIANT.JK02_24S), VARIANT.JK02_24S) === null;
+
 export class JkBleDriver extends BaseDriver {
   /**
    * @param {DriverDefinition} definition
@@ -339,7 +347,10 @@ export class JkBleDriver extends BaseDriver {
     this.eventLog = null;
     this.streaming = false;
     this.streamSince = 0;
+    /** Last cell info frame of any content: the stream is alive. */
     this.lastCellAt = 0;
+    /** Last plausible cell info frame: the data is alive. */
+    this.lastValidCellAt = 0;
     this.lastPublishAt = 0;
     this.lastSettingsRequestAt = 0;
     this.lastTriggerAt = 0;
@@ -431,6 +442,7 @@ export class JkBleDriver extends BaseDriver {
       this.log?.warn(`JK cell info ignored, implausible ${problem}`);
       return;
     }
+    this.lastValidCellAt = now;
     this.cell = c;
     if (now - this.lastPublishAt < PUBLISH_INTERVAL_MS) return;
     this.lastPublishAt = now;
@@ -439,14 +451,16 @@ export class JkBleDriver extends BaseDriver {
 
   /**
    * Firmware below 11 is JK02_24S or a JK04 balancer; the first cell info frame tells them apart
-   * (spec 11.3). With an unreadable version only a JK04 can be confirmed from the data.
+   * (spec 11.3). With an unreadable version only a JK04 can be confirmed from the data. JK02_24S
+   * needs a frame that also decodes plausibly in that layout: a JK04 frame that fails the strict
+   * JK04 test (a cell below 0.5 V) must not enable 24S register writes on a balancer.
    * @param {Uint8Array} frame
    */
   #confirmFromData(frame) {
     if (looksLikeJk04CellInfo(frame)) {
       this.variantConfirmed = true;
       this.setVariant(VARIANT.JK04);
-    } else if (this.firmwareMajor < 11) {
+    } else if (this.firmwareMajor < 11 && plausibleAs24s(frame)) {
       this.variantConfirmed = true;
       this.setVariant(VARIANT.JK02_24S);
     }
@@ -480,7 +494,7 @@ export class JkBleDriver extends BaseDriver {
     const cell = frames.find((f) => f[4] === FRAME_TYPE.CELL_INFO);
     if (cell) {
       if (looksLikeJk04CellInfo(cell)) return VARIANT.JK04;
-      return this.firmwareMajor < 11 ? VARIANT.JK02_24S : undefined;
+      return this.firmwareMajor < 11 && plausibleAs24s(cell) ? VARIANT.JK02_24S : undefined;
     }
     const settings = frames.find((f) => f[4] === FRAME_TYPE.SETTINGS);
     if (settings && looksLikeJk04Settings(settings)) return VARIANT.JK04;
@@ -534,7 +548,8 @@ export class JkBleDriver extends BaseDriver {
 
   /**
    * Watchdog: the BMS streams by itself. Re-request the stream when it stalls, refresh the
-   * settings frame after writes, report an error after a long silence.
+   * settings frame after writes, report an error after a long time without plausible data
+   * (frames that are all ignored as implausible keep the stream alive but carry no data).
    */
   async poll() {
     if (!this.streaming) return;
@@ -549,7 +564,7 @@ export class JkBleDriver extends BaseDriver {
       this.log?.event('JK: no cell info for a few seconds, requesting the stream again');
       await this.#sendSettingsRequest();
     }
-    if (quiet > STREAM_LOST_MS) throw new Error(msg('No data from the BMS for several seconds'));
+    if (now - Math.max(this.lastValidCellAt, this.streamSince) > STREAM_LOST_MS) throw new Error(msg('No data from the BMS for several seconds'));
   }
 
   async stop() {
@@ -688,7 +703,7 @@ export class JkPbDriver extends BaseDriver {
     const a = Number(ctx.options?.address ?? PB_DEFAULT_ADDRESS);
     /** DIP switch address of the pack, 0..15 (0 is the parallel bus master, spec 2.3). */
     this.address = Number.isInteger(a) && a >= 0 && a <= 15 ? a : PB_DEFAULT_ADDRESS;
-    this.channel = new FrameChannel(ctx.link, { createAssembler: createPbAssembler(this.address), describe: (f) => describe(f, VARIANT.JK02_32S), log: ctx.log }).start();
+    this.channel = new FrameChannel(ctx.link, { createAssembler: createPbAssembler(), describe: (f) => describe(f, VARIANT.JK02_32S), log: ctx.log }).start();
     this.lastIoAt = 0;
     /** @type {Uint8Array | null} */
     this.deviceFrame = null;
@@ -720,8 +735,10 @@ export class JkPbDriver extends BaseDriver {
 
   /**
    * Trigger request (spec 3.6.3): collect the 300 byte frame and the FC 0x10 answer of this
-   * address. The frame carries no address, so it is attributed through the answer that follows
-   * it; other packs' frames on a shared bus are skipped. Only call inside `channel.exclusive`.
+   * address. The frame carries no address: it belongs to the pack whose answer follows it
+   * directly ([DSB]); a settings frame is matched by the DIP address at S270 instead ([TX]).
+   * Frames of other packs on a shared bus (spec 4.3), the master's unrequested frames and a frame
+   * whose answer is missing are never taken. Only call inside `channel.exclusive`.
    * @param {number} register PB_TRIGGER value
    * @param {{ timeout?: number, retries?: number }} [opts]
    */
@@ -729,6 +746,8 @@ export class JkPbDriver extends BaseDriver {
     const type = PB_TRIGGER_TYPE[register];
     const bytes = pbTriggerRequest(this.address, register);
     const d = describe(bytes);
+    /** @param {Uint8Array} f */
+    const own = (f) => isPbWriteAck(f, this.address, register) || isModbusException(f, this.address);
     /** @type {unknown} */
     let lastErr = new Error(msg('No response from the device'));
     for (let attempt = 0; attempt <= retries; attempt++) {
@@ -737,8 +756,9 @@ export class JkPbDriver extends BaseDriver {
       let frames;
       try {
         frames = await this.channel.requestManyUnqueued(bytes, {
-          match: (f) => f.length === DATA_FRAME_LENGTH || isPbWriteAck(f, this.address, register) || isModbusException(f, this.address),
-          until: (fs) => fs.some((f) => f.length !== DATA_FRAME_LENGTH),
+          // Answers of every address are kept: they separate the frames of the packs.
+          match: (f) => f.length === DATA_FRAME_LENGTH || f.length === 8 || f.length === 5,
+          until: (fs) => fs.some(own),
           timeout,
           partialOnTimeout: true,
           name: d?.name,
@@ -751,18 +771,33 @@ export class JkPbDriver extends BaseDriver {
       } finally {
         this.lastIoAt = Date.now();
       }
-      const end = frames.findIndex((f) => f.length !== DATA_FRAME_LENGTH);
+      const end = frames.findIndex(own);
       const answer = end >= 0 ? frames[end] : null;
       if (answer && isModbusException(answer, this.address)) throw new Error(`Modbus exception ${answer[2]} for trigger ${h4(register)}`);
-      const candidates = (end >= 0 ? frames.slice(0, end) : frames).filter((f) => f[4] === type).reverse();
-      // Settings frames also carry the DIP address at S270 ([TX] attributes them by it).
-      const frame = (type === FRAME_TYPE.SETTINGS && candidates.find((f) => f[270] === this.address)) || candidates[0];
+      const frame = this.#ownFrame(end >= 0 ? frames.slice(0, end) : frames, type, !!answer);
       if (frame) {
-        if (!answer) this.log?.warn(`JK-PB: frame without the FC 0x10 answer for ${h4(register)}`);
+        if (!answer) this.log?.warn(`JK-PB: settings frame without the FC 0x10 answer for ${h4(register)}, taken by its DIP address`);
         return frame;
       }
+      if (answer) lastErr = new Error(msg('Incomplete response from the device'));
     }
     throw lastErr;
+  }
+
+  /**
+   * This pack's frame among the frames received before its answer (all frames when it did not
+   * answer), see `#trigger`.
+   * @param {Uint8Array[]} before
+   * @param {number} type expected frame type
+   * @param {boolean} answered this address answered the trigger
+   */
+  #ownFrame(before, type, answered) {
+    const last = before.at(-1);
+    const lastFits = answered && last?.length === DATA_FRAME_LENGTH && last[4] === type;
+    if (type !== FRAME_TYPE.SETTINGS) return lastFits ? last : null;
+    const own = before.filter((f) => f.length === DATA_FRAME_LENGTH && f[4] === type && f[270] === this.address).at(-1);
+    if (!own && lastFits) this.log?.warn(`JK-PB: the settings frame before the answer of address ${this.address} carries DIP address ${last?.[270]}, ignored`);
+    return own ?? null;
   }
 
   /**

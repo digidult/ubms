@@ -160,17 +160,28 @@ const signedPower = (watts, current) => (current < 0 ? -watts : watts);
 const SIGN_SAMPLES = 3;
 
 /**
+ * Key of the user's direction choice in the target options. The session passes the same options
+ * object to every driver instance of one target, so the choice survives reconnects. One key per
+ * driver id, because the two protocol families have opposite defaults.
+ * @param {string} driverId
+ */
+const invertOption = (driverId) => `${driverId}.invertCurrent`;
+
+/**
  * Current sign policy. The protocol default follows the majority of sources (classic: raw values
  * below 30000 mean charging; Modbus: above 30000). While the user has not chosen a direction, the
  * decoded current is compared with the charge state the BMS reports (charging / discharging) when
  * |I| > 0.5 A; three disagreeing samples in a row flip the automatic direction once.
  */
 export class CurrentSign {
-  /** @param {boolean} defaultInvert true when the model current is the negated raw decode */
-  constructor(defaultInvert) {
+  /**
+   * @param {boolean} defaultInvert true when the model current is the negated raw decode
+   * @param {unknown} [user] direction the user chose earlier (kept in the target options)
+   */
+  constructor(defaultInvert, user) {
     this.defaultInvert = defaultInvert;
     /** @type {boolean | undefined} user choice (settings field `daly.invert_current`) */
-    this.user = undefined;
+    this.user = typeof user === 'boolean' ? user : undefined;
     this.auto = defaultInvert;
     this.agree = 0;
     this.disagree = 0;
@@ -368,7 +379,7 @@ export class DalyClassicDriver extends BaseDriver {
     this.channel = new FrameChannel(ctx.link, { createAssembler: createClassicAssembler, describe: (f) => describe(f), log: ctx.log }).start();
     this.schema = buildClassicSchema();
     this.fields = fieldMap(this.schema);
-    this.sign = new CurrentSign(true);
+    this.sign = new CurrentSign(true, ctx.options?.[invertOption(definition.id)]);
     /** Last parsed live replies by command. @type {Map<number, Record<string, any>>} */
     this.live = new Map();
     /** @type {number[] | null} */
@@ -803,6 +814,7 @@ export class DalyClassicDriver extends BaseDriver {
     const kind = f.meta?.kind;
     if (kind === 'local') {
       this.sign.user = !!value;
+      if (this.ctx.options) this.ctx.options[invertOption(this.definition.id)] = this.sign.user;
       return;
     }
     await this.channel.exclusive(async () => {
@@ -873,7 +885,7 @@ export class DalyModbusDriver extends BaseDriver {
       describe: (f) => describe(f, { direction: 'rx', start: this.pendingStart }),
       log: ctx.log,
     }).start();
-    this.sign = new CurrentSign(false);
+    this.sign = new CurrentSign(false, ctx.options?.[invertOption(definition.id)]);
     /** @type {import('@ubms/bms-core/settings').SettingsSchema | null} */
     this.schema = null;
     /** @type {Map<string, import('@ubms/bms-core/settings').SettingField>} */
@@ -1220,6 +1232,7 @@ export class DalyModbusDriver extends BaseDriver {
     const meta = f.meta ?? {};
     if (meta.kind === 'local') {
       this.sign.user = !!value;
+      if (this.ctx.options) this.ctx.options[invertOption(this.definition.id)] = this.sign.user;
       return;
     }
     await this.channel.exclusive(async () => {

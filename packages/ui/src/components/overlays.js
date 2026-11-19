@@ -80,6 +80,12 @@ export class UiDialog extends UiElement {
     this.wide = false;
   }
 
+  /** Closes the dialog on a press that starts and ends on the backdrop. */
+  #dismiss = lightDismiss(
+    () => this.dialog,
+    () => this.close(),
+  );
+
   /** @returns {HTMLDialogElement | null} */
   get dialog() {
     return this.renderRoot?.querySelector('dialog') ?? null;
@@ -93,7 +99,12 @@ export class UiDialog extends UiElement {
   }
 
   render() {
-    return html`<dialog class=${this.wide ? 'wide' : ''} @close=${this.#onClose} @click=${this.#onBackdrop}>
+    return html`<dialog
+      class=${this.wide ? 'wide' : ''}
+      @close=${this.#onClose}
+      @pointerdown=${this.#dismiss.pointerdown}
+      @click=${this.#dismiss.click}
+    >
       <header>
         <h2>${this.heading}</h2>
         <button class="btn ghost icon" @click=${() => this.close()} aria-label=${t('Close')}>${icon('close')}</button>
@@ -111,17 +122,38 @@ export class UiDialog extends UiElement {
     if (this.open) this.open = false;
     this.fire('close');
   }
-
-  /** @param {MouseEvent} e */
-  #onBackdrop(e) {
-    if (e.target === this.dialog) {
-      const r = this.dialog.getBoundingClientRect();
-      const inside = e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
-      if (!inside) this.close();
-    }
-  }
 }
 define('ui-dialog', UiDialog);
+
+/**
+ * Light dismiss for a modal <dialog>: `dismiss` runs only when a press both starts and ends on
+ * the backdrop. A modal dialog reports backdrop presses with the <dialog> element as target, and a
+ * text selection or drag that starts inside the dialog and is released over the backdrop also
+ * ends in a click on the <dialog> element (the common ancestor), so the click alone is not enough.
+ * @param {() => Element | null} getDialog
+ * @param {() => void} dismiss
+ * @returns {{ pointerdown: (e: PointerEvent) => void, click: (e: MouseEvent) => void }}
+ */
+export function lightDismiss(getDialog, dismiss) {
+  /** @param {MouseEvent} e */
+  const onBackdrop = (e) => {
+    const d = getDialog();
+    if (!d || e.target !== d) return false;
+    const r = d.getBoundingClientRect();
+    return e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom;
+  };
+  let pressed = false;
+  return {
+    pointerdown: (e) => {
+      pressed = onBackdrop(e);
+    },
+    click: (e) => {
+      const started = pressed;
+      pressed = false;
+      if (started && onBackdrop(e)) dismiss();
+    },
+  };
+}
 
 /**
  * Ask for confirmation. Resolves true when confirmed.

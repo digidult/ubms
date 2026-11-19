@@ -945,11 +945,13 @@ const d2OptionalTemp = (raw) => (raw === 0 || raw === 0xffff ? null : raw - 40);
 
 /**
  * D2 fault registers 0x003A..0x003D (8 wire bytes) in classic byte order: the wire carries classic
- * bytes `1 0 3 2 5 4 7 6` (spec 9.2). Classic byte 7 has no documented meaning on D2.
+ * bytes `1 0 3 2 5 4 7 6` (spec 9.2), so classic byte 6 (current and voltage module, short circuit,
+ * low voltage no charge, soft switch, cabinet) is the low byte of 0x003D, the last wire byte.
+ * Classic byte 7 (high byte of 0x003D) has no documented meaning on D2; `failureAlarms` ignores it.
  * @param {ArrayLike<number>} wire
  */
 export function d2FaultBytes(wire) {
-  return [wire[1], wire[0], wire[3], wire[2], wire[5], wire[4], 0, wire[6]];
+  return [wire[1], wire[0], wire[3], wire[2], wire[5], wire[4], wire[7], wire[6]];
 }
 
 /**

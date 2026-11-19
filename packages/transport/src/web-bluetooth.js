@@ -45,6 +45,12 @@ function bluetooth() {
   return typeof navigator !== 'undefined' ? /** @type {any} */ (navigator).bluetooth : undefined;
 }
 
+/** One wrapper per BluetoothDevice, so repeated request() and known() calls do not stack listeners. */
+const deviceWrappers = new WeakMap();
+
+/** Longest wait for an advertisement before connecting to a device from getDevices(). */
+const ADVERTISEMENT_WAIT_MS = 10000;
+
 export class WebBluetoothProvider {
   /** @param {{ log?: import('./log.js').ProtocolLog }} [opts] */
   constructor({ log } = {}) {
@@ -94,7 +100,7 @@ export class WebBluetoothProvider {
     if (options.optionalManufacturerData?.length) req.optionalManufacturerData = options.optionalManufacturerData;
     this.log?.event(`Requesting Bluetooth device (${req.acceptAllDevices ? 'all devices' : `${req.filters.length} filter(s)`})`);
     const device = await bt.requestDevice(req);
-    return new WebBleDevice(device, this.log);
+    return this.#wrap(device, false);
   }
 
   /**
@@ -106,10 +112,26 @@ export class WebBluetoothProvider {
     if (!bt?.getDevices) return [];
     try {
       const devices = await bt.getDevices();
-      return devices.map((/** @type {any} */ d) => new WebBleDevice(d, this.log));
+      return devices.map((/** @type {any} */ d) => this.#wrap(d, true));
     } catch {
       return [];
     }
+  }
+
+  /**
+   * @param {any} device BluetoothDevice
+   * @param {boolean} granted the device comes from getDevices(): the browser may not have seen it
+   *   since it started, so the first connect waits for an advertisement
+   * @returns {WebBleDevice}
+   */
+  #wrap(device, granted) {
+    let handle = deviceWrappers.get(device);
+    if (!handle) {
+      handle = new WebBleDevice(device, this.log);
+      handle.awaitAdvertisement = granted;
+      deviceWrappers.set(device, handle);
+    }
+    return handle;
   }
 }
 
@@ -125,6 +147,8 @@ export class WebBleDevice extends Emitter {
     this.kind = 'ble';
     /** @type {any} */
     this.server = null;
+    /** Wait for an advertisement before the next GATT connect (devices from getDevices()). */
+    this.awaitAdvertisement = false;
     this.onDisconnected = () => {
       this.log?.warn(`Bluetooth device disconnected: ${this.name}`);
       this.emit('disconnect', { reason: 'gatt-disconnected' });
@@ -153,11 +177,13 @@ export class WebBleDevice extends Emitter {
    */
   async connect({ timeoutMs = 20000, attempts = 2 } = {}) {
     if (this.connected) return;
+    if (this.awaitAdvertisement) await this.#watchAdvertisement(timeoutMs);
     let lastErr;
     for (let i = 1; i <= attempts; i++) {
       try {
         this.log?.event(`Connecting GATT to ${this.name} (attempt ${i}/${attempts})`);
         this.server = await withTimeout(this.device.gatt.connect(), timeoutMs, msg('Bluetooth connection timed out'));
+        this.awaitAdvertisement = false;
         this.log?.event(`GATT connected: ${this.name}`);
         return;
       } catch (err) {
@@ -172,6 +198,35 @@ export class WebBleDevice extends Emitter {
       }
     }
     throw lastErr;
+  }
+
+  /**
+   * Chrome connects only to devices it has seen since it started, so gatt.connect() on a device from
+   * getDevices() can fail with "Bluetooth Device is no longer in range". Wait for one advertisement
+   * first, as Chrome's samples do. Does nothing without watchAdvertisements() support.
+   * @param {number} timeoutMs connect timeout, which also bounds the wait
+   */
+  async #watchAdvertisement(timeoutMs) {
+    const device = this.device;
+    if (typeof device.watchAdvertisements !== 'function') return;
+    const ms = timeoutMs > 0 ? Math.min(timeoutMs, ADVERTISEMENT_WAIT_MS) : ADVERTISEMENT_WAIT_MS;
+    const abort = new AbortController();
+    /** @type {() => void} */
+    let onAdvertisement = () => {};
+    const seen = new Promise((resolve) => {
+      onAdvertisement = () => resolve(true);
+    });
+    device.addEventListener('advertisementreceived', onAdvertisement);
+    try {
+      this.log?.event(`Waiting for an advertisement from ${this.name}`);
+      await withTimeout(Promise.all([device.watchAdvertisements({ signal: abort.signal }), seen]), ms);
+    } catch (err) {
+      if (/** @type {any} */ (err)?.code === 'TIMEOUT') this.log?.warn(`No advertisement from ${this.name}, connecting anyway`);
+      else this.log?.debug(`Cannot watch advertisements: ${err instanceof Error ? err.message : err}`);
+    } finally {
+      device.removeEventListener('advertisementreceived', onAdvertisement);
+      abort.abort();
+    }
   }
 
   /**
@@ -230,6 +285,7 @@ export class WebBleDevice extends Emitter {
   dispose() {
     this.device.removeEventListener('gattserverdisconnected', this.onDisconnected);
     this.removeAllListeners();
+    if (deviceWrappers.get(this.device) === this) deviceWrappers.delete(this.device);
   }
 }
 

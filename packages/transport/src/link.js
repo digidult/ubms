@@ -12,7 +12,9 @@ let linkCounter = 0;
  * - `state` ({ state, reason? }) lifecycle changes
  * - `close` ({ reason, remote }) the link closed (remote = true when the device or OS closed it)
  *
- * Subclasses implement `_open`, `_close`, `_write`.
+ * Subclasses implement `_open`, `_close`, `_write`. `_close` releases what `_open` acquired
+ * (listeners, native handles, the port). It runs on `close()`, after a remote close and after a
+ * failed `_open`, so it must tolerate a partly opened transport.
  *
  * @typedef {'closed'|'opening'|'open'|'closing'} LinkState
  *
@@ -57,10 +59,13 @@ export class Link extends Emitter {
 
   async open() {
     if (this.state === 'open') return;
+    if (this.#cleanup) await this.#cleanup;
     this.#setState('opening');
     try {
       await this._open();
     } catch (err) {
+      // _open() may have added listeners or opened handles before it failed.
+      await this.#release();
       this.#setState('closed');
       throw err;
     }
@@ -69,7 +74,12 @@ export class Link extends Emitter {
   }
 
   async close() {
-    if (this.state === 'closed' || this.state === 'closing') return;
+    if (this.state === 'closed') {
+      // After a remote close, wait for the cleanup that _remoteClosed() started.
+      await this.#cleanup;
+      return;
+    }
+    if (this.state === 'closing') return;
     this.#setState('closing');
     try {
       await this._close();
@@ -121,9 +131,38 @@ export class Link extends Emitter {
    */
   _remoteClosed(reason) {
     if (this.state === 'closed') return;
+    // Release what _open() acquired. Not while opening or closing: _close() would then run alongside
+    // the pending _open() or _close().
+    if (this.state === 'open') this.#cleanup = this.#releaseLater();
     this.#setState('closed', reason);
     this.log?.warn(`Link lost: ${reason}`, { source: this.id });
     this.emit('close', { reason, remote: true });
+  }
+
+  /** @type {Promise<void> | null} cleanup after a remote close, until it finishes */
+  #cleanup = null;
+
+  /**
+   * Run _close() after the current call stack: a subclass often reports a remote close from inside
+   * the read loop or the event handler that its _close() waits for or removes.
+   * @returns {Promise<void>}
+   */
+  #releaseLater() {
+    const cleanup = Promise.resolve()
+      .then(() => this.#release())
+      .finally(() => {
+        if (this.#cleanup === cleanup) this.#cleanup = null;
+      });
+    return cleanup;
+  }
+
+  /** Run _close(). A failure is only logged: the link counts as closed either way. */
+  async #release() {
+    try {
+      await this._close();
+    } catch (err) {
+      this.log?.debug(`Link cleanup failed: ${err instanceof Error ? err.message : err}`, { source: this.id });
+    }
   }
 
   /** @param {LinkState} state @param {string} [reason] */
