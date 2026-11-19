@@ -611,8 +611,17 @@ export function buildJkSchema({ variant = VARIANT.JK02_32S, link = 'ble', cellCo
 // JK04 schema ----------------------------------------------------------------------------------
 
 /**
+ * Description of the JK04 balance start voltage: ESPHome writes register 0x58, the register rule
+ * of the captured JK04 writes (settings offset - 6) gives 0x5C, and no capture shows the write
+ * (docs/protocols/jk-balancer.md section 12 item 1). Unverified, so it is shown but never written.
+ */
+export const JK04_START_VOLTAGE_READ_ONLY = msg(
+  'The write register of this value is not confirmed (0x58 in ESPHome, 0x5C by the register rule) and its meaning is unclear, so it is shown but never written.',
+);
+
+/**
  * JK04 balancer (spec 6.4, 5.2): float32 values, written with the same registers by ESPHome and
- * batmon-ha.
+ * batmon-ha. The balance start voltage stays read only (see JK04_START_VOLTAGE_READ_ONLY).
  * @returns {SettingsSchema}
  */
 export function buildJk04Schema() {
@@ -627,7 +636,7 @@ export function buildJk04Schema() {
   };
   return buildSchema([
     j('cell.power_off_voltage', 'powerOffVoltage', { min: 2, max: 3.7 }),
-    j('balance.start_voltage', 'balanceStartVoltage', { min: 1, max: 4.2 }),
+    field('balance.start_voltage', { readOnly: true, description: JK04_START_VOLTAGE_READ_ONLY, meta: { kind: 'reg', source: 'settings', name: 'balanceStartVoltage' } }),
     j('balance.trigger_delta', 'balanceTriggerVoltage', { min: 0.002, max: 1 }),
     j('balance.max_current', 'maxBalanceCurrent', { decimals: 2, min: 0.1, max: 10 }),
     j('switch.balance', 'balancerSwitch'),

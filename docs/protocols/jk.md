@@ -623,7 +623,7 @@ Settings (type 0x01), [SY] `decode_jk04_settings_`, [BM] `decode_jk04_settings`:
 | 34 (0x22) | 1 | u8 | `cellCount` | 0x1C, length 2, u16 |
 | 38 (0x26) | 4 | f32, V | `powerOffVoltage` | 0x20, float |
 | 74 (0x4A) | 4 | f32, V | `voltageCalibration`: ADC reference, about 3.03; the app shows the resulting pack voltage instead | 0x44, float |
-| 98 (0x62) | 4 | f32, V | `balanceStartVoltage` | 0x58, float |
+| 98 (0x62) | 4 | f32, V | `balanceStartVoltage` | 0x58, float (**unverified**: no capture shows the write, the register rule of the captured JK04 writes gives 0x5C, see [jk-balancer.md](jk-balancer.md) section 12 item 1; ubms keeps it read only) |
 | 102 (0x66) | 4 | f32 | unknown (3.4 on both known devices) | |
 | 106 (0x6A) | 4 | f32, V | `balanceTriggerVoltage` | 0x64, float |
 | 110 (0x6E) | 4 | f32, A | `maxBalanceCurrent` | 0x68, float |
