@@ -1,0 +1,5704 @@
+[
+  {
+    "id": "vendor-v4-tx-read-basic",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "DDA50300FFFD77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/Jiabaida.communication.protocol.pdf (page 2, \"Host send\")",
+    "description": "Read basic information 0x03. Checksum 0x10000 - (0x03 + 0x00) = 0xFFFD.",
+    "expected": {
+      "operation": "read",
+      "register": 3,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 65533,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "vendor-v4-rx-basic-15s",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "DD03001B1700000002D003E8000020780000000000001048030F020B760B82FBFF77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/Jiabaida.communication.protocol.pdf (page 2, \"BMS feedback\"); same frame in https://github.com/FurTrader/OverkillSolarBMS/blob/adfb7d528f764b3258ad995a7a2217f8af1228e3/Comm_Protocol_Documentation/JBD%20Protocol%20English%20version.pdf",
+    "description": "Vendor example: 15S, 2 NTC, 58.88 V, 7.20 Ah of 10.00 Ah, SOC 72 %, software 0x10, both MOSFETs on.",
+    "expected": {
+      "register": 3,
+      "status": 0,
+      "dataLength": 27,
+      "checksumValid": true,
+      "totalVoltage": 58.88,
+      "currentRaw": 0,
+      "current": 0,
+      "remainingCapacity": 7.2,
+      "nominalCapacity": 10,
+      "cycleCount": 0,
+      "productionDateRaw": 8312,
+      "productionDate": "2016-03-24",
+      "balanceBits": 0,
+      "balancingCells": [],
+      "protectionBits": 0,
+      "alarms": [],
+      "softwareVersionRaw": 16,
+      "softwareVersion": "1.0",
+      "soc": 72,
+      "fetStatus": 3,
+      "chargeMos": true,
+      "dischargeMos": true,
+      "heating": false,
+      "cellCount": 15,
+      "ntcCount": 2,
+      "temperatures": [
+        20.3,
+        21.5
+      ],
+      "unit100mA": false
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "vendor-v4-rx-basic-17s-annotated",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "DD03001F19DFF8240DA50FA00002249100000000000012570311040B980BA90B960B97F89A77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/Jiabaida.communication.protocol.pdf (pages 7-8, field by field annotation of a 0x03 reply; bytes joined here, checksum F89A matches)",
+    "description": "Vendor annotated example: 17S, 4 NTC, 66.23 V, -20.12 A (discharging), 34.93 Ah of 40.00 Ah, 2 cycles, SOC 87 %. First temperature raw 0x0B98 = 2968: the vendor text says 24.7 C, but 2968 - 2731 = 237, i.e. 23.7 C.",
+    "expected": {
+      "register": 3,
+      "status": 0,
+      "dataLength": 31,
+      "checksumValid": true,
+      "totalVoltage": 66.23,
+      "currentRaw": -2012,
+      "current": -20.12,
+      "remainingCapacity": 34.93,
+      "nominalCapacity": 40,
+      "cycleCount": 2,
+      "productionDateRaw": 9361,
+      "productionDate": "2018-04-17",
+      "balanceBits": 0,
+      "balancingCells": [],
+      "protectionBits": 0,
+      "alarms": [],
+      "softwareVersionRaw": 18,
+      "softwareVersion": "1.2",
+      "soc": 87,
+      "fetStatus": 3,
+      "chargeMos": true,
+      "dischargeMos": true,
+      "heating": false,
+      "cellCount": 17,
+      "ntcCount": 4,
+      "temperatures": [
+        23.7,
+        25.4,
+        23.5,
+        23.6
+      ],
+      "unit100mA": false
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "vendor-v4-tx-read-cells",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "DDA50400FFFC77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/Jiabaida.communication.protocol.pdf (page 4)",
+    "description": "Read cell voltages 0x04.",
+    "expected": {
+      "operation": "read",
+      "register": 4,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 65532,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "vendor-v4-rx-cells-15s",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "DD04001E0F660F630F630F640F3E0F630F370F5B0F650F3B0F630F630F3C0F660F3DF9F977",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/Jiabaida.communication.protocol.pdf (page 4)",
+    "description": "Vendor example: 15 cell voltages, u16be mV each.",
+    "expected": {
+      "register": 4,
+      "status": 0,
+      "dataLength": 30,
+      "checksumValid": true,
+      "cellCount": 15,
+      "cellVoltages": [
+        3.942,
+        3.939,
+        3.939,
+        3.94,
+        3.902,
+        3.939,
+        3.895,
+        3.931,
+        3.941,
+        3.899,
+        3.939,
+        3.939,
+        3.9,
+        3.942,
+        3.901
+      ]
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "vendor-v4-rx-cells-17s-annotated",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "DD0400220EC80EC80ECB0ECF0ECA0EC70ECA0ECD0EC90ECA0ECB0ECB0EC80ECC0EC80EC90EC9F18777",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/Jiabaida.communication.protocol.pdf (pages 6-7, annotated 0x04 reply; bytes joined here, checksum F187 matches)",
+    "description": "Vendor annotated example: 17 cells, first cell 3.784 V.",
+    "expected": {
+      "register": 4,
+      "status": 0,
+      "dataLength": 34,
+      "checksumValid": true,
+      "cellCount": 17,
+      "cellVoltages": [
+        3.784,
+        3.784,
+        3.787,
+        3.791,
+        3.786,
+        3.783,
+        3.786,
+        3.789,
+        3.785,
+        3.786,
+        3.787,
+        3.787,
+        3.784,
+        3.788,
+        3.784,
+        3.785,
+        3.785
+      ]
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "vendor-v4-tx-read-hwver",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "DDA50500FFFB77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/Jiabaida.communication.protocol.pdf (page 5)",
+    "description": "Read the hardware version (model) string 0x05.",
+    "expected": {
+      "operation": "read",
+      "register": 5,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 65531,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "vendor-v4-rx-hwver",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "DD05000A30313233343536373839FDE977",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/Jiabaida.communication.protocol.pdf (page 5)",
+    "description": "Vendor example: model string \"0123456789\"; the data is plain ASCII without a length prefix.",
+    "expected": {
+      "register": 5,
+      "status": 0,
+      "dataLength": 10,
+      "checksumValid": true,
+      "hardwareVersion": "0123456789"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "vendor-v4-tx-mos-discharge-off",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "DD5AE1020002FF1B77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/Jiabaida.communication.protocol.pdf (page 6, \"DD 5A E1 02 00 02 FF 1B 77\"); also https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/pdus/btsnoop_hci-mosfets-onoff.log (official app; decoded for this document) and docs/pdus/JBD-SP04S034-L4S-200A-B-U_MOS.txt; write_command_test.cpp (FrameDischargingDisabled)",
+    "description": "MOS control 0xE1 value 0x0002: software switches the discharge MOSFET off and releases the charge MOSFET.",
+    "expected": {
+      "operation": "write",
+      "register": 225,
+      "dataLength": 2,
+      "data": "0002",
+      "checksum": 65307,
+      "checksumValid": true,
+      "mos": {
+        "chargeOff": false,
+        "dischargeOff": true
+      }
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "vendor-v11-rx-error-counts-zero",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "DDAA0018000000000000000000000000000000000000000000000000FFE877",
+    "source": "https://github.com/FurTrader/OverkillSolarBMS/blob/adfb7d528f764b3258ad995a7a2217f8af1228e3/Comm_Protocol_Documentation/Translated_to_english_JBD_comm_ptotocol_20230321_V11.pdf (Chinese original JBD_comm_ptotocol_20230321_V11.pdf) (section 3.4)",
+    "description": "Vendor example: protection counters 0xAA, 24 data bytes (11 counters plus the system restart counter), all zero.",
+    "expected": {
+      "register": 170,
+      "status": 0,
+      "dataLength": 24,
+      "checksumValid": true,
+      "errorCounts": {
+        "shortCircuit": 0,
+        "chargeOvercurrent": 0,
+        "dischargeOvercurrent": 0,
+        "cellOvervoltage": 0,
+        "cellUndervoltage": 0,
+        "chargeOvertemperature": 0,
+        "chargeUndertemperature": 0,
+        "dischargeOvertemperature": 0,
+        "dischargeUndertemperature": 0,
+        "packOvervoltage": 0,
+        "packUndervoltage": 0
+      },
+      "restartCount": 0
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "vendor-v11-tx-fa-read-param1-count2",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "DDA5FA03000102FF0077",
+    "source": "https://github.com/FurTrader/OverkillSolarBMS/blob/adfb7d528f764b3258ad995a7a2217f8af1228e3/Comm_Protocol_Documentation/Translated_to_english_JBD_comm_ptotocol_20230321_V11.pdf (Chinese original JBD_comm_ptotocol_20230321_V11.pdf) (section 5.1)",
+    "description": "Parameter block read 0xFA: start parameter 0x0001, 2 parameters.",
+    "expected": {
+      "operation": "read",
+      "register": 250,
+      "dataLength": 3,
+      "data": "000102",
+      "checksum": 65280,
+      "checksumValid": true,
+      "fa": {
+        "paramStart": 1,
+        "paramCount": 2
+      }
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "vendor-v11-rx-fa-param1-count2",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "DDFA00070001020FA01036FF0177",
+    "source": "https://github.com/FurTrader/OverkillSolarBMS/blob/adfb7d528f764b3258ad995a7a2217f8af1228e3/Comm_Protocol_Documentation/Translated_to_english_JBD_comm_ptotocol_20230321_V11.pdf (Chinese original JBD_comm_ptotocol_20230321_V11.pdf) (section 5.1)",
+    "description": "Parameter block reply: start 0x0001, count 2, words 0x0FA0 (cycle capacity 40.00 Ah) and 0x1036 (full voltage 4150 mV).",
+    "expected": {
+      "register": 250,
+      "status": 0,
+      "dataLength": 7,
+      "checksumValid": true,
+      "fa": {
+        "paramStart": 1,
+        "paramCount": 2,
+        "words": [
+          4000,
+          4150
+        ]
+      }
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "vendor-v11-tx-fa-read-manufacturer",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "DDA5FA03003810FEBB77",
+    "source": "https://github.com/FurTrader/OverkillSolarBMS/blob/adfb7d528f764b3258ad995a7a2217f8af1228e3/Comm_Protocol_Documentation/Translated_to_english_JBD_comm_ptotocol_20230321_V11.pdf (Chinese original JBD_comm_ptotocol_20230321_V11.pdf) (section 5.1)",
+    "description": "Parameter block read: start parameter 0x0038 (56, manufacturer), 16 parameters (32 bytes).",
+    "expected": {
+      "operation": "read",
+      "register": 250,
+      "dataLength": 3,
+      "data": "003810",
+      "checksum": 65211,
+      "checksumValid": true,
+      "fa": {
+        "paramStart": 56,
+        "paramCount": 16
+      }
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "vendor-v11-rx-fa-manufacturer",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "DDFA00230038100544474A4244686A6B6C7A786300000000000000000000000000000000000000FB3777",
+    "source": "https://github.com/FurTrader/OverkillSolarBMS/blob/adfb7d528f764b3258ad995a7a2217f8af1228e3/Comm_Protocol_Documentation/Translated_to_english_JBD_comm_ptotocol_20230321_V11.pdf (Chinese original JBD_comm_ptotocol_20230321_V11.pdf) (section 5.1)",
+    "description": "Manufacturer block: first byte 0x05 is the string length, \"DGJBD\"; the bytes after the length (\"hjklzxc\") are left over and must be ignored.",
+    "expected": {
+      "register": 250,
+      "status": 0,
+      "dataLength": 35,
+      "checksumValid": true,
+      "fa": {
+        "paramStart": 56,
+        "paramCount": 16,
+        "words": [
+          1348,
+          18250,
+          16964,
+          26730,
+          27500,
+          31352,
+          25344,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "vendor-v11-tx-fb-charge-off",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "DD5AFB020101FF0177",
+    "source": "https://github.com/FurTrader/OverkillSolarBMS/blob/adfb7d528f764b3258ad995a7a2217f8af1228e3/Comm_Protocol_Documentation/Translated_to_english_JBD_comm_ptotocol_20230321_V11.pdf (Chinese original JBD_comm_ptotocol_20230321_V11.pdf) (section 4)",
+    "description": "MOS control 0xFB (V1+ of the vendor protocol): YY = 0x01 charge MOSFET, XX = 0x01 software off. Not used by any open source implementation.",
+    "expected": {
+      "operation": "write",
+      "register": 251,
+      "dataLength": 2,
+      "data": "0101",
+      "checksum": 65281,
+      "checksumValid": true,
+      "mosV11": {
+        "type": 1,
+        "off": 1
+      }
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "vendor-v11-rx-fb-ack",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "DDFB0000000077",
+    "source": "https://github.com/FurTrader/OverkillSolarBMS/blob/adfb7d528f764b3258ad995a7a2217f8af1228e3/Comm_Protocol_Documentation/Translated_to_english_JBD_comm_ptotocol_20230321_V11.pdf (Chinese original JBD_comm_ptotocol_20230321_V11.pdf) (section 4)",
+    "description": "Acknowledgement of 0xFB: status 0, no data, checksum 0x0000.",
+    "expected": {
+      "register": 251,
+      "status": 0,
+      "dataLength": 0,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "vendor-v11-tx-0a-reset-capacity",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "DD5A0A020100FFF377",
+    "source": "https://github.com/FurTrader/OverkillSolarBMS/blob/adfb7d528f764b3258ad995a7a2217f8af1228e3/Comm_Protocol_Documentation/Translated_to_english_JBD_comm_ptotocol_20230321_V11.pdf (Chinese original JBD_comm_ptotocol_20230321_V11.pdf) (section 6.1); same bytes in https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/tests/components/jbd_bms_ble/write_command_test.cpp (ForceSocResetFrame)",
+    "description": "Control command 0x0A, function code 0x0100: reset capacity (re-estimate the SOC from the voltage table).",
+    "expected": {
+      "operation": "write",
+      "register": 10,
+      "dataLength": 2,
+      "data": "0100",
+      "checksum": 65523,
+      "checksumValid": true,
+      "control": "resetCapacity"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "vendor-v11-rx-0a-ack",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "DD0A0000000077",
+    "source": "https://github.com/FurTrader/OverkillSolarBMS/blob/adfb7d528f764b3258ad995a7a2217f8af1228e3/Comm_Protocol_Documentation/Translated_to_english_JBD_comm_ptotocol_20230321_V11.pdf (Chinese original JBD_comm_ptotocol_20230321_V11.pdf) (section 6.1)",
+    "description": "Acknowledgement of the 0x0A control command.",
+    "expected": {
+      "register": 10,
+      "status": 0,
+      "dataLength": 0,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "vendor-v11-tx-password-pairing",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "DD5A060706070605080208FFC977",
+    "source": "https://github.com/FurTrader/OverkillSolarBMS/blob/adfb7d528f764b3258ad995a7a2217f8af1228e3/Comm_Protocol_Documentation/Translated_to_english_JBD_comm_ptotocol_20230321_V11.pdf (Chinese original JBD_comm_ptotocol_20230321_V11.pdf) (section 8.1)",
+    "description": "Password pairing 0x06 for password 765828 per the V11 document: length byte 6, then the six digits as binary values 0..9 (not ASCII). bms-tools sends ASCII instead; both unverified (section 8.4).",
+    "expected": {
+      "operation": "write",
+      "register": 6,
+      "dataLength": 7,
+      "data": "06070605080208",
+      "checksum": 65481,
+      "checksumValid": true,
+      "password": {
+        "length": 6,
+        "text": "\u0007\u0006\u0005\b\u0002\b"
+      }
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "vendor-v11-tx-password-change",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "DD5A070D0C070605080208010203040506FFA777",
+    "source": "https://github.com/FurTrader/OverkillSolarBMS/blob/adfb7d528f764b3258ad995a7a2217f8af1228e3/Comm_Protocol_Documentation/Translated_to_english_JBD_comm_ptotocol_20230321_V11.pdf (Chinese original JBD_comm_ptotocol_20230321_V11.pdf) (section 8.1, change password)",
+    "description": "Password change 0x07 from 765828 to 123456: length byte 12, old digits, new digits.",
+    "expected": {
+      "operation": "write",
+      "register": 7,
+      "dataLength": 13,
+      "data": "0C070605080208010203040506",
+      "checksum": 65447,
+      "checksumValid": true,
+      "passwordChange": {
+        "length": 12,
+        "old": "\u0007\u0006\u0005\b\u0002\b",
+        "new": "\u0001\u0002\u0003\u0004\u0005\u0006"
+      }
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "vendor-v11-tx-read-internal-resistance",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "DDA5F600FF0A77",
+    "source": "https://github.com/FurTrader/OverkillSolarBMS/blob/adfb7d528f764b3258ad995a7a2217f8af1228e3/Comm_Protocol_Documentation/Translated_to_english_JBD_comm_ptotocol_20230321_V11.pdf (Chinese original JBD_comm_ptotocol_20230321_V11.pdf) (section 7, marked \"not added yet\")",
+    "description": "Read cell internal resistance 0xF6. The vendor marks the command as not implemented; no reply is documented reliably.",
+    "expected": {
+      "operation": "read",
+      "register": 246,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 65290,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-uart-rx-basic",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "DD03001D0618000001F201F400002C7C00000000000080640304030B8B0B8A0B84FA8D77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/pdus/JBD-SP04S034-L4S-200A-B-U.txt (line 1); decoded values in https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/tests/components/jbd_bms/frames.h (BASICINFO_FRAME)",
+    "description": "JBD-SP04S034-L4S-200A-B-U, software 0x80, 4S, 3 NTC, 15.60 V, 0 A, 4.98 Ah of 5.00 Ah, produced 2022-03-28.",
+    "expected": {
+      "register": 3,
+      "status": 0,
+      "dataLength": 29,
+      "checksumValid": true,
+      "totalVoltage": 15.6,
+      "currentRaw": 0,
+      "current": 0,
+      "remainingCapacity": 4.98,
+      "nominalCapacity": 5,
+      "cycleCount": 0,
+      "productionDateRaw": 11388,
+      "productionDate": "2022-03-28",
+      "balanceBits": 0,
+      "balancingCells": [],
+      "protectionBits": 0,
+      "alarms": [],
+      "softwareVersionRaw": 128,
+      "softwareVersion": "8.0",
+      "soc": 100,
+      "fetStatus": 3,
+      "chargeMos": true,
+      "dischargeMos": true,
+      "heating": false,
+      "cellCount": 4,
+      "ntcCount": 3,
+      "temperatures": [
+        22.4,
+        22.3,
+        21.7
+      ],
+      "unit100mA": false
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-uart-rx-cells",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "DD0400080F450F3D0F370F3DFEC677",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/pdus/JBD-SP04S034-L4S-200A-B-U.txt (line 3); https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/tests/components/jbd_bms_ble/frames.h (CELLINFO_RAW_FRAME)",
+    "description": "4 cell voltages of the same BMS.",
+    "expected": {
+      "register": 4,
+      "status": 0,
+      "dataLength": 8,
+      "checksumValid": true,
+      "cellCount": 4,
+      "cellVoltages": [
+        3.909,
+        3.901,
+        3.895,
+        3.901
+      ]
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-uart-rx-hwver",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "DD0500194A42442D53503034533033342D4C34532D323030412D422D55FA0877",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/pdus/JBD-SP04S034-L4S-200A-B-U.txt (line 5)",
+    "description": "Model string \"JBD-SP04S034-L4S-200A-B-U\" (25 ASCII bytes, no length prefix).",
+    "expected": {
+      "register": 5,
+      "status": 0,
+      "dataLength": 25,
+      "checksumValid": true,
+      "hardwareVersion": "JBD-SP04S034-L4S-200A-B-U"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-uart-tx-error-counts",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "DDA5AA00FF5677",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/pdus/JBD-SP04S034-L4S-200A-B-U.txt (line 6)",
+    "description": "Read protection counters 0xAA.",
+    "expected": {
+      "operation": "read",
+      "register": 170,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 65366,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-uart-rx-error-counts",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "DDAA0018000000000000007A00020000000000000000000000000001FF6B77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/pdus/JBD-SP04S034-L4S-200A-B-U.txt (line 6); https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/tests/components/jbd_bms/frames.h (ERRCOUNT_FRAME)",
+    "description": "24 data bytes: cell overvoltage 122, cell undervoltage 2, last word (system restarts per vendor V11) 1.",
+    "expected": {
+      "register": 170,
+      "status": 0,
+      "dataLength": 24,
+      "checksumValid": true,
+      "errorCounts": {
+        "shortCircuit": 0,
+        "chargeOvercurrent": 0,
+        "dischargeOvercurrent": 0,
+        "cellOvervoltage": 122,
+        "cellUndervoltage": 2,
+        "chargeOvertemperature": 0,
+        "chargeUndertemperature": 0,
+        "dischargeOvertemperature": 0,
+        "dischargeUndertemperature": 0,
+        "packOvervoltage": 0,
+        "packUndervoltage": 0
+      },
+      "restartCount": 1
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "readme-uart-rx-basic-mos-lock",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "DD03001D060B000001ED01F400002C7C00000000100080630204030BA00B9D0B98FA5577",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/README.md (\"Example response all sensors enabled\"); https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/tests/components/jbd_bms/frames.h (BASICINFO_FRAME_MOSFET_SOFTWARE_LOCK)",
+    "description": "Protection bit 12 (MOSFET software lock) set, only the discharge MOSFET on (FET status 0x02).",
+    "expected": {
+      "register": 3,
+      "status": 0,
+      "dataLength": 29,
+      "checksumValid": true,
+      "totalVoltage": 15.47,
+      "currentRaw": 0,
+      "current": 0,
+      "remainingCapacity": 4.93,
+      "nominalCapacity": 5,
+      "cycleCount": 0,
+      "productionDateRaw": 11388,
+      "productionDate": "2022-03-28",
+      "balanceBits": 0,
+      "balancingCells": [],
+      "protectionBits": 4096,
+      "alarms": [
+        "jbd.mos_software_lock"
+      ],
+      "softwareVersionRaw": 128,
+      "softwareVersion": "8.0",
+      "soc": 99,
+      "fetStatus": 2,
+      "chargeMos": false,
+      "dischargeMos": true,
+      "heating": false,
+      "cellCount": 4,
+      "ntcCount": 3,
+      "temperatures": [
+        24.5,
+        24.2,
+        23.7
+      ],
+      "unit100mA": false
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "readme-uart-rx-cells",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "DD0400080F230F1C0F120F1DFF4E77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/README.md (\"Example response all sensors enabled\")",
+    "description": "4 cells, 3.875 / 3.868 / 3.858 / 3.869 V.",
+    "expected": {
+      "register": 4,
+      "status": 0,
+      "dataLength": 8,
+      "checksumValid": true,
+      "cellCount": 4,
+      "cellVoltages": [
+        3.875,
+        3.868,
+        3.858,
+        3.869
+      ]
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp25s003-uart-rx-basic-bench",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "DD030017000000000000271000002C500000000000002000011000FF0577",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/pdus/JBD-SP25S003-L16S-100A-100A-B.txt",
+    "description": "Overkill JBD-SP25S003-L16S-100A-100A-B on a bench supply: 23 data bytes, NTC count 0, total voltage and SOC 0, only the charge MOSFET on.",
+    "expected": {
+      "register": 3,
+      "status": 0,
+      "dataLength": 23,
+      "checksumValid": true,
+      "totalVoltage": 0,
+      "currentRaw": 0,
+      "current": 0,
+      "remainingCapacity": 0,
+      "nominalCapacity": 100,
+      "cycleCount": 0,
+      "productionDateRaw": 11344,
+      "productionDate": "2022-02-16",
+      "balanceBits": 0,
+      "balancingCells": [],
+      "protectionBits": 0,
+      "alarms": [],
+      "softwareVersionRaw": 32,
+      "softwareVersion": "2.0",
+      "soc": 0,
+      "fetStatus": 1,
+      "chargeMos": true,
+      "dischargeMos": false,
+      "heating": false,
+      "cellCount": 16,
+      "ntcCount": 0,
+      "temperatures": [],
+      "unit100mA": false
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp25s003-uart-rx-cells-bench",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "DD0400200E100E100E100E100E100E100E100E100E100E100E100E100E100E100E100000FE1E77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/pdus/JBD-SP25S003-L16S-100A-100A-B.txt",
+    "description": "16 cell slots from a cell simulator: 15 x 3.600 V and cell 16 = 0 V (a zero cell is real data, not a parse error).",
+    "expected": {
+      "register": 4,
+      "status": 0,
+      "dataLength": 32,
+      "checksumValid": true,
+      "cellCount": 16,
+      "cellVoltages": [
+        3.6,
+        3.6,
+        3.6,
+        3.6,
+        3.6,
+        3.6,
+        3.6,
+        3.6,
+        3.6,
+        3.6,
+        3.6,
+        3.6,
+        3.6,
+        3.6,
+        3.6,
+        0
+      ]
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "jbdtool-uart-rx-basic",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "DD03001D0618000001F201F400002C7C00000000000080640304030B8C0B8A0B84FA8C77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/debug.txt (jbdtool -d 5 log)",
+    "description": "Same BMS read with jbdtool over a USB serial adapter at 9600 8N1.",
+    "expected": {
+      "register": 3,
+      "status": 0,
+      "dataLength": 29,
+      "checksumValid": true,
+      "totalVoltage": 15.6,
+      "currentRaw": 0,
+      "current": 0,
+      "remainingCapacity": 4.98,
+      "nominalCapacity": 5,
+      "cycleCount": 0,
+      "productionDateRaw": 11388,
+      "productionDate": "2022-03-28",
+      "balanceBits": 0,
+      "balancingCells": [],
+      "protectionBits": 0,
+      "alarms": [],
+      "softwareVersionRaw": 128,
+      "softwareVersion": "8.0",
+      "soc": 100,
+      "fetStatus": 3,
+      "chargeMos": true,
+      "dischargeMos": true,
+      "heating": false,
+      "cellCount": 4,
+      "ntcCount": 3,
+      "temperatures": [
+        22.5,
+        22.3,
+        21.7
+      ],
+      "unit100mA": false
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "jbdtool-uart-stream-cells-leading-noise",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "0000DD0400080F460F3E0F370F3DFEC477",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/debug.txt (jbdtool verify(17) of the 0x04 read)",
+    "description": "Raw serial read: two stray bytes before a valid 0x04 frame. The assembler must skip bytes until 0xDD.",
+    "expected": {
+      "discardedBytes": 2,
+      "frames": [
+        "DD0400080F460F3E0F370F3DFEC477"
+      ],
+      "checksumValid": true,
+      "frame": {
+        "register": 4,
+        "status": 0,
+        "dataLength": 8,
+        "checksumValid": true,
+        "cellCount": 4,
+        "cellVoltages": [
+          3.91,
+          3.902,
+          3.895,
+          3.901
+        ]
+      }
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "jbdtool-tx-reset-e3",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "DD5AE3024321FEB777",
+    "source": "https://github.com/sshoecraft/jbdtool/blob/d8096223bf5e3e3816fa1294ee9a1c4d240f1228/jbd_info.c (jbd_reset, captured TCP log in the comment)",
+    "description": "Reset attempt: write 0x4321 to register 0xE3. Captured on a board that refused it (next vector). Unverified.",
+    "expected": {
+      "operation": "write",
+      "register": 227,
+      "dataLength": 2,
+      "data": "4321",
+      "checksum": 65207,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "jbdtool-rx-reset-e3-refused",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "DDE38000FF8077",
+    "source": "https://github.com/sshoecraft/jbdtool/blob/d8096223bf5e3e3816fa1294ee9a1c4d240f1228/jbd_info.c (jbd_reset comment)",
+    "description": "Error reply: status 0x80 (command not supported), checksum 0x10000 - 0x80 = 0xFF80. Shows that byte 1 (register) is not part of the checksum.",
+    "expected": {
+      "register": 227,
+      "status": 128,
+      "dataLength": 0,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "jbdtool-tx-reset-0a-1881",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "DD5A0A021881FF5B77",
+    "source": "https://github.com/sshoecraft/jbdtool/blob/d8096223bf5e3e3816fa1294ee9a1c4d240f1228/jbd_info.c (jbd_reset comment)",
+    "description": "Second reset attempt of jbdtool: 0x1881 to register 0x0A. Refused on the captured board. Unverified.",
+    "expected": {
+      "operation": "write",
+      "register": 10,
+      "dataLength": 2,
+      "data": "1881",
+      "checksum": 65371,
+      "checksumValid": true,
+      "control": "0x1881"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "jbdtool-rx-reset-0a-refused",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "DD0A8000FF8077",
+    "source": "https://github.com/sshoecraft/jbdtool/blob/d8096223bf5e3e3816fa1294ee9a1c4d240f1228/jbd_info.c (jbd_reset comment)",
+    "description": "Error reply status 0x80 to the 0x0A write.",
+    "expected": {
+      "register": 10,
+      "status": 128,
+      "dataLength": 0,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "btmodule-uart-tx-enter-factory",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "DD5A00025678FF3077",
+    "source": "https://github.com/ieb/N2KNMEA0183Wifi/blob/9d952a89b7ec2a69bc54c86169401b8ff9ad174f/lib/jdbbms/SnoopOnBTAdapter.md (\"Requests at turn on of the BT adapter\"); same bytes in https://github.com/ril3y/jbd_bms/blob/190104e6d95d23c3e78c227d1dcd4a1f0ca53aa2/test/protocol_test.dart and the BLE snoops of https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/pdus/btsnoop_hci-balancer-onoff.log",
+    "description": "Enter factory mode: write 0x5678 to register 0x00.",
+    "expected": {
+      "operation": "write",
+      "register": 0,
+      "dataLength": 2,
+      "data": "5678",
+      "checksum": 65328,
+      "checksumValid": true,
+      "factory": "enter"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "btmodule-uart-rx-enter-factory-ack",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "DD000000000077",
+    "source": "https://github.com/ieb/N2KNMEA0183Wifi/blob/9d952a89b7ec2a69bc54c86169401b8ff9ad174f/lib/jdbbms/SnoopOnBTAdapter.md; also https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/pdus/btsnoop_hci-balancer-onoff.log (own decode of the btsnoop file)",
+    "description": "Factory mode acknowledgement (status 0, length 0, checksum 0x0000).",
+    "expected": {
+      "register": 0,
+      "status": 0,
+      "dataLength": 0,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "btmodule-uart-tx-read-barcode",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "DDA5A200FF5E77",
+    "source": "https://github.com/ieb/N2KNMEA0183Wifi/blob/9d952a89b7ec2a69bc54c86169401b8ff9ad174f/lib/jdbbms/SnoopOnBTAdapter.md; also https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (official app inside factory mode; own decode of the btsnoop file)",
+    "description": "Read the barcode string register 0xA2 (the Bluetooth module does this at power up, inside factory mode).",
+    "expected": {
+      "operation": "read",
+      "register": 162,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 65374,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "btmodule-uart-rx-barcode-empty",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "DDA2000100FFFF77",
+    "source": "https://github.com/ieb/N2KNMEA0183Wifi/blob/9d952a89b7ec2a69bc54c86169401b8ff9ad174f/lib/jdbbms/SnoopOnBTAdapter.md; also https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (own decode of the btsnoop file)",
+    "description": "Barcode reply: one data byte, the string length 0 (empty string).",
+    "expected": {
+      "register": 162,
+      "status": 0,
+      "dataLength": 1,
+      "checksumValid": true,
+      "setting": "jbd.barcode",
+      "textLength": 0,
+      "text": ""
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "btmodule-uart-tx-exit-factory-discard",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "DD5A01020000FFFD77",
+    "source": "https://github.com/ieb/N2KNMEA0183Wifi/blob/9d952a89b7ec2a69bc54c86169401b8ff9ad174f/lib/jdbbms/SnoopOnBTAdapter.md; https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/pdus/JBD-SP04S034-L4S-200A-B-U_MOS.txt; also https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/pdus/btsnoop_hci-balancer-onoff.log (own decode of the btsnoop file)",
+    "description": "Exit factory mode with 0x0000 (leave without saving to EEPROM per bms-tools; the official app also sends it after MOSFET and balancer writes).",
+    "expected": {
+      "operation": "write",
+      "register": 1,
+      "dataLength": 2,
+      "data": "0000",
+      "checksum": 65533,
+      "checksumValid": true,
+      "factory": "exit"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "btmodule-uart-rx-exit-factory-ack",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "DD010000000077",
+    "source": "https://github.com/ieb/N2KNMEA0183Wifi/blob/9d952a89b7ec2a69bc54c86169401b8ff9ad174f/lib/jdbbms/SnoopOnBTAdapter.md; also https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/pdus/btsnoop_hci-balancer-onoff.log (own decode of the btsnoop file)",
+    "description": "Exit factory mode acknowledgement.",
+    "expected": {
+      "register": 1,
+      "status": 0,
+      "dataLength": 0,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s060-uart-rx-hwver",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "DD0500154A42442D53503034533036302D333030412D4C3453FAFD77",
+    "source": "https://github.com/ieb/N2KNMEA0183Wifi/blob/9d952a89b7ec2a69bc54c86169401b8ff9ad174f/lib/jdbbms/SnoopOnBTAdapter.md",
+    "description": "Model string \"JBD-SP04S060-300A-L4S\".",
+    "expected": {
+      "register": 5,
+      "status": 0,
+      "dataLength": 21,
+      "checksumValid": true,
+      "hardwareVersion": "JBD-SP04S060-300A-L4S"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s060-uart-rx-cells",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "DD0400080D030D060D060D05FFB077",
+    "source": "https://github.com/ieb/N2KNMEA0183Wifi/blob/9d952a89b7ec2a69bc54c86169401b8ff9ad174f/lib/jdbbms/SnoopOnBTAdapter.md",
+    "description": "4 cells around 3.334 V.",
+    "expected": {
+      "register": 4,
+      "status": 0,
+      "dataLength": 8,
+      "checksumValid": true,
+      "cellCount": 4,
+      "cellVoltages": [
+        3.331,
+        3.334,
+        3.334,
+        3.333
+      ]
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s060-uart-rx-basic-extended",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "DD03002605350000746576C000042EA800000000000025620304030B5F0B4D0B4F00000076C074650000F8FB77",
+    "source": "https://github.com/ieb/N2KNMEA0183Wifi/blob/9d952a89b7ec2a69bc54c86169401b8ff9ad174f/lib/jdbbms/SnoopOnBTAdapter.md",
+    "description": "38 data bytes: 23 + 3 NTC x 2 + 9 byte tail (humidity 0, alarm 0, full charge capacity 304.00 Ah, remaining 297.97 Ah, balance current 0).",
+    "expected": {
+      "register": 3,
+      "status": 0,
+      "dataLength": 38,
+      "checksumValid": true,
+      "totalVoltage": 13.33,
+      "currentRaw": 0,
+      "current": 0,
+      "remainingCapacity": 297.97,
+      "nominalCapacity": 304,
+      "cycleCount": 4,
+      "productionDateRaw": 11944,
+      "productionDate": "2023-05-08",
+      "balanceBits": 0,
+      "balancingCells": [],
+      "protectionBits": 0,
+      "alarms": [],
+      "softwareVersionRaw": 37,
+      "softwareVersion": "2.5",
+      "soc": 98,
+      "fetStatus": 3,
+      "chargeMos": true,
+      "dischargeMos": true,
+      "heating": false,
+      "cellCount": 4,
+      "ntcCount": 3,
+      "temperatures": [
+        18,
+        16.2,
+        16.4
+      ],
+      "unit100mA": false,
+      "extension": {
+        "byte0": 0,
+        "alarmBits": 0,
+        "fullChargeCapacity": 304,
+        "remainingCapacity": 297.97,
+        "balanceCurrentRaw": 0
+      }
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "btmodule-uart-tx-password-zero",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "DD5A060706000000000000FFED77",
+    "source": "https://github.com/ieb/N2KNMEA0183Wifi/blob/9d952a89b7ec2a69bc54c86169401b8ff9ad174f/lib/jdbbms/SnoopOnBTAdapter.md; also in the BLE snoops https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log; also https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/pdus/btsnoop_hci-mosfets-onoff.log (own decode of the btsnoop file)",
+    "description": "Password register 0x06 with length 6 and six zero digits, sent by the official app after the first 0x03 reply.",
+    "expected": {
+      "operation": "write",
+      "register": 6,
+      "dataLength": 7,
+      "data": "06000000000000",
+      "checksum": 65517,
+      "checksumValid": true,
+      "password": {
+        "length": 6,
+        "text": "\u0000\u0000\u0000\u0000\u0000\u0000"
+      }
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "btmodule-uart-rx-password-ack",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "DD060000000077",
+    "source": "https://github.com/ieb/N2KNMEA0183Wifi/blob/9d952a89b7ec2a69bc54c86169401b8ff9ad174f/lib/jdbbms/SnoopOnBTAdapter.md; also https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/pdus/btsnoop_hci-mosfets-onoff.log (own decode of the btsnoop file)",
+    "description": "Password accepted.",
+    "expected": {
+      "register": 6,
+      "status": 0,
+      "dataLength": 0,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-rx-basic-fragmented",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD03001D055A00006D5E6D6000002C7C00000000000080640304030B6E0B6E0B6AFAEF77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (official app, decoded with a btsnoop parser for this document)",
+    "description": "4S 280 Ah pack, 13.70 V. Arrived as two notifications (20 + 16 bytes) on FF01 at ATT MTU 23.",
+    "expected": {
+      "register": 3,
+      "status": 0,
+      "dataLength": 29,
+      "checksumValid": true,
+      "totalVoltage": 13.7,
+      "currentRaw": 0,
+      "current": 0,
+      "remainingCapacity": 279.98,
+      "nominalCapacity": 280,
+      "cycleCount": 0,
+      "productionDateRaw": 11388,
+      "productionDate": "2022-03-28",
+      "balanceBits": 0,
+      "balancingCells": [],
+      "protectionBits": 0,
+      "alarms": [],
+      "softwareVersionRaw": 128,
+      "softwareVersion": "8.0",
+      "soc": 100,
+      "fetStatus": 3,
+      "chargeMos": true,
+      "dischargeMos": true,
+      "heating": false,
+      "cellCount": 4,
+      "ntcCount": 3,
+      "temperatures": [
+        19.5,
+        19.5,
+        19.1
+      ],
+      "unit100mA": false,
+      "notifications": [
+        "DD03001D055A00006D5E6D6000002C7C00000000",
+        "000080640304030B6E0B6E0B6AFAEF77"
+      ]
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-rx-cells",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD0400080D660D610D680D59FE3C77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (official app, decoded with a btsnoop parser for this document)",
+    "description": "4 cells 3.430 / 3.425 / 3.432 / 3.417 V (also used by aiobmsble tests).",
+    "expected": {
+      "register": 4,
+      "status": 0,
+      "dataLength": 8,
+      "checksumValid": true,
+      "cellCount": 4,
+      "cellVoltages": [
+        3.43,
+        3.425,
+        3.432,
+        3.417
+      ]
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-rx-error-counts",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DDAA0018000000000000000000010000000000000000000000000001FFE677",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (official app, decoded with a btsnoop parser for this document)",
+    "description": "Protection counters: cell undervoltage 1, restart counter 1.",
+    "expected": {
+      "register": 170,
+      "status": 0,
+      "dataLength": 24,
+      "checksumValid": true,
+      "errorCounts": {
+        "shortCircuit": 0,
+        "chargeOvercurrent": 0,
+        "dischargeOvercurrent": 0,
+        "cellOvervoltage": 0,
+        "cellUndervoltage": 1,
+        "chargeOvertemperature": 0,
+        "chargeUndertemperature": 0,
+        "dischargeOvertemperature": 0,
+        "dischargeUndertemperature": 0,
+        "packOvervoltage": 0,
+        "packUndervoltage": 0
+      },
+      "restartCount": 1,
+      "notifications": [
+        "DDAA001800000000000000000001000000000000",
+        "0000000000000001FFE677"
+      ]
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "app-ble-tx-mos-charge-off",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "DD5AE1020001FF1C77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/pdus/btsnoop_hci-mosfets-onoff.log (official app; decoded for this document) and docs/pdus/JBD-SP04S034-L4S-200A-B-U_MOS.txt; https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/tests/components/jbd_bms_ble/write_command_test.cpp (FrameChargingDisabled)",
+    "description": "MOS control 0xE1 = 0x0001: charge MOSFET off, discharge MOSFET released. Sent without entering factory mode, followed by 01 0000.",
+    "expected": {
+      "operation": "write",
+      "register": 225,
+      "dataLength": 2,
+      "data": "0001",
+      "checksum": 65308,
+      "checksumValid": true,
+      "mos": {
+        "chargeOff": true,
+        "dischargeOff": false
+      }
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "app-ble-tx-mos-both-on",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "DD5AE1020000FF1D77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/pdus/btsnoop_hci-mosfets-onoff.log (official app; decoded for this document) and docs/pdus/JBD-SP04S034-L4S-200A-B-U_MOS.txt; write_command_test.cpp (FrameBothEnabled)",
+    "description": "MOS control 0xE1 = 0x0000: release both software switches.",
+    "expected": {
+      "operation": "write",
+      "register": 225,
+      "dataLength": 2,
+      "data": "0000",
+      "checksum": 65309,
+      "checksumValid": true,
+      "mos": {
+        "chargeOff": false,
+        "dischargeOff": false
+      }
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "syssi-tx-mos-both-off",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "DD5AE1020003FF1A77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/tests/components/jbd_bms_ble/write_command_test.cpp (FrameBothDisabled); value 0x03 in https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/Jiabaida.communication.protocol.pdf",
+    "description": "MOS control 0xE1 = 0x0003: both MOSFETs off. Not in a capture; bytes from the syssi test.",
+    "expected": {
+      "operation": "write",
+      "register": 225,
+      "dataLength": 2,
+      "data": "0003",
+      "checksum": 65306,
+      "checksumValid": true,
+      "mos": {
+        "chargeOff": true,
+        "dischargeOff": true
+      }
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "app-ble-rx-mos-ack",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DDE10000000077",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/pdus/btsnoop_hci-mosfets-onoff.log (official app; decoded for this document) and docs/pdus/JBD-SP04S034-L4S-200A-B-U_MOS.txt",
+    "description": "Acknowledgement of 0xE1.",
+    "expected": {
+      "register": 225,
+      "status": 0,
+      "dataLength": 0,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "app-ble-rx-basic-charge-locked",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD03001D0533000068C96D6000002C7C00000000100080600204030B6D0B6D0B69FAA877",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/pdus/btsnoop_hci-mosfets-onoff.log (official app; decoded for this document) and docs/pdus/JBD-SP04S034-L4S-200A-B-U_MOS.txt",
+    "description": "After E1 = 0x0001: protection bit 12 (software lock) set, FET status 0x02 (only discharge on).",
+    "expected": {
+      "register": 3,
+      "status": 0,
+      "dataLength": 29,
+      "checksumValid": true,
+      "totalVoltage": 13.31,
+      "currentRaw": 0,
+      "current": 0,
+      "remainingCapacity": 268.25,
+      "nominalCapacity": 280,
+      "cycleCount": 0,
+      "productionDateRaw": 11388,
+      "productionDate": "2022-03-28",
+      "balanceBits": 0,
+      "balancingCells": [],
+      "protectionBits": 4096,
+      "alarms": [
+        "jbd.mos_software_lock"
+      ],
+      "softwareVersionRaw": 128,
+      "softwareVersion": "8.0",
+      "soc": 96,
+      "fetStatus": 2,
+      "chargeMos": false,
+      "dischargeMos": true,
+      "heating": false,
+      "cellCount": 4,
+      "ntcCount": 3,
+      "temperatures": [
+        19.4,
+        19.4,
+        19
+      ],
+      "unit100mA": false,
+      "notifications": [
+        "DD03001D0533000068C96D6000002C7C00000000",
+        "100080600204030B6D0B6D0B69FAA877"
+      ]
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "app-ble-rx-basic-discharge-locked",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD03001D0534000068C96D6000002C7C00000000100080600104030B6D0B6D0B69FAA877",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/pdus/btsnoop_hci-mosfets-onoff.log (official app; decoded for this document) and docs/pdus/JBD-SP04S034-L4S-200A-B-U_MOS.txt",
+    "description": "After E1 = 0x0002: protection bit 12 set, FET status 0x01 (only charge on).",
+    "expected": {
+      "register": 3,
+      "status": 0,
+      "dataLength": 29,
+      "checksumValid": true,
+      "totalVoltage": 13.32,
+      "currentRaw": 0,
+      "current": 0,
+      "remainingCapacity": 268.25,
+      "nominalCapacity": 280,
+      "cycleCount": 0,
+      "productionDateRaw": 11388,
+      "productionDate": "2022-03-28",
+      "balanceBits": 0,
+      "balancingCells": [],
+      "protectionBits": 4096,
+      "alarms": [
+        "jbd.mos_software_lock"
+      ],
+      "softwareVersionRaw": 128,
+      "softwareVersion": "8.0",
+      "soc": 96,
+      "fetStatus": 1,
+      "chargeMos": true,
+      "dischargeMos": false,
+      "heating": false,
+      "cellCount": 4,
+      "ntcCount": 3,
+      "temperatures": [
+        19.4,
+        19.4,
+        19
+      ],
+      "unit100mA": false
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "app-ble-tx-read-func-config",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "DDA52D00FFD377",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/pdus/btsnoop_hci-balancer-onoff.log (official app; decoded for this document)",
+    "description": "Read function configuration 0x2D inside factory mode.",
+    "expected": {
+      "operation": "read",
+      "register": 45,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 65491,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "app-ble-rx-func-config",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD2D00020006FFF877",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/pdus/btsnoop_hci-balancer-onoff.log (official app; decoded for this document)",
+    "description": "Function configuration 0x0006: bit 1 and bit 2 (balancer enabled).",
+    "expected": {
+      "register": 45,
+      "status": 0,
+      "dataLength": 2,
+      "checksumValid": true,
+      "setting": "jbd.function_config",
+      "raw": 6,
+      "bits": {
+        "switchInput": false,
+        "loadDetect": true,
+        "balanceEnable": true,
+        "balanceChargeOnly": false,
+        "ledEnable": false,
+        "ledCapacity": false,
+        "bit6": false,
+        "bit7": false,
+        "bit8": false,
+        "bit9": false,
+        "bit10": false,
+        "bit11": false,
+        "unit100mA": false
+      }
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "app-ble-tx-read-ntc-config",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "DDA52E00FFD277",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/pdus/btsnoop_hci-balancer-onoff.log (official app; decoded for this document)",
+    "description": "Read NTC configuration 0x2E.",
+    "expected": {
+      "operation": "read",
+      "register": 46,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 65490,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "app-ble-rx-ntc-config",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD2E00020007FFF777",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/pdus/btsnoop_hci-balancer-onoff.log (official app; decoded for this document)",
+    "description": "NTC configuration 0x0007: NTC 1..3 enabled.",
+    "expected": {
+      "register": 46,
+      "status": 0,
+      "dataLength": 2,
+      "checksumValid": true,
+      "setting": "jbd.ntc_config",
+      "raw": 7,
+      "enabledSensors": [
+        0,
+        1,
+        2
+      ]
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "app-ble-tx-balancer-off",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "DD5A2D020002FFCF77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/pdus/btsnoop_hci-balancer-onoff.log (official app; decoded for this document)",
+    "description": "Balancer off: write 0x0002 (bit 2 cleared) to 0x2D. Sequence: 00 5678, this write, 01 0000.",
+    "expected": {
+      "operation": "write",
+      "register": 45,
+      "dataLength": 2,
+      "data": "0002",
+      "checksum": 65487,
+      "checksumValid": true,
+      "setting": "jbd.function_config",
+      "raw": 2,
+      "bits": {
+        "switchInput": false,
+        "loadDetect": true,
+        "balanceEnable": false,
+        "balanceChargeOnly": false,
+        "ledEnable": false,
+        "ledCapacity": false,
+        "bit6": false,
+        "bit7": false,
+        "bit8": false,
+        "bit9": false,
+        "bit10": false,
+        "bit11": false,
+        "unit100mA": false
+      }
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "app-ble-tx-balancer-on",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "DD5A2D020006FFCB77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/pdus/btsnoop_hci-balancer-onoff.log (official app; decoded for this document)",
+    "description": "Balancer on: write 0x0006 (bit 2 set) to 0x2D.",
+    "expected": {
+      "operation": "write",
+      "register": 45,
+      "dataLength": 2,
+      "data": "0006",
+      "checksum": 65483,
+      "checksumValid": true,
+      "setting": "jbd.function_config",
+      "raw": 6,
+      "bits": {
+        "switchInput": false,
+        "loadDetect": true,
+        "balanceEnable": true,
+        "balanceChargeOnly": false,
+        "ledEnable": false,
+        "ledCapacity": false,
+        "bit6": false,
+        "bit7": false,
+        "bit8": false,
+        "bit9": false,
+        "bit10": false,
+        "bit11": false,
+        "unit100mA": false
+      }
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "app-ble-rx-write-ack-2d",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD2D0000000077",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/pdus/btsnoop_hci-balancer-onoff.log (official app; decoded for this document)",
+    "description": "Write acknowledgement for register 0x2D.",
+    "expected": {
+      "register": 45,
+      "status": 0,
+      "dataLength": 0,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "auth-ble-tx-app-key",
+    "variant": "JBD_AUTH",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "FFAA15063030303030303B",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/ffaa-auth-flow/JBD-SP04S034L4S200A-V1.3-btsnoop_hci.log (official app; decoded for this document); https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/components/jbd_bms_ble/jbd_bms_ble.cpp (send_app_key_); also computed from the frame rules (section 3 of docs/protocols/jbd.md); https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/components/jbd_bms_ble/jbd_bms_ble.cpp (send_app_key_, password probe after 3 unanswered requests)",
+    "description": "App key 0x15 with the fixed ASCII \"000000\"; 8 bit sum checksum over command, length and data.",
+    "expected": {
+      "command": 21,
+      "dataLength": 6,
+      "data": "303030303030",
+      "checksum": 59,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "auth-ble-rx-app-key-password-required",
+    "variant": "JBD_AUTH",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "FFAA15010016",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/ffaa-auth-flow/JBD-SP04S034L4S200A-V1.3-btsnoop_hci.log (official app; decoded for this document)",
+    "description": "App key reply 0x00: accepted, password required (0x01 rejected, 0x02 no password set, per jbd_bms_ble.cpp handle_auth_response_).",
+    "expected": {
+      "command": 21,
+      "dataLength": 1,
+      "data": "00",
+      "checksum": 22,
+      "checksumValid": true,
+      "result": 0
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "auth-ble-tx-get-random",
+    "variant": "JBD_AUTH",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "FFAA170017",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/ffaa-auth-flow/JBD-SP04S034L4S200A-V1.3-btsnoop_hci.log (official app; decoded for this document)",
+    "description": "Request the random byte 0x17.",
+    "expected": {
+      "command": 23,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 23,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "auth-ble-rx-random-24",
+    "variant": "JBD_AUTH",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "FFAA1701243C",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/ffaa-auth-flow/JBD-SP04S034L4S200A-V1.3-btsnoop_hci.log (official app; decoded for this document)",
+    "description": "Random byte 0x24.",
+    "expected": {
+      "command": 23,
+      "dataLength": 1,
+      "data": "24",
+      "checksum": 60,
+      "checksumValid": true,
+      "result": 36
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "auth-ble-tx-password-v13",
+    "variant": "JBD_AUTH",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "FFAA180645BB752A642445",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/ffaa-auth-flow/JBD-SP04S034L4S200A-V1.3-btsnoop_hci.log (official app; decoded for this document)",
+    "description": "Encrypted user password 0x18: byte i = ((MAC[i] XOR password[i]) + random) AND 0xFF. MAC and password of this capture are not published.",
+    "expected": {
+      "command": 24,
+      "dataLength": 6,
+      "data": "45BB752A6424",
+      "checksum": 69,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "auth-ble-rx-password-accepted",
+    "variant": "JBD_AUTH",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "FFAA18010019",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/ffaa-auth-flow/JBD-SP04S034L4S200A-V1.3-btsnoop_hci.log (official app; decoded for this document)",
+    "description": "Password reply 0x00: accepted.",
+    "expected": {
+      "command": 24,
+      "dataLength": 1,
+      "data": "00",
+      "checksum": 25,
+      "checksumValid": true,
+      "result": 0
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "auth-ble-tx-root-v13",
+    "variant": "JBD_AUTH",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "FFAA1D0F23B0EF19CA0F402DEA09ECFBF9FBFC17",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/ffaa-auth-flow/JBD-SP04S034L4S200A-V1.3-btsnoop_hci.log (official app; decoded for this document)",
+    "description": "Encrypted 15 byte root password 0x1D (after a new random byte 0xC9).",
+    "expected": {
+      "command": 29,
+      "dataLength": 15,
+      "data": "23B0EF19CA0F402DEA09ECFBF9FBFC",
+      "checksum": 23,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "auth-ble-rx-root-accepted",
+    "variant": "JBD_AUTH",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "FFAA1D01001E",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/ffaa-auth-flow/JBD-SP04S034L4S200A-V1.3-btsnoop_hci.log (official app; decoded for this document)",
+    "description": "Root password accepted; the BMS answers DD frames afterwards.",
+    "expected": {
+      "command": 29,
+      "dataLength": 1,
+      "data": "00",
+      "checksum": 30,
+      "checksumValid": true,
+      "result": 0
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "auth-ble-rx-random-62",
+    "variant": "JBD_AUTH",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "FFAA1701627A",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/ffaa-auth-flow/JBD-SP04S034L4S200A-btsnoop_hci.log and docs/ffaa-auth-flow/communications2.txt; https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/ffaa-auth-flow/send-first-level-password-000000.txt",
+    "description": "Random byte 0x62 (MAC A4:C1:37:04:2D:BE in this capture).",
+    "expected": {
+      "command": 23,
+      "dataLength": 1,
+      "data": "62",
+      "checksum": 122,
+      "checksumValid": true,
+      "result": 98
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "auth-ble-tx-password-000000",
+    "variant": "JBD_AUTH",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "FFAA1806F65369967FF0D5",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/ffaa-auth-flow/JBD-SP04S034L4S200A-btsnoop_hci.log and docs/ffaa-auth-flow/communications2.txt; send-first-level-password-000000.txt",
+    "description": "Password \"000000\" with MAC A4:C1:37:04:2D:BE and random 0x62: (0xA4 ^ 0x30) + 0x62 = 0xF6, (0xC1 ^ 0x30) + 0x62 = 0x153 -> 0x53 (AND 0xFF, not modulo 255).",
+    "expected": {
+      "command": 24,
+      "dataLength": 6,
+      "data": "F65369967FF0",
+      "checksum": 213,
+      "checksumValid": true,
+      "cipher": {
+        "mac": "A4C137042DBE",
+        "password": "000000",
+        "random": 98
+      }
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "auth-ble-rx-password-rejected",
+    "variant": "JBD_AUTH",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "FFAA1801011A",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/ffaa-auth-flow/JBD-SP04S034L4S200A-btsnoop_hci.log and docs/ffaa-auth-flow/communications2.txt",
+    "description": "Password reply 0x01: rejected.",
+    "expected": {
+      "command": 24,
+      "dataLength": 1,
+      "data": "01",
+      "checksum": 26,
+      "checksumValid": true,
+      "result": 1
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "auth-ble-tx-password-123412",
+    "variant": "JBD_AUTH",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "FFAA1806F65465917DEDC8",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/ffaa-auth-flow/JBD-SP04S034L4S200A-btsnoop_hci.log and docs/ffaa-auth-flow/communications2.txt; send-first-level-password-123412.txt",
+    "description": "Password \"123412\" with random 0x61 (accepted in the capture).",
+    "expected": {
+      "command": 24,
+      "dataLength": 6,
+      "data": "F65465917DED",
+      "checksum": 200,
+      "checksumValid": true,
+      "cipher": {
+        "mac": "A4C137042DBE",
+        "password": "123412",
+        "random": 97
+      }
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "auth-ble-tx-root-37",
+    "variant": "JBD_AUTH",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "FFAA1D0F25BAAA9D9005AE9B58775A6967696AFC",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/ffaa-auth-flow/send-root-password.txt and root-password.txt",
+    "description": "Root password \"JBDbtpwd!@#2023\" encrypted with MAC A4:C1:37:04:2D:BE and random 0x37; bytes 7..15 use MAC byte 0x00.",
+    "expected": {
+      "command": 29,
+      "dataLength": 15,
+      "data": "25BAAA9D9005AE9B58775A6967696A",
+      "checksum": 252,
+      "checksumValid": true,
+      "cipher": {
+        "mac": "A4C137042DBE",
+        "password": "JBDbtpwd!@#2023",
+        "random": 55
+      }
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "auth-ble-tx-change-password",
+    "variant": "JBD_AUTH",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "FFAA160631323331323348",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/ffaa-auth-flow/JBD-SP04S034L4S200A-btsnoop_hci.log and docs/ffaa-auth-flow/communications2.txt",
+    "description": "Change the module password to ASCII \"123123\" (0x16, plain text).",
+    "expected": {
+      "command": 22,
+      "dataLength": 6,
+      "data": "313233313233",
+      "checksum": 72,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "auth-ble-rx-change-password-ok",
+    "variant": "JBD_AUTH",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "FFAA16010017",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/ffaa-auth-flow/JBD-SP04S034L4S200A-btsnoop_hci.log and docs/ffaa-auth-flow/communications2.txt",
+    "description": "Password change accepted.",
+    "expected": {
+      "command": 22,
+      "dataLength": 1,
+      "data": "00",
+      "checksum": 23,
+      "checksumValid": true,
+      "result": 0
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "auth-ble-rx-basic-negative-current",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD03001D0536FFCB4FF253340001309B00000000000044600304030BB70BBF0BB9F84C77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/ffaa-auth-flow/JBD-SP04S034L4S200A-btsnoop_hci.log and docs/ffaa-auth-flow/communications2.txt",
+    "description": "After login: -0.53 A (discharging), 204.66 Ah of 213.00 Ah, software 0x44, produced 2024-04-27.",
+    "expected": {
+      "register": 3,
+      "status": 0,
+      "dataLength": 29,
+      "checksumValid": true,
+      "totalVoltage": 13.34,
+      "currentRaw": -53,
+      "current": -0.53,
+      "remainingCapacity": 204.66,
+      "nominalCapacity": 213,
+      "cycleCount": 1,
+      "productionDateRaw": 12443,
+      "productionDate": "2024-04-27",
+      "balanceBits": 0,
+      "balancingCells": [],
+      "protectionBits": 0,
+      "alarms": [],
+      "softwareVersionRaw": 68,
+      "softwareVersion": "4.4",
+      "soc": 96,
+      "fetStatus": 3,
+      "chargeMos": true,
+      "dischargeMos": true,
+      "heating": false,
+      "cellCount": 4,
+      "ntcCount": 3,
+      "temperatures": [
+        26.8,
+        27.6,
+        27
+      ],
+      "unit100mA": false
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "auth-ble-rx-cells",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD0400080D080D060D080D08FFA677",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/ffaa-auth-flow/JBD-SP04S034L4S200A-btsnoop_hci.log and docs/ffaa-auth-flow/communications2.txt",
+    "description": "4 cells around 3.336 V.",
+    "expected": {
+      "register": 4,
+      "status": 0,
+      "dataLength": 8,
+      "checksumValid": true,
+      "cellCount": 4,
+      "cellVoltages": [
+        3.336,
+        3.334,
+        3.336,
+        3.336
+      ]
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "app-ble-tx-fa-read-117-count4",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "DDA5FA03007504FE8A77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/ffaa-auth-flow/JBD-SP04S034L4S200A-btsnoop_hci.log and docs/ffaa-auth-flow/communications2.txt (sent by the official app, no reply in the capture)",
+    "description": "Parameter block read 0xFA: start parameter 0x0075 (117, rated charging voltage), 4 parameters.",
+    "expected": {
+      "operation": "read",
+      "register": 250,
+      "dataLength": 3,
+      "data": "007504",
+      "checksum": 65162,
+      "checksumValid": true,
+      "fa": {
+        "paramStart": 117,
+        "paramCount": 4
+      }
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "app-ble-tx-chip-type-len2",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "DDA500020000FFFE77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/ffaa-auth-flow/JBD-SP04S034L4S200A-V1.3-btsnoop_hci.log (official app; decoded for this document) (no reply in the capture)",
+    "description": "Read register 0x00 with two zero data bytes, sent by the V1.3 app (the vendor V11 chip type read has length 0).",
+    "expected": {
+      "operation": "read",
+      "register": 0,
+      "dataLength": 2,
+      "data": "0000",
+      "checksum": 65534,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "app-ble-tx-clear-password",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "DD5A0907064A3142324434FE8377",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/ffaa-auth-flow/JBD-SP04S034L4S200A-V1.3-btsnoop_hci.log (official app; decoded for this document); register meaning from https://gitlab.com/bms-tools/bms-tools/-/blob/8747c2bb50ba5764f6f7f7a7556281c211596996/JBD_REGISTER_MAP.md (clear_password)",
+    "description": "Write 0x09 with length 6 and ASCII \"J1B2D4\" (clear the BMS password).",
+    "expected": {
+      "operation": "write",
+      "register": 9,
+      "dataLength": 7,
+      "data": "064A3142324434",
+      "checksum": 65155,
+      "checksumValid": true,
+      "clearPassword": "J1B2D4"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "app-ble-rx-clear-password-ack",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD090000000077",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/ffaa-auth-flow/JBD-SP04S034L4S200A-V1.3-btsnoop_hci.log (official app; decoded for this document)",
+    "description": "Acknowledgement of 0x09.",
+    "expected": {
+      "register": 9,
+      "status": 0,
+      "dataLength": 0,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "v13-ble-rx-covp-3750",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD2400020EA6FF4A77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/ffaa-auth-flow/JBD-SP04S034L4S200A-V1.3-btsnoop_hci.log (official app; decoded for this document)",
+    "description": "Cell overvoltage protection 3750 mV (read in factory mode).",
+    "expected": {
+      "register": 36,
+      "status": 0,
+      "dataLength": 2,
+      "checksumValid": true,
+      "setting": "cell.ovp",
+      "raw": 3750,
+      "value": 3.75,
+      "unit": "V"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "v13-ble-rx-covp-not-factory",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD248100FF7F77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/ffaa-auth-flow/JBD-SP04S034L4S200A-V1.3-btsnoop_hci.log (official app; decoded for this document) (0x24 read sent right after 01 0000)",
+    "description": "Status 0x81 (operation invalid, no factory mode) for a register read outside factory mode.",
+    "expected": {
+      "register": 36,
+      "status": 129,
+      "dataLength": 0,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "v13-ble-rx-basic",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD03001D057100004E174E200002311A00000000000044640304030BC90BC30BC4FB2A77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/ffaa-auth-flow/JBD-SP04S034L4S200A-V1.3-btsnoop_hci.log (official app; decoded for this document)",
+    "description": "JBD-SP04S034 V1.3: 13.93 V, 199.91 Ah of 200.00 Ah, 2 cycles, produced 2024-08-26.",
+    "expected": {
+      "register": 3,
+      "status": 0,
+      "dataLength": 29,
+      "checksumValid": true,
+      "totalVoltage": 13.93,
+      "currentRaw": 0,
+      "current": 0,
+      "remainingCapacity": 199.91,
+      "nominalCapacity": 200,
+      "cycleCount": 2,
+      "productionDateRaw": 12570,
+      "productionDate": "2024-08-26",
+      "balanceBits": 0,
+      "balancingCells": [],
+      "protectionBits": 0,
+      "alarms": [],
+      "softwareVersionRaw": 68,
+      "softwareVersion": "4.4",
+      "soc": 100,
+      "fetStatus": 3,
+      "chargeMos": true,
+      "dischargeMos": true,
+      "heating": false,
+      "cellCount": 4,
+      "ntcCount": 3,
+      "temperatures": [
+        28.6,
+        28,
+        28.1
+      ],
+      "unit100mA": false
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "v13-ble-rx-cells",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD0400080D870DC10DCA0D59FD5977",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/ffaa-auth-flow/JBD-SP04S034L4S200A-V1.3-btsnoop_hci.log (official app; decoded for this document)",
+    "description": "4 cells, 3.463 / 3.521 / 3.530 / 3.417 V.",
+    "expected": {
+      "register": 4,
+      "status": 0,
+      "dataLength": 8,
+      "checksumValid": true,
+      "cellCount": 4,
+      "cellVoltages": [
+        3.463,
+        3.521,
+        3.53,
+        3.417
+      ]
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "overkill-ble-rx-basic-cold-probe",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD03001B0534000019AB271000002A750000000000002042030402097F0BA3FC7177",
+    "source": "https://github.com/FurTrader/OverkillSolarBMS/blob/adfb7d528f764b3258ad995a7a2217f8af1228e3/Comm_Protocol_Documentation/BLE%20_bluetooth_protocol.md (basic info response)",
+    "description": "4S, 2 NTC; first temperature raw 0x097F = 2431 -> -30.0 C (negative temperatures are below 2731).",
+    "expected": {
+      "register": 3,
+      "status": 0,
+      "dataLength": 27,
+      "checksumValid": true,
+      "totalVoltage": 13.32,
+      "currentRaw": 0,
+      "current": 0,
+      "remainingCapacity": 65.71,
+      "nominalCapacity": 100,
+      "cycleCount": 0,
+      "productionDateRaw": 10869,
+      "productionDate": "2021-03-21",
+      "balanceBits": 0,
+      "balancingCells": [],
+      "protectionBits": 0,
+      "alarms": [],
+      "softwareVersionRaw": 32,
+      "softwareVersion": "2.0",
+      "soc": 66,
+      "fetStatus": 3,
+      "chargeMos": true,
+      "dischargeMos": true,
+      "heating": false,
+      "cellCount": 4,
+      "ntcCount": 2,
+      "temperatures": [
+        -30,
+        24.8
+      ],
+      "unit100mA": false
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "overkill-ble-tx-rename-module",
+    "variant": "JBD_AUTH",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "FFAA070358595A15",
+    "source": "https://github.com/FurTrader/OverkillSolarBMS/blob/adfb7d528f764b3258ad995a7a2217f8af1228e3/Comm_Protocol_Documentation/BLE%20_bluetooth_protocol.md (BLE Module Name Change)",
+    "description": "Bluetooth module command 0x07: set the advertised name to \"XYZ\". Handled by the module, the BMS never sees it.",
+    "expected": {
+      "command": 7,
+      "dataLength": 3,
+      "data": "58595A",
+      "checksum": 21,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "overkill-ble-rx-rename-ok",
+    "variant": "JBD_AUTH",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "FFAA070007",
+    "source": "https://github.com/FurTrader/OverkillSolarBMS/blob/adfb7d528f764b3258ad995a7a2217f8af1228e3/Comm_Protocol_Documentation/BLE%20_bluetooth_protocol.md",
+    "description": "Module reply to the rename command.",
+    "expected": {
+      "command": 7,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 7,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "dp04s007-ble-rx-basic-extended",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD030022055F00004ADF4E2000022D1400000000000023600304010BB10000004E204ADF0000FAC277",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/pdus/JBD-DP04S007L4S100A-BLE.txt; https://github.com/syssi/esphome-jbd-bms/issues/20",
+    "description": "JBD-DP04S007 (ECO-WORTHY 12 V 100 Ah): 1 NTC, 9 byte tail, full charge capacity 200.00 Ah.",
+    "expected": {
+      "register": 3,
+      "status": 0,
+      "dataLength": 34,
+      "checksumValid": true,
+      "totalVoltage": 13.75,
+      "currentRaw": 0,
+      "current": 0,
+      "remainingCapacity": 191.67,
+      "nominalCapacity": 200,
+      "cycleCount": 2,
+      "productionDateRaw": 11540,
+      "productionDate": "2022-08-20",
+      "balanceBits": 0,
+      "balancingCells": [],
+      "protectionBits": 0,
+      "alarms": [],
+      "softwareVersionRaw": 35,
+      "softwareVersion": "2.3",
+      "soc": 96,
+      "fetStatus": 3,
+      "chargeMos": true,
+      "dischargeMos": true,
+      "heating": false,
+      "cellCount": 4,
+      "ntcCount": 1,
+      "temperatures": [
+        26.2
+      ],
+      "unit100mA": false,
+      "extension": {
+        "byte0": 0,
+        "alarmBits": 0,
+        "fullChargeCapacity": 200,
+        "remainingCapacity": 191.67,
+        "balanceCurrentRaw": 0
+      }
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s020a-uart-rx-basic-discharging",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "DD03001D04FCFF340000021C00052B9200000000000020000304030BCA0BC10BBFFA3B77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/issues/14 (JBD-SP04S020A-L4S-80A-B-U)",
+    "description": "Remaining capacity 0, SOC 0 %, -2.04 A, nominal 5.40 Ah, software 0x20.",
+    "expected": {
+      "register": 3,
+      "status": 0,
+      "dataLength": 29,
+      "checksumValid": true,
+      "totalVoltage": 12.76,
+      "currentRaw": -204,
+      "current": -2.04,
+      "remainingCapacity": 0,
+      "nominalCapacity": 5.4,
+      "cycleCount": 5,
+      "productionDateRaw": 11154,
+      "productionDate": "2021-12-18",
+      "balanceBits": 0,
+      "balancingCells": [],
+      "protectionBits": 0,
+      "alarms": [],
+      "softwareVersionRaw": 32,
+      "softwareVersion": "2.0",
+      "soc": 0,
+      "fetStatus": 3,
+      "chargeMos": true,
+      "dischargeMos": true,
+      "heating": false,
+      "cellCount": 4,
+      "ntcCount": 3,
+      "temperatures": [
+        28.7,
+        27.8,
+        27.6
+      ],
+      "unit100mA": false
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s020a-uart-rx-cells",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "DD0400080C770C790C720C79FDED77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/issues/14",
+    "description": "4 cells around 3.193 V.",
+    "expected": {
+      "register": 4,
+      "status": 0,
+      "dataLength": 8,
+      "checksumValid": true,
+      "cellCount": 4,
+      "cellVoltages": [
+        3.191,
+        3.193,
+        3.186,
+        3.193
+      ]
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "clrd-8s-uart-rx-basic-balancing",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "DD03001B0A6900FC0DDA138800A5298900A80000000028470308020BB60BB5F8F877",
+    "source": "https://github.com/syssi/esphome-jbd-bms/issues/4 (CLRD LFP-82460-COMM 8S, frames relayed by the Bluetooth module)",
+    "description": "8S, 2 NTC, +2.52 A, balance bits 0x00A8 (cells 4, 6, 8), 165 cycles.",
+    "expected": {
+      "register": 3,
+      "status": 0,
+      "dataLength": 27,
+      "checksumValid": true,
+      "totalVoltage": 26.65,
+      "currentRaw": 252,
+      "current": 2.52,
+      "remainingCapacity": 35.46,
+      "nominalCapacity": 50,
+      "cycleCount": 165,
+      "productionDateRaw": 10633,
+      "productionDate": "2020-12-09",
+      "balanceBits": 168,
+      "balancingCells": [
+        3,
+        5,
+        7
+      ],
+      "protectionBits": 0,
+      "alarms": [],
+      "softwareVersionRaw": 40,
+      "softwareVersion": "2.8",
+      "soc": 71,
+      "fetStatus": 3,
+      "chargeMos": true,
+      "dischargeMos": true,
+      "heating": false,
+      "cellCount": 8,
+      "ntcCount": 2,
+      "temperatures": [
+        26.7,
+        26.6
+      ],
+      "unit100mA": false
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "clrd-8s-uart-rx-basic-balancing-odd",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "DD03001B0A6A01050DDB138800A5298900550000000028470308020BB60BB5FA3F77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/issues/4",
+    "description": "Balance bits 0x0055 (cells 1, 3, 5, 7).",
+    "expected": {
+      "register": 3,
+      "status": 0,
+      "dataLength": 27,
+      "checksumValid": true,
+      "totalVoltage": 26.66,
+      "currentRaw": 261,
+      "current": 2.61,
+      "remainingCapacity": 35.47,
+      "nominalCapacity": 50,
+      "cycleCount": 165,
+      "productionDateRaw": 10633,
+      "productionDate": "2020-12-09",
+      "balanceBits": 85,
+      "balancingCells": [
+        0,
+        2,
+        4,
+        6
+      ],
+      "protectionBits": 0,
+      "alarms": [],
+      "softwareVersionRaw": 40,
+      "softwareVersion": "2.8",
+      "soc": 71,
+      "fetStatus": 3,
+      "chargeMos": true,
+      "dischargeMos": true,
+      "heating": false,
+      "cellCount": 8,
+      "ntcCount": 2,
+      "temperatures": [
+        26.7,
+        26.6
+      ],
+      "unit100mA": false
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "clrd-8s-uart-rx-cells",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "DD0400100D060CEB0D070D090D080D090D090D06FE6877",
+    "source": "https://github.com/syssi/esphome-jbd-bms/issues/4",
+    "description": "8 cell voltages.",
+    "expected": {
+      "register": 4,
+      "status": 0,
+      "dataLength": 16,
+      "checksumValid": true,
+      "cellCount": 8,
+      "cellVoltages": [
+        3.334,
+        3.307,
+        3.335,
+        3.337,
+        3.336,
+        3.337,
+        3.337,
+        3.334
+      ]
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "ap21s001-uart-rx-basic-extended-16s",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "DD0300261443007B218D0BB8008F2D93000000000000441F0310030B410B4C0B4F0000006D60218D0000F95777",
+    "source": "https://github.com/syssi/esphome-jbd-bms/issues/67",
+    "description": "16S with tail: nominal capacity field 30.00 Ah but full charge capacity 280.00 Ah in the tail; SOC 31 % matches 85.89 / 280.00.",
+    "expected": {
+      "register": 3,
+      "status": 0,
+      "dataLength": 38,
+      "checksumValid": true,
+      "totalVoltage": 51.87,
+      "currentRaw": 123,
+      "current": 1.23,
+      "remainingCapacity": 85.89,
+      "nominalCapacity": 30,
+      "cycleCount": 143,
+      "productionDateRaw": 11667,
+      "productionDate": "2022-12-19",
+      "balanceBits": 0,
+      "balancingCells": [],
+      "protectionBits": 0,
+      "alarms": [],
+      "softwareVersionRaw": 68,
+      "softwareVersion": "4.4",
+      "soc": 31,
+      "fetStatus": 3,
+      "chargeMos": true,
+      "dischargeMos": true,
+      "heating": false,
+      "cellCount": 16,
+      "ntcCount": 3,
+      "temperatures": [
+        15,
+        16.1,
+        16.4
+      ],
+      "unit100mA": false,
+      "extension": {
+        "byte0": 0,
+        "alarmBits": 0,
+        "fullChargeCapacity": 280,
+        "remainingCapacity": 85.89,
+        "balanceCurrentRaw": 0
+      }
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "ap21s001-uart-rx-cells-16s",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "DD0400200CAE0CAD0CAD0CB10CB00CAF0CA40C9F0CA60C9E0CA40CAD0CAF0CB10CA80CABF47D77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/issues/67",
+    "description": "16 cell voltages.",
+    "expected": {
+      "register": 4,
+      "status": 0,
+      "dataLength": 32,
+      "checksumValid": true,
+      "cellCount": 16,
+      "cellVoltages": [
+        3.246,
+        3.245,
+        3.245,
+        3.249,
+        3.248,
+        3.247,
+        3.236,
+        3.231,
+        3.238,
+        3.23,
+        3.236,
+        3.245,
+        3.247,
+        3.249,
+        3.24,
+        3.243
+      ]
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "liontron-ble-rx-basic-1ntc",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD0300190532000010D7113000012D0300000000000025620304010B95FD2877",
+    "source": "https://github.com/syssi/esphome-jbd-bms/issues/81 (LIONTRON, software 2.5)",
+    "description": "25 data bytes, 1 NTC, 43.11 Ah of 44.00 Ah.",
+    "expected": {
+      "register": 3,
+      "status": 0,
+      "dataLength": 25,
+      "checksumValid": true,
+      "totalVoltage": 13.3,
+      "currentRaw": 0,
+      "current": 0,
+      "remainingCapacity": 43.11,
+      "nominalCapacity": 44,
+      "cycleCount": 1,
+      "productionDateRaw": 11523,
+      "productionDate": "2022-08-03",
+      "balanceBits": 0,
+      "balancingCells": [],
+      "protectionBits": 0,
+      "alarms": [],
+      "softwareVersionRaw": 37,
+      "softwareVersion": "2.5",
+      "soc": 98,
+      "fetStatus": 3,
+      "chargeMos": true,
+      "dischargeMos": true,
+      "heating": false,
+      "cellCount": 4,
+      "ntcCount": 1,
+      "temperatures": [
+        23.4
+      ],
+      "unit100mA": false
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "liontron-ble-rx-cells",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD0400080CFB0CFD0CFD0CFEFBD577",
+    "source": "https://github.com/syssi/esphome-jbd-bms/issues/81",
+    "description": "4 cells around 3.325 V.",
+    "expected": {
+      "register": 4,
+      "status": 0,
+      "dataLength": 8,
+      "checksumValid": true,
+      "cellCount": 4,
+      "cellVoltages": [
+        3.323,
+        3.325,
+        3.325,
+        3.326
+      ]
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "i94-ble-tx-read-serial",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "DDA51600FFEA77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/issues/94 (JBD-SP04S034 with the FF AA module, official app capture); also https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (official app inside factory mode; own decode of the btsnoop file)",
+    "description": "Read serial number register 0x16.",
+    "expected": {
+      "operation": "read",
+      "register": 22,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 65514,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "i94-ble-rx-serial",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD1600020000FFFE77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/issues/94 (JBD-SP04S034 with the FF AA module, official app capture); also https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (own decode of the btsnoop file)",
+    "description": "Serial number 0.",
+    "expected": {
+      "register": 22,
+      "status": 0,
+      "dataLength": 2,
+      "checksumValid": true,
+      "setting": "jbd.serial_number",
+      "raw": 0,
+      "value": 0
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "i94-ble-tx-read-manufacturer",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "DDA5A000FF6077",
+    "source": "https://github.com/syssi/esphome-jbd-bms/issues/94 (JBD-SP04S034 with the FF AA module, official app capture); also https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (official app inside factory mode; own decode of the btsnoop file)",
+    "description": "Read manufacturer string 0xA0.",
+    "expected": {
+      "operation": "read",
+      "register": 160,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 65376,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "i94-ble-rx-manufacturer",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DDA000060544474A4244FE9A77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/issues/94 (JBD-SP04S034 with the FF AA module, official app capture); also https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (own decode of the btsnoop file)",
+    "description": "Length prefixed string: 05 \"DGJBD\".",
+    "expected": {
+      "register": 160,
+      "status": 0,
+      "dataLength": 6,
+      "checksumValid": true,
+      "setting": "jbd.manufacturer",
+      "textLength": 5,
+      "text": "DGJBD"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "i94-ble-tx-read-mfg-date",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "DDA51500FFEB77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/issues/94 (JBD-SP04S034 with the FF AA module, official app capture); also https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (official app inside factory mode; own decode of the btsnoop file)",
+    "description": "Read production date register 0x15.",
+    "expected": {
+      "operation": "read",
+      "register": 21,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 65515,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "i94-ble-rx-mfg-date",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD150002309BFF3377",
+    "source": "https://github.com/syssi/esphome-jbd-bms/issues/94 (JBD-SP04S034 with the FF AA module, official app capture)",
+    "description": "Production date 0x309B = 2024-04-27 (same as bytes 10..11 of 0x03).",
+    "expected": {
+      "register": 21,
+      "status": 0,
+      "dataLength": 2,
+      "checksumValid": true,
+      "setting": "jbd.production_date",
+      "raw": 12443,
+      "value": "2024-04-27"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "i94-ble-rx-basic",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD03001D0539000052A853340001309B00000000000044630304030BF00BEE0BEBF9BD77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/issues/94 (JBD-SP04S034 with the FF AA module, official app capture)",
+    "description": "13.37 V, 211.60 Ah of 213.00 Ah, SOC 99 %.",
+    "expected": {
+      "register": 3,
+      "status": 0,
+      "dataLength": 29,
+      "checksumValid": true,
+      "totalVoltage": 13.37,
+      "currentRaw": 0,
+      "current": 0,
+      "remainingCapacity": 211.6,
+      "nominalCapacity": 213,
+      "cycleCount": 1,
+      "productionDateRaw": 12443,
+      "productionDate": "2024-04-27",
+      "balanceBits": 0,
+      "balancingCells": [],
+      "protectionBits": 0,
+      "alarms": [],
+      "softwareVersionRaw": 68,
+      "softwareVersion": "4.4",
+      "soc": 99,
+      "fetStatus": 3,
+      "chargeMos": true,
+      "dischargeMos": true,
+      "heating": false,
+      "cellCount": 4,
+      "ntcCount": 3,
+      "temperatures": [
+        32.5,
+        32.3,
+        32
+      ],
+      "unit100mA": false
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "self-heating-ble-rx-basic-charging-balancing",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD030022057B078227502710000132FE000E0000000029640304010B5F000000277427500000FAD777",
+    "source": "https://github.com/patman15/BMS_BLE-HA/issues/536 (Temgo self heating battery, aiobmsble debug log)",
+    "description": "+19.22 A charging, balance bits 0x000E (cells 2..4), 1 NTC, tail with full charge capacity 101.00 Ah. FET status 0x03: no heating bit while the app reported heating.",
+    "expected": {
+      "register": 3,
+      "status": 0,
+      "dataLength": 34,
+      "checksumValid": true,
+      "totalVoltage": 14.03,
+      "currentRaw": 1922,
+      "current": 19.22,
+      "remainingCapacity": 100.64,
+      "nominalCapacity": 100,
+      "cycleCount": 1,
+      "productionDateRaw": 13054,
+      "productionDate": "2025-07-30",
+      "balanceBits": 14,
+      "balancingCells": [
+        1,
+        2,
+        3
+      ],
+      "protectionBits": 0,
+      "alarms": [],
+      "softwareVersionRaw": 41,
+      "softwareVersion": "2.9",
+      "soc": 100,
+      "fetStatus": 3,
+      "chargeMos": true,
+      "dischargeMos": true,
+      "heating": false,
+      "cellCount": 4,
+      "ntcCount": 1,
+      "temperatures": [
+        18
+      ],
+      "unit100mA": false,
+      "extension": {
+        "byte0": 0,
+        "alarmBits": 0,
+        "fullChargeCapacity": 101,
+        "remainingCapacity": 100.64,
+        "balanceCurrentRaw": 0
+      }
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "self-heating-ble-rx-cells",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD0400080D830DF50D9D0DC5FCEA77",
+    "source": "https://github.com/patman15/BMS_BLE-HA/issues/536",
+    "description": "4 cells while charging.",
+    "expected": {
+      "register": 4,
+      "status": 0,
+      "dataLength": 8,
+      "checksumValid": true,
+      "cellCount": 4,
+      "cellVoltages": [
+        3.459,
+        3.573,
+        3.485,
+        3.525
+      ]
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp24s004-ble-rx-basic-extended-12s",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD0300260FAD0000268C2710000134C10000000000006260030C030B780B5D0B5E0000002848268C0000F9F577",
+    "source": "https://github.com/patman15/BMS_BLE-HA/issues/872 (SP24S004L12S200A, software 6.2; notifications joined)",
+    "description": "12S, 3 NTC, software 0x62, tail full charge capacity 103.12 Ah.",
+    "expected": {
+      "register": 3,
+      "status": 0,
+      "dataLength": 38,
+      "checksumValid": true,
+      "totalVoltage": 40.13,
+      "currentRaw": 0,
+      "current": 0,
+      "remainingCapacity": 98.68,
+      "nominalCapacity": 100,
+      "cycleCount": 1,
+      "productionDateRaw": 13505,
+      "productionDate": "2026-06-01",
+      "balanceBits": 0,
+      "balancingCells": [],
+      "protectionBits": 0,
+      "alarms": [],
+      "softwareVersionRaw": 98,
+      "softwareVersion": "6.2",
+      "soc": 96,
+      "fetStatus": 3,
+      "chargeMos": true,
+      "dischargeMos": true,
+      "heating": false,
+      "cellCount": 12,
+      "ntcCount": 3,
+      "temperatures": [
+        20.5,
+        17.8,
+        17.9
+      ],
+      "unit100mA": false,
+      "extension": {
+        "byte0": 0,
+        "alarmBits": 0,
+        "fullChargeCapacity": 103.12,
+        "remainingCapacity": 98.68,
+        "balanceCurrentRaw": 0
+      }
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp24s004-ble-rx-cells-12s",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD0400180D100D110D100D100D100D110D100D100D0E0D110D110D13FE8777",
+    "source": "https://github.com/patman15/BMS_BLE-HA/issues/872",
+    "description": "12 cell voltages.",
+    "expected": {
+      "register": 4,
+      "status": 0,
+      "dataLength": 24,
+      "checksumValid": true,
+      "cellCount": 12,
+      "cellVoltages": [
+        3.344,
+        3.345,
+        3.344,
+        3.344,
+        3.344,
+        3.345,
+        3.344,
+        3.344,
+        3.342,
+        3.345,
+        3.345,
+        3.347
+      ]
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp10s020-ble-rx-basic-8s",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD03001B0A43000001D20F3C00002CA4000000000000280C0308020B8C0B8DFC3A77",
+    "source": "https://github.com/patman15/aiobmsble/issues/248",
+    "description": "8S, 2 NTC, SOC 12 %, software 0x28.",
+    "expected": {
+      "register": 3,
+      "status": 0,
+      "dataLength": 27,
+      "checksumValid": true,
+      "totalVoltage": 26.27,
+      "currentRaw": 0,
+      "current": 0,
+      "remainingCapacity": 4.66,
+      "nominalCapacity": 39,
+      "cycleCount": 0,
+      "productionDateRaw": 11428,
+      "productionDate": "2022-05-04",
+      "balanceBits": 0,
+      "balancingCells": [],
+      "protectionBits": 0,
+      "alarms": [],
+      "softwareVersionRaw": 40,
+      "softwareVersion": "2.8",
+      "soc": 12,
+      "fetStatus": 3,
+      "chargeMos": true,
+      "dischargeMos": true,
+      "heating": false,
+      "cellCount": 8,
+      "ntcCount": 2,
+      "temperatures": [
+        22.5,
+        22.6
+      ],
+      "unit100mA": false
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp10s020-ble-rx-hwver",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD0500144A42442D53503130533032302D4C38532D333041FB3177",
+    "source": "https://github.com/patman15/aiobmsble/issues/248",
+    "description": "Model string \"JBD-SP10S020-L8S-30A\".",
+    "expected": {
+      "register": 5,
+      "status": 0,
+      "dataLength": 20,
+      "checksumValid": true,
+      "hardwareVersion": "JBD-SP10S020-L8S-30A"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "batmon-uart-rx-basic-560ah",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD03001B0A50FDA4B717DAC000002CF300000000000016540308020B7D0B77F8E277",
+    "source": "https://github.com/fl4p/batmon-ha/issues/60; https://github.com/fl4p/batmon-ha/blob/86ea0cbfa913bf39df9c2c830e06a3382a8e2324/bmslib/test/data/jbd_fixtures.py (DUMMY_7CELL)",
+    "description": "8S 560 Ah: capacities must be unsigned (0xDAC0 = 560.00 Ah), -6.04 A.",
+    "expected": {
+      "register": 3,
+      "status": 0,
+      "dataLength": 27,
+      "checksumValid": true,
+      "totalVoltage": 26.4,
+      "currentRaw": -604,
+      "current": -6.04,
+      "remainingCapacity": 468.71,
+      "nominalCapacity": 560,
+      "cycleCount": 0,
+      "productionDateRaw": 11507,
+      "productionDate": "2022-07-19",
+      "balanceBits": 0,
+      "balancingCells": [],
+      "protectionBits": 0,
+      "alarms": [],
+      "softwareVersionRaw": 22,
+      "softwareVersion": "1.6",
+      "soc": 84,
+      "fetStatus": 3,
+      "chargeMos": true,
+      "dischargeMos": true,
+      "heating": false,
+      "cellCount": 8,
+      "ntcCount": 2,
+      "temperatures": [
+        21,
+        20.4
+      ],
+      "unit100mA": false
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "fogstar-ble-rx-basic-100ma-units",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD0300260530FFC6126F18880025307700000000000062480304030B720B600B6188000019A9126F0000F82077",
+    "source": "https://github.com/patman15/aiobmsble/blob/5de275a9f1035ebefc82d8ec1eab6ffb06d30045/tests/bms/test_jbd_bms.py (Mock100mABleakClient, \"Fogstar Drift 628 Ah basic-info frame\"); https://github.com/patman15/BMS_BLE-HA/issues/834",
+    "description": "Fogstar Drift 628 Ah: first tail byte 0x88 has bit 7 set, FET status 0x03 has not; with 100 mA / 100 mAh units -5.8 A, 471.9 Ah of 628.0 Ah.",
+    "expected": {
+      "register": 3,
+      "status": 0,
+      "dataLength": 38,
+      "checksumValid": true,
+      "totalVoltage": 13.28,
+      "currentRaw": -58,
+      "current": -5.8,
+      "remainingCapacity": 471.9,
+      "nominalCapacity": 628,
+      "cycleCount": 37,
+      "productionDateRaw": 12407,
+      "productionDate": "2024-03-23",
+      "balanceBits": 0,
+      "balancingCells": [],
+      "protectionBits": 0,
+      "alarms": [],
+      "softwareVersionRaw": 98,
+      "softwareVersion": "6.2",
+      "soc": 72,
+      "fetStatus": 3,
+      "chargeMos": true,
+      "dischargeMos": true,
+      "heating": false,
+      "cellCount": 4,
+      "ntcCount": 3,
+      "temperatures": [
+        19.9,
+        18.1,
+        18.2
+      ],
+      "unit100mA": true,
+      "extension": {
+        "byte0": 136,
+        "alarmBits": 0,
+        "fullChargeCapacity": 656.9,
+        "remainingCapacity": 471.9,
+        "balanceCurrentRaw": 0
+      }
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "daren-ble-rx-basic-16s",
+    "variant": "DAREN",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD030027148CFCD920DC2EE000AA000000000000000000460B10040B7F0B800B7F0B7C0B870B9464000000F69077",
+    "source": "https://github.com/patman15/BMS_BLE-HA/issues/795 (Daren clone, BLE name DWFF024F912E495); layout from https://github.com/patman15/aiobmsble/blob/5de275a9f1035ebefc82d8ec1eab6ffb06d30045/aiobmsble/bms/daren_bms.py",
+    "description": "NTC count 4 followed by 6 temperatures (4 NTC, MOSFET, ambient), then 0x64 (state of health 100 %) and 3 zero bytes. FET status 0x0B. Production date and software version are 0.",
+    "expected": {
+      "register": 3,
+      "status": 0,
+      "dataLength": 39,
+      "checksumValid": true,
+      "totalVoltage": 52.6,
+      "currentRaw": -807,
+      "current": -8.07,
+      "remainingCapacity": 84.12,
+      "nominalCapacity": 120,
+      "cycleCount": 170,
+      "productionDateRaw": 0,
+      "productionDate": null,
+      "balanceBits": 0,
+      "balancingCells": [],
+      "protectionBits": 0,
+      "alarms": [],
+      "softwareVersionRaw": 0,
+      "softwareVersion": "0.0",
+      "soc": 70,
+      "fetStatus": 11,
+      "chargeMos": true,
+      "dischargeMos": true,
+      "heating": true,
+      "cellCount": 16,
+      "ntcCount": 4,
+      "temperatures": [
+        21.2,
+        21.3,
+        21.2,
+        20.9
+      ],
+      "unit100mA": false,
+      "extraBytes": "0B870B9464000000"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "daren-ble-rx-basic-16s-extended",
+    "variant": "DAREN",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD03002F148CFCD920DC2EE000AA000000000000000000460B10040B7F0B800B7F0B7C0B870B9464000000034904B00000FFAFF3DA77",
+    "source": "computed from the frame rules (section 3 of docs/protocols/jbd.md); base frame daren-ble-rx-basic-16s (https://github.com/patman15/BMS_BLE-HA/issues/795); extended field offsets from https://github.com/patman15/aiobmsble/blob/b99834fdbbaeb9253e746449ee37cef5b97a15cb/aiobmsble/bms/daren_bms.py (_FIELDS: battery_health frame offset 39, cycle_charge 43, design_capacity 45, current 49)",
+    "description": "Constructed, no capture: the Daren frame of daren-ble-rx-basic-16s followed by the extended fields of aiobmsble: remaining capacity 84.1 Ah (0x0349, 0.1 Ah), design capacity 120.0 Ah (0x04B0), two unknown zero bytes, current -8.1 A (0xFFAF, 0.1 A). The 16 bytes after the NTC words do not repeat d4 at +5, so they are no V11 tail and stay extraBytes.",
+    "expected": {
+      "register": 3,
+      "status": 0,
+      "dataLength": 47,
+      "checksumValid": true,
+      "totalVoltage": 52.6,
+      "currentRaw": -807,
+      "current": -8.07,
+      "remainingCapacity": 84.12,
+      "nominalCapacity": 120,
+      "cycleCount": 170,
+      "productionDateRaw": 0,
+      "productionDate": null,
+      "balanceBits": 0,
+      "balancingCells": [],
+      "protectionBits": 0,
+      "alarms": [],
+      "softwareVersionRaw": 0,
+      "softwareVersion": "0.0",
+      "soc": 70,
+      "fetStatus": 11,
+      "chargeMos": true,
+      "dischargeMos": true,
+      "heating": true,
+      "cellCount": 16,
+      "ntcCount": 4,
+      "temperatures": [
+        21.2,
+        21.3,
+        21.2,
+        20.9
+      ],
+      "unit100mA": false,
+      "extraBytes": "0B870B9464000000034904B00000FFAF"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "daren-ble-rx-cells-16s",
+    "variant": "DAREN",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD0400200CF40CF00CF40CF10CF40CF10CF50CF00CF40CF10CF50CF10CF50CF10CF40CF3EFF577",
+    "source": "https://github.com/patman15/BMS_BLE-HA/issues/795",
+    "description": "16 cell voltages.",
+    "expected": {
+      "register": 4,
+      "status": 0,
+      "dataLength": 32,
+      "checksumValid": true,
+      "cellCount": 16,
+      "cellVoltages": [
+        3.316,
+        3.312,
+        3.316,
+        3.313,
+        3.316,
+        3.313,
+        3.317,
+        3.312,
+        3.316,
+        3.313,
+        3.317,
+        3.313,
+        3.317,
+        3.313,
+        3.316,
+        3.315
+      ]
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "daren-ble-rx-hwver-unsupported",
+    "variant": "DAREN",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD058000FF8077",
+    "source": "https://github.com/patman15/BMS_BLE-HA/issues/795",
+    "description": "Status 0x80: the clone does not implement 0x05.",
+    "expected": {
+      "register": 5,
+      "status": 128,
+      "dataLength": 0,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "tx-read-reg-31",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "DDA53100FFCF77",
+    "source": "computed from the frame rules (section 3 of docs/protocols/jbd.md); register from https://gitlab.com/bms-tools/bms-tools/-/blob/8747c2bb50ba5764f6f7f7a7556281c211596996/bmstools/jbd/jbd.py",
+    "description": "Read register 0x31 (LED display time). Registers 0x10..0xA2 need factory mode.",
+    "expected": {
+      "operation": "read",
+      "register": 49,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 65487,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "tx-read-reg-42",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "DDA54200FFBE77",
+    "source": "computed from the frame rules (section 3 of docs/protocols/jbd.md); register from https://github.com/FurTrader/OverkillSolarBMS/blob/adfb7d528f764b3258ad995a7a2217f8af1228e3/Comm_Protocol_Documentation/Capacity_parameter_registers.md",
+    "description": "Read register 0x42 (cell voltage at 90 %). Registers 0x10..0xA2 need factory mode.",
+    "expected": {
+      "operation": "read",
+      "register": 66,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 65470,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "tx-read-reg-43",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "DDA54300FFBD77",
+    "source": "computed from the frame rules (section 3 of docs/protocols/jbd.md); register from https://github.com/FurTrader/OverkillSolarBMS/blob/adfb7d528f764b3258ad995a7a2217f8af1228e3/Comm_Protocol_Documentation/Capacity_parameter_registers.md",
+    "description": "Read register 0x43 (cell voltage at 70 %). Registers 0x10..0xA2 need factory mode.",
+    "expected": {
+      "operation": "read",
+      "register": 67,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 65469,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "tx-read-reg-44",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "DDA54400FFBC77",
+    "source": "computed from the frame rules (section 3 of docs/protocols/jbd.md); register from https://github.com/FurTrader/OverkillSolarBMS/blob/adfb7d528f764b3258ad995a7a2217f8af1228e3/Comm_Protocol_Documentation/Capacity_parameter_registers.md",
+    "description": "Read register 0x44 (cell voltage at 50 %). Registers 0x10..0xA2 need factory mode.",
+    "expected": {
+      "operation": "read",
+      "register": 68,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 65468,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "tx-read-reg-45",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "DDA54500FFBB77",
+    "source": "computed from the frame rules (section 3 of docs/protocols/jbd.md); register from https://github.com/FurTrader/OverkillSolarBMS/blob/adfb7d528f764b3258ad995a7a2217f8af1228e3/Comm_Protocol_Documentation/Capacity_parameter_registers.md",
+    "description": "Read register 0x45 (cell voltage at 30 %). Registers 0x10..0xA2 need factory mode.",
+    "expected": {
+      "operation": "read",
+      "register": 69,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 65467,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "tx-read-reg-46",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "DDA54600FFBA77",
+    "source": "computed from the frame rules (section 3 of docs/protocols/jbd.md); register from https://github.com/FurTrader/OverkillSolarBMS/blob/adfb7d528f764b3258ad995a7a2217f8af1228e3/Comm_Protocol_Documentation/Capacity_parameter_registers.md",
+    "description": "Read register 0x46 (cell voltage at 10 %). Registers 0x10..0xA2 need factory mode.",
+    "expected": {
+      "operation": "read",
+      "register": 70,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 65466,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "tx-read-reg-47",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "DDA54700FFB977",
+    "source": "computed from the frame rules (section 3 of docs/protocols/jbd.md); register from https://github.com/FurTrader/OverkillSolarBMS/blob/adfb7d528f764b3258ad995a7a2217f8af1228e3/Comm_Protocol_Documentation/Capacity_parameter_registers.md",
+    "description": "Read register 0x47 (cell voltage at 100 % (curve point)). Registers 0x10..0xA2 need factory mode.",
+    "expected": {
+      "operation": "read",
+      "register": 71,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 65465,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "tx-exit-factory-save",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "DD5A01022828FFAD77",
+    "source": "https://github.com/FurTrader/OverkillSolarBMS/blob/adfb7d528f764b3258ad995a7a2217f8af1228e3/Comm_Protocol_Documentation/Translated_to_english_JBD_comm_ptotocol_20230321_V11.pdf (Chinese original JBD_comm_ptotocol_20230321_V11.pdf) (section 5, exit factory mode 0x2828); same bytes in https://github.com/ril3y/jbd_bms/blob/190104e6d95d23c3e78c227d1dcd4a1f0ca53aa2/test/protocol_test.dart",
+    "description": "Exit factory mode and save to EEPROM (0x2828).",
+    "expected": {
+      "operation": "write",
+      "register": 1,
+      "dataLength": 2,
+      "data": "2828",
+      "checksum": 65453,
+      "checksumValid": true,
+      "factory": "exitSave"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "tx-write-reg-24-example",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "DD5A24020E42FF8A77",
+    "source": "computed from the frame rules (section 3 of docs/protocols/jbd.md); encodings from https://gitlab.com/bms-tools/bms-tools/-/blob/8747c2bb50ba5764f6f7f7a7556281c211596996/bmstools/jbd/jbd.py (eeprom_regs) and the V11 parameter table",
+    "description": "Write example inside factory mode: cell overvoltage 3650 mV.",
+    "expected": {
+      "operation": "write",
+      "register": 36,
+      "dataLength": 2,
+      "data": "0E42",
+      "checksum": 65418,
+      "checksumValid": true,
+      "setting": "cell.ovp",
+      "raw": 3650,
+      "value": 3.65,
+      "unit": "V"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "tx-write-reg-25-example",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "DD5A25020DDEFEEE77",
+    "source": "computed from the frame rules (section 3 of docs/protocols/jbd.md); encodings from https://gitlab.com/bms-tools/bms-tools/-/blob/8747c2bb50ba5764f6f7f7a7556281c211596996/bmstools/jbd/jbd.py (eeprom_regs) and the V11 parameter table",
+    "description": "Write example inside factory mode: cell overvoltage release 3550 mV.",
+    "expected": {
+      "operation": "write",
+      "register": 37,
+      "dataLength": 2,
+      "data": "0DDE",
+      "checksum": 65262,
+      "checksumValid": true,
+      "setting": "cell.ovpr",
+      "raw": 3550,
+      "value": 3.55,
+      "unit": "V"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "tx-write-reg-26-example",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "DD5A26020A28FFA677",
+    "source": "computed from the frame rules (section 3 of docs/protocols/jbd.md); encodings from https://gitlab.com/bms-tools/bms-tools/-/blob/8747c2bb50ba5764f6f7f7a7556281c211596996/bmstools/jbd/jbd.py (eeprom_regs) and the V11 parameter table",
+    "description": "Write example inside factory mode: cell undervoltage 2600 mV.",
+    "expected": {
+      "operation": "write",
+      "register": 38,
+      "dataLength": 2,
+      "data": "0A28",
+      "checksum": 65446,
+      "checksumValid": true,
+      "setting": "cell.uvp",
+      "raw": 2600,
+      "value": 2.6,
+      "unit": "V"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "tx-write-reg-20-example",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "DD5A200205B4FF2577",
+    "source": "computed from the frame rules (section 3 of docs/protocols/jbd.md); encodings from https://gitlab.com/bms-tools/bms-tools/-/blob/8747c2bb50ba5764f6f7f7a7556281c211596996/bmstools/jbd/jbd.py (eeprom_regs) and the V11 parameter table",
+    "description": "Write example inside factory mode: pack overvoltage 14.60 V (1460 x 10 mV).",
+    "expected": {
+      "operation": "write",
+      "register": 32,
+      "dataLength": 2,
+      "data": "05B4",
+      "checksum": 65317,
+      "checksumValid": true,
+      "setting": "pack.ovp",
+      "raw": 1460,
+      "value": 14.6,
+      "unit": "V"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "tx-write-reg-18-example",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "DD5A18020C8DFF4D77",
+    "source": "computed from the frame rules (section 3 of docs/protocols/jbd.md); encodings from https://gitlab.com/bms-tools/bms-tools/-/blob/8747c2bb50ba5764f6f7f7a7556281c211596996/bmstools/jbd/jbd.py (eeprom_regs) and the V11 parameter table",
+    "description": "Write example inside factory mode: charge overtemperature 55.0 C (raw 2731 + 550 = 3281).",
+    "expected": {
+      "operation": "write",
+      "register": 24,
+      "dataLength": 2,
+      "data": "0C8D",
+      "checksum": 65357,
+      "checksumValid": true,
+      "setting": "charge.otp",
+      "raw": 3213,
+      "value": 48.2,
+      "unit": "°C"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "tx-write-reg-1a-example",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "DD5A1A020AABFF2F77",
+    "source": "computed from the frame rules (section 3 of docs/protocols/jbd.md); encodings from https://gitlab.com/bms-tools/bms-tools/-/blob/8747c2bb50ba5764f6f7f7a7556281c211596996/bmstools/jbd/jbd.py (eeprom_regs) and the V11 parameter table",
+    "description": "Write example inside factory mode: charge undertemperature 0.0 C (raw 2731).",
+    "expected": {
+      "operation": "write",
+      "register": 26,
+      "dataLength": 2,
+      "data": "0AAB",
+      "checksum": 65327,
+      "checksumValid": true,
+      "setting": "charge.utp",
+      "raw": 2731,
+      "value": 0,
+      "unit": "°C"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "tx-write-reg-1e-example",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "DD5A1E02099FFF3877",
+    "source": "computed from the frame rules (section 3 of docs/protocols/jbd.md); encodings from https://gitlab.com/bms-tools/bms-tools/-/blob/8747c2bb50ba5764f6f7f7a7556281c211596996/bmstools/jbd/jbd.py (eeprom_regs) and the V11 parameter table",
+    "description": "Write example inside factory mode: discharge undertemperature -20.0 C (raw 2731 - 200 = 2531).",
+    "expected": {
+      "operation": "write",
+      "register": 30,
+      "dataLength": 2,
+      "data": "099F",
+      "checksum": 65336,
+      "checksumValid": true,
+      "setting": "discharge.utp",
+      "raw": 2463,
+      "value": -26.8,
+      "unit": "°C"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "tx-write-reg-28-example",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "DD5A28022710FF9F77",
+    "source": "computed from the frame rules (section 3 of docs/protocols/jbd.md); encodings from https://gitlab.com/bms-tools/bms-tools/-/blob/8747c2bb50ba5764f6f7f7a7556281c211596996/bmstools/jbd/jbd.py (eeprom_regs) and the V11 parameter table",
+    "description": "Write example inside factory mode: charge overcurrent 100.00 A (10000 x 10 mA, positive).",
+    "expected": {
+      "operation": "write",
+      "register": 40,
+      "dataLength": 2,
+      "data": "2710",
+      "checksum": 65439,
+      "checksumValid": true,
+      "setting": "charge.ocp",
+      "raw": 10000,
+      "value": 100,
+      "unit": "A"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "tx-write-reg-29-example",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "DD5A2902D8F0FE0D77",
+    "source": "computed from the frame rules (section 3 of docs/protocols/jbd.md); encodings from https://gitlab.com/bms-tools/bms-tools/-/blob/8747c2bb50ba5764f6f7f7a7556281c211596996/bmstools/jbd/jbd.py (eeprom_regs) and the V11 parameter table",
+    "description": "Write example inside factory mode: discharge overcurrent 100.00 A (stored negative: 0x10000 - 10000 = 0xD8F0).",
+    "expected": {
+      "operation": "write",
+      "register": 41,
+      "dataLength": 2,
+      "data": "D8F0",
+      "checksum": 65037,
+      "checksumValid": true,
+      "setting": "discharge.ocp",
+      "raw": 55536,
+      "rawSigned": -10000,
+      "value": 100,
+      "unit": "A"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "tx-write-reg-2a-example",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "DD5A2A020D48FF7F77",
+    "source": "computed from the frame rules (section 3 of docs/protocols/jbd.md); encodings from https://gitlab.com/bms-tools/bms-tools/-/blob/8747c2bb50ba5764f6f7f7a7556281c211596996/bmstools/jbd/jbd.py (eeprom_regs) and the V11 parameter table",
+    "description": "Write example inside factory mode: balance start voltage 3400 mV.",
+    "expected": {
+      "operation": "write",
+      "register": 42,
+      "dataLength": 2,
+      "data": "0D48",
+      "checksum": 65407,
+      "checksumValid": true,
+      "setting": "balance.start_voltage",
+      "raw": 3400,
+      "value": 3.4,
+      "unit": "V"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "tx-write-reg-2b-example",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "DD5A2B02001EFFB577",
+    "source": "computed from the frame rules (section 3 of docs/protocols/jbd.md); encodings from https://gitlab.com/bms-tools/bms-tools/-/blob/8747c2bb50ba5764f6f7f7a7556281c211596996/bmstools/jbd/jbd.py (eeprom_regs) and the V11 parameter table",
+    "description": "Write example inside factory mode: balance window 30 mV.",
+    "expected": {
+      "operation": "write",
+      "register": 43,
+      "dataLength": 2,
+      "data": "001E",
+      "checksum": 65461,
+      "checksumValid": true,
+      "setting": "balance.trigger_delta",
+      "raw": 30,
+      "value": 0.03,
+      "unit": "V"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "tx-write-reg-3d-example",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "DD5A3D020202FFBD77",
+    "source": "computed from the frame rules (section 3 of docs/protocols/jbd.md); encodings from https://gitlab.com/bms-tools/bms-tools/-/blob/8747c2bb50ba5764f6f7f7a7556281c211596996/bmstools/jbd/jbd.py (eeprom_regs) and the V11 parameter table",
+    "description": "Write example inside factory mode: cell voltage delays: undervoltage 2 s (byte 0), overvoltage 2 s (byte 1).",
+    "expected": {
+      "operation": "write",
+      "register": 61,
+      "dataLength": 2,
+      "data": "0202",
+      "checksum": 65469,
+      "checksumValid": true,
+      "setting": "jbd.cell_voltage_delays",
+      "raw": 514,
+      "values": {
+        "cell.uvp_delay": 2,
+        "cell.ovp_delay": 2
+      },
+      "unit": "s"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "tx-write-reg-10-example",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "DD5A10024E20FF8077",
+    "source": "computed from the frame rules (section 3 of docs/protocols/jbd.md); encodings from https://gitlab.com/bms-tools/bms-tools/-/blob/8747c2bb50ba5764f6f7f7a7556281c211596996/bmstools/jbd/jbd.py (eeprom_regs) and the V11 parameter table",
+    "description": "Write example inside factory mode: design capacity 200.00 Ah.",
+    "expected": {
+      "operation": "write",
+      "register": 16,
+      "dataLength": 2,
+      "data": "4E20",
+      "checksum": 65408,
+      "checksumValid": true,
+      "setting": "capacity.nominal",
+      "raw": 20000,
+      "value": 200,
+      "unit": "Ah"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "tx-write-manufacturer-example",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "DD5AA00403414243FE9377",
+    "source": "computed from the frame rules (section 3 of docs/protocols/jbd.md); length prefixed string per https://gitlab.com/bms-tools/bms-tools/-/blob/8747c2bb50ba5764f6f7f7a7556281c211596996/bmstools/jbd/registers.py (StringReg.pack); jbdtool writes the string without the length byte, see section 12",
+    "description": "String write \"ABC\" with a length byte, as bms-tools StringReg.pack builds it. jbdtool (main.c, JBD_PARM_DT_STR) and SmartBMSUtility (ConfigurationController, 0xA1 and 0xA2) send the ASCII bytes without the length byte. Disputed, so ubms keeps the string registers read-only (section 7.4).",
+    "expected": {
+      "operation": "write",
+      "register": 160,
+      "dataLength": 4,
+      "data": "03414243",
+      "checksum": 65171,
+      "checksumValid": true,
+      "setting": "jbd.manufacturer",
+      "textLength": 3,
+      "text": "ABC"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "tx-control-0a-0200",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "DD5A0A020200FFF277",
+    "source": "computed from the frame rules (section 3 of docs/protocols/jbd.md); function code from https://github.com/FurTrader/OverkillSolarBMS/blob/adfb7d528f764b3258ad995a7a2217f8af1228e3/Comm_Protocol_Documentation/Translated_to_english_JBD_comm_ptotocol_20230321_V11.pdf (Chinese original JBD_comm_ptotocol_20230321_V11.pdf) (section 6.1)",
+    "description": "Control command 0x0A, function code 0x0200: clear history (protection counters).",
+    "expected": {
+      "operation": "write",
+      "register": 10,
+      "dataLength": 2,
+      "data": "0200",
+      "checksum": 65522,
+      "checksumValid": true,
+      "control": "clearHistory"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "tx-control-0a-0300",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "DD5A0A020300FFF177",
+    "source": "computed from the frame rules (section 3 of docs/protocols/jbd.md); function code from https://github.com/FurTrader/OverkillSolarBMS/blob/adfb7d528f764b3258ad995a7a2217f8af1228e3/Comm_Protocol_Documentation/Translated_to_english_JBD_comm_ptotocol_20230321_V11.pdf (Chinese original JBD_comm_ptotocol_20230321_V11.pdf) (section 6.1)",
+    "description": "Control command 0x0A, function code 0x0300: reset the microcontroller.",
+    "expected": {
+      "operation": "write",
+      "register": 10,
+      "dataLength": 2,
+      "data": "0300",
+      "checksum": 65521,
+      "checksumValid": true,
+      "control": "restart"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "tx-control-0a-0400",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "DD5A0A020400FFF077",
+    "source": "computed from the frame rules (section 3 of docs/protocols/jbd.md); function code from https://github.com/FurTrader/OverkillSolarBMS/blob/adfb7d528f764b3258ad995a7a2217f8af1228e3/Comm_Protocol_Documentation/Translated_to_english_JBD_comm_ptotocol_20230321_V11.pdf (Chinese original JBD_comm_ptotocol_20230321_V11.pdf) (section 6.1); same bytes in https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/tests/components/jbd_bms_ble/write_command_test.cpp",
+    "description": "Control command 0x0A, function code 0x0400: clear protection and alarm status.",
+    "expected": {
+      "operation": "write",
+      "register": 10,
+      "dataLength": 2,
+      "data": "0400",
+      "checksum": 65520,
+      "checksumValid": true,
+      "control": "clearProtection"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "tx-control-0a-0700",
+    "variant": "JBD",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "DD5A0A020700FFED77",
+    "source": "computed from the frame rules (section 3 of docs/protocols/jbd.md); function code from https://github.com/FurTrader/OverkillSolarBMS/blob/adfb7d528f764b3258ad995a7a2217f8af1228e3/Comm_Protocol_Documentation/Translated_to_english_JBD_comm_ptotocol_20230321_V11.pdf (Chinese original JBD_comm_ptotocol_20230321_V11.pdf) (section 6.1); same bytes in https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/tests/components/jbd_bms_ble/write_command_test.cpp",
+    "description": "Control command 0x0A, function code 0x0700: automatic equalization.",
+    "expected": {
+      "operation": "write",
+      "register": 10,
+      "dataLength": 2,
+      "data": "0700",
+      "checksum": 65517,
+      "checksumValid": true,
+      "control": "autoBalance"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-tx-read-24",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "DDA52400FFDC77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (official app inside factory mode; own decode of the btsnoop file)",
+    "description": "Read register 0x24 (cell overvoltage).",
+    "expected": {
+      "operation": "read",
+      "register": 36,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 65500,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-rx-reg-24",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD2400020E42FFAE77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (own decode of the btsnoop file)",
+    "description": "JBD-SP04S034-L4S-200A-B-U, register 0x24: cell overvoltage.",
+    "expected": {
+      "register": 36,
+      "status": 0,
+      "dataLength": 2,
+      "checksumValid": true,
+      "setting": "cell.ovp",
+      "raw": 3650,
+      "value": 3.65,
+      "unit": "V"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-tx-read-25",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "DDA52500FFDB77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (official app inside factory mode; own decode of the btsnoop file)",
+    "description": "Read register 0x25 (cell overvoltage release).",
+    "expected": {
+      "operation": "read",
+      "register": 37,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 65499,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-rx-reg-25",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD2500020DDEFF1377",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (own decode of the btsnoop file)",
+    "description": "JBD-SP04S034-L4S-200A-B-U, register 0x25: cell overvoltage release.",
+    "expected": {
+      "register": 37,
+      "status": 0,
+      "dataLength": 2,
+      "checksumValid": true,
+      "setting": "cell.ovpr",
+      "raw": 3550,
+      "value": 3.55,
+      "unit": "V"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-tx-read-3d",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "DDA53D00FFC377",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (official app inside factory mode; own decode of the btsnoop file)",
+    "description": "Read register 0x3D (cell voltage delays).",
+    "expected": {
+      "operation": "read",
+      "register": 61,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 65475,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-rx-reg-3d",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD3D00020202FFFA77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (own decode of the btsnoop file)",
+    "description": "JBD-SP04S034-L4S-200A-B-U, register 0x3D: cell voltage delays.",
+    "expected": {
+      "register": 61,
+      "status": 0,
+      "dataLength": 2,
+      "checksumValid": true,
+      "setting": "jbd.cell_voltage_delays",
+      "raw": 514,
+      "values": {
+        "cell.uvp_delay": 2,
+        "cell.ovp_delay": 2
+      },
+      "unit": "s"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-tx-read-26",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "DDA52600FFDA77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (official app inside factory mode; own decode of the btsnoop file)",
+    "description": "Read register 0x26 (cell undervoltage).",
+    "expected": {
+      "operation": "read",
+      "register": 38,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 65498,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-rx-reg-26",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD26000209C4FF3177",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (own decode of the btsnoop file)",
+    "description": "JBD-SP04S034-L4S-200A-B-U, register 0x26: cell undervoltage.",
+    "expected": {
+      "register": 38,
+      "status": 0,
+      "dataLength": 2,
+      "checksumValid": true,
+      "setting": "cell.uvp",
+      "raw": 2500,
+      "value": 2.5,
+      "unit": "V"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-tx-read-27",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "DDA52700FFD977",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (official app inside factory mode; own decode of the btsnoop file)",
+    "description": "Read register 0x27 (cell undervoltage release).",
+    "expected": {
+      "operation": "read",
+      "register": 39,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 65497,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-rx-reg-27",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD2700020A8CFF6877",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (own decode of the btsnoop file)",
+    "description": "JBD-SP04S034-L4S-200A-B-U, register 0x27: cell undervoltage release.",
+    "expected": {
+      "register": 39,
+      "status": 0,
+      "dataLength": 2,
+      "checksumValid": true,
+      "setting": "cell.uvpr",
+      "raw": 2700,
+      "value": 2.7,
+      "unit": "V"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-tx-read-20",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "DDA52000FFE077",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (official app inside factory mode; own decode of the btsnoop file)",
+    "description": "Read register 0x20 (pack overvoltage).",
+    "expected": {
+      "operation": "read",
+      "register": 32,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 65504,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-rx-reg-20",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD20000205B4FF4577",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (own decode of the btsnoop file)",
+    "description": "JBD-SP04S034-L4S-200A-B-U, register 0x20: pack overvoltage.",
+    "expected": {
+      "register": 32,
+      "status": 0,
+      "dataLength": 2,
+      "checksumValid": true,
+      "setting": "pack.ovp",
+      "raw": 1460,
+      "value": 14.6,
+      "unit": "V"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-tx-read-21",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "DDA52100FFDF77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (official app inside factory mode; own decode of the btsnoop file)",
+    "description": "Read register 0x21 (pack overvoltage release).",
+    "expected": {
+      "operation": "read",
+      "register": 33,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 65503,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-rx-reg-21",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD210002058CFF6D77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (own decode of the btsnoop file)",
+    "description": "JBD-SP04S034-L4S-200A-B-U, register 0x21: pack overvoltage release.",
+    "expected": {
+      "register": 33,
+      "status": 0,
+      "dataLength": 2,
+      "checksumValid": true,
+      "setting": "pack.ovpr",
+      "raw": 1420,
+      "value": 14.2,
+      "unit": "V"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-tx-read-3c",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "DDA53C00FFC477",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (official app inside factory mode; own decode of the btsnoop file)",
+    "description": "Read register 0x3C (pack voltage delays).",
+    "expected": {
+      "operation": "read",
+      "register": 60,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 65476,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-rx-reg-3c",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD3C00020202FFFA77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (own decode of the btsnoop file)",
+    "description": "JBD-SP04S034-L4S-200A-B-U, register 0x3C: pack voltage delays.",
+    "expected": {
+      "register": 60,
+      "status": 0,
+      "dataLength": 2,
+      "checksumValid": true,
+      "setting": "jbd.pack_voltage_delays",
+      "raw": 514,
+      "values": {
+        "jbd.pack_uvp_delay": 2,
+        "jbd.pack_ovp_delay": 2
+      },
+      "unit": "s"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-tx-read-22",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "DDA52200FFDE77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (official app inside factory mode; own decode of the btsnoop file)",
+    "description": "Read register 0x22 (pack undervoltage).",
+    "expected": {
+      "operation": "read",
+      "register": 34,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 65502,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-rx-reg-22",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD22000203E8FF1377",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (own decode of the btsnoop file)",
+    "description": "JBD-SP04S034-L4S-200A-B-U, register 0x22: pack undervoltage.",
+    "expected": {
+      "register": 34,
+      "status": 0,
+      "dataLength": 2,
+      "checksumValid": true,
+      "setting": "pack.uvp",
+      "raw": 1000,
+      "value": 10,
+      "unit": "V"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-tx-read-23",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "DDA52300FFDD77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (official app inside factory mode; own decode of the btsnoop file)",
+    "description": "Read register 0x23 (pack undervoltage release).",
+    "expected": {
+      "operation": "read",
+      "register": 35,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 65501,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-rx-reg-23",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD2300020438FFC277",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (own decode of the btsnoop file)",
+    "description": "JBD-SP04S034-L4S-200A-B-U, register 0x23: pack undervoltage release.",
+    "expected": {
+      "register": 35,
+      "status": 0,
+      "dataLength": 2,
+      "checksumValid": true,
+      "setting": "pack.uvpr",
+      "raw": 1080,
+      "value": 10.8,
+      "unit": "V"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-tx-read-18",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "DDA51800FFE877",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (official app inside factory mode; own decode of the btsnoop file)",
+    "description": "Read register 0x18 (charge overtemperature).",
+    "expected": {
+      "operation": "read",
+      "register": 24,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 65512,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-rx-reg-18",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD1800020D99FF5877",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (own decode of the btsnoop file)",
+    "description": "JBD-SP04S034-L4S-200A-B-U, register 0x18: charge overtemperature.",
+    "expected": {
+      "register": 24,
+      "status": 0,
+      "dataLength": 2,
+      "checksumValid": true,
+      "setting": "charge.otp",
+      "raw": 3481,
+      "value": 75,
+      "unit": "°C"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-tx-read-19",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "DDA51900FFE777",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (official app inside factory mode; own decode of the btsnoop file)",
+    "description": "Read register 0x19 (charge overtemperature release).",
+    "expected": {
+      "operation": "read",
+      "register": 25,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 65511,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-rx-reg-19",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD1900020CD1FF2177",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (own decode of the btsnoop file)",
+    "description": "JBD-SP04S034-L4S-200A-B-U, register 0x19: charge overtemperature release.",
+    "expected": {
+      "register": 25,
+      "status": 0,
+      "dataLength": 2,
+      "checksumValid": true,
+      "setting": "charge.otpr",
+      "raw": 3281,
+      "value": 55,
+      "unit": "°C"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-tx-read-3a",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "DDA53A00FFC677",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (official app inside factory mode; own decode of the btsnoop file)",
+    "description": "Read register 0x3A (charge temperature delays).",
+    "expected": {
+      "operation": "read",
+      "register": 58,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 65478,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-rx-reg-3a",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD3A00020202FFFA77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (own decode of the btsnoop file)",
+    "description": "JBD-SP04S034-L4S-200A-B-U, register 0x3A: charge temperature delays.",
+    "expected": {
+      "register": 58,
+      "status": 0,
+      "dataLength": 2,
+      "checksumValid": true,
+      "setting": "jbd.charge_temp_delays",
+      "raw": 514,
+      "values": {
+        "jbd.charge_utp_delay": 2,
+        "jbd.charge_otp_delay": 2
+      },
+      "unit": "s"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-tx-read-1a",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "DDA51A00FFE677",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (official app inside factory mode; own decode of the btsnoop file)",
+    "description": "Read register 0x1A (charge undertemperature).",
+    "expected": {
+      "operation": "read",
+      "register": 26,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 65510,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-rx-reg-1a",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD1A00020A47FFAD77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (own decode of the btsnoop file)",
+    "description": "JBD-SP04S034-L4S-200A-B-U, register 0x1A: charge undertemperature.",
+    "expected": {
+      "register": 26,
+      "status": 0,
+      "dataLength": 2,
+      "checksumValid": true,
+      "setting": "charge.utp",
+      "raw": 2631,
+      "value": -10,
+      "unit": "°C"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-tx-read-1b",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "DDA51B00FFE577",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (official app inside factory mode; own decode of the btsnoop file)",
+    "description": "Read register 0x1B (charge undertemperature release).",
+    "expected": {
+      "operation": "read",
+      "register": 27,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 65509,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-rx-reg-1b",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD1B00020AABFF4977",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (own decode of the btsnoop file)",
+    "description": "JBD-SP04S034-L4S-200A-B-U, register 0x1B: charge undertemperature release.",
+    "expected": {
+      "register": 27,
+      "status": 0,
+      "dataLength": 2,
+      "checksumValid": true,
+      "setting": "charge.utpr",
+      "raw": 2731,
+      "value": 0,
+      "unit": "°C"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-tx-read-1c",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "DDA51C00FFE477",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (official app inside factory mode; own decode of the btsnoop file)",
+    "description": "Read register 0x1C (discharge overtemperature).",
+    "expected": {
+      "operation": "read",
+      "register": 28,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 65508,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-rx-reg-1c",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD1C00020D99FF5877",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (own decode of the btsnoop file)",
+    "description": "JBD-SP04S034-L4S-200A-B-U, register 0x1C: discharge overtemperature.",
+    "expected": {
+      "register": 28,
+      "status": 0,
+      "dataLength": 2,
+      "checksumValid": true,
+      "setting": "discharge.otp",
+      "raw": 3481,
+      "value": 75,
+      "unit": "°C"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-tx-read-1d",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "DDA51D00FFE377",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (official app inside factory mode; own decode of the btsnoop file)",
+    "description": "Read register 0x1D (discharge overtemperature release).",
+    "expected": {
+      "operation": "read",
+      "register": 29,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 65507,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-rx-reg-1d",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD1D00020CD1FF2177",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (own decode of the btsnoop file)",
+    "description": "JBD-SP04S034-L4S-200A-B-U, register 0x1D: discharge overtemperature release.",
+    "expected": {
+      "register": 29,
+      "status": 0,
+      "dataLength": 2,
+      "checksumValid": true,
+      "setting": "discharge.otpr",
+      "raw": 3281,
+      "value": 55,
+      "unit": "°C"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-tx-read-3b",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "DDA53B00FFC577",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (official app inside factory mode; own decode of the btsnoop file)",
+    "description": "Read register 0x3B (discharge temperature delays).",
+    "expected": {
+      "operation": "read",
+      "register": 59,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 65477,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-rx-reg-3b",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD3B00020202FFFA77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (own decode of the btsnoop file)",
+    "description": "JBD-SP04S034-L4S-200A-B-U, register 0x3B: discharge temperature delays.",
+    "expected": {
+      "register": 59,
+      "status": 0,
+      "dataLength": 2,
+      "checksumValid": true,
+      "setting": "jbd.discharge_temp_delays",
+      "raw": 514,
+      "values": {
+        "jbd.discharge_utp_delay": 2,
+        "jbd.discharge_otp_delay": 2
+      },
+      "unit": "s"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-tx-read-1e",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "DDA51E00FFE277",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (official app inside factory mode; own decode of the btsnoop file)",
+    "description": "Read register 0x1E (discharge undertemperature).",
+    "expected": {
+      "operation": "read",
+      "register": 30,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 65506,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-rx-reg-1e",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD1E00020A47FFAD77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (own decode of the btsnoop file)",
+    "description": "JBD-SP04S034-L4S-200A-B-U, register 0x1E: discharge undertemperature.",
+    "expected": {
+      "register": 30,
+      "status": 0,
+      "dataLength": 2,
+      "checksumValid": true,
+      "setting": "discharge.utp",
+      "raw": 2631,
+      "value": -10,
+      "unit": "°C"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-tx-read-1f",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "DDA51F00FFE177",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (official app inside factory mode; own decode of the btsnoop file)",
+    "description": "Read register 0x1F (discharge undertemperature release).",
+    "expected": {
+      "operation": "read",
+      "register": 31,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 65505,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-rx-reg-1f",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD1F00020AABFF4977",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (own decode of the btsnoop file)",
+    "description": "JBD-SP04S034-L4S-200A-B-U, register 0x1F: discharge undertemperature release.",
+    "expected": {
+      "register": 31,
+      "status": 0,
+      "dataLength": 2,
+      "checksumValid": true,
+      "setting": "discharge.utpr",
+      "raw": 2731,
+      "value": 0,
+      "unit": "°C"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-tx-read-28",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "DDA52800FFD877",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (official app inside factory mode; own decode of the btsnoop file)",
+    "description": "Read register 0x28 (charge overcurrent).",
+    "expected": {
+      "operation": "read",
+      "register": 40,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 65496,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-rx-reg-28",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD28000259D8FECD77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (own decode of the btsnoop file)",
+    "description": "JBD-SP04S034-L4S-200A-B-U, register 0x28: charge overcurrent.",
+    "expected": {
+      "register": 40,
+      "status": 0,
+      "dataLength": 2,
+      "checksumValid": true,
+      "setting": "charge.ocp",
+      "raw": 23000,
+      "value": 230,
+      "unit": "A"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-tx-read-3e",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "DDA53E00FFC277",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (official app inside factory mode; own decode of the btsnoop file)",
+    "description": "Read register 0x3E (charge overcurrent delay and release).",
+    "expected": {
+      "operation": "read",
+      "register": 62,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 65474,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-rx-reg-3e",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD3E00020A1EFFD677",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (own decode of the btsnoop file)",
+    "description": "JBD-SP04S034-L4S-200A-B-U, register 0x3E: charge overcurrent delay and release.",
+    "expected": {
+      "register": 62,
+      "status": 0,
+      "dataLength": 2,
+      "checksumValid": true,
+      "setting": "jbd.charge_oc_delays",
+      "raw": 2590,
+      "values": {
+        "charge.ocp_delay": 10,
+        "charge.ocp_recovery": 30
+      },
+      "unit": "s"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-tx-read-29",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "DDA52900FFD777",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (official app inside factory mode; own decode of the btsnoop file)",
+    "description": "Read register 0x29 (discharge overcurrent (stored negative)).",
+    "expected": {
+      "operation": "read",
+      "register": 41,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 65495,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-rx-reg-29",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD290002A628FF3077",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (own decode of the btsnoop file)",
+    "description": "JBD-SP04S034-L4S-200A-B-U, register 0x29: discharge overcurrent (stored negative).",
+    "expected": {
+      "register": 41,
+      "status": 0,
+      "dataLength": 2,
+      "checksumValid": true,
+      "setting": "discharge.ocp",
+      "raw": 42536,
+      "rawSigned": -23000,
+      "value": 230,
+      "unit": "A"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-tx-read-3f",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "DDA53F00FFC177",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (official app inside factory mode; own decode of the btsnoop file)",
+    "description": "Read register 0x3F (discharge overcurrent delay and release).",
+    "expected": {
+      "operation": "read",
+      "register": 63,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 65473,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-rx-reg-3f",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD3F00020A1EFFD677",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (own decode of the btsnoop file)",
+    "description": "JBD-SP04S034-L4S-200A-B-U, register 0x3F: discharge overcurrent delay and release.",
+    "expected": {
+      "register": 63,
+      "status": 0,
+      "dataLength": 2,
+      "checksumValid": true,
+      "setting": "jbd.discharge_oc_delays",
+      "raw": 2590,
+      "values": {
+        "discharge.ocp_delay": 10,
+        "discharge.ocp_recovery": 30
+      },
+      "unit": "s"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-tx-read-2c",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "DDA52C00FFD477",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (official app inside factory mode; own decode of the btsnoop file)",
+    "description": "Read register 0x2C (shunt resistance).",
+    "expected": {
+      "operation": "read",
+      "register": 44,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 65492,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-rx-reg-2c",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD2C00020001FFFD77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (own decode of the btsnoop file)",
+    "description": "JBD-SP04S034-L4S-200A-B-U, register 0x2C: shunt resistance.",
+    "expected": {
+      "register": 44,
+      "status": 0,
+      "dataLength": 2,
+      "checksumValid": true,
+      "setting": "jbd.shunt_resistance",
+      "raw": 1,
+      "value": 0.1,
+      "unit": "mΩ"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-tx-read-38",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "DDA53800FFC877",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (official app inside factory mode; own decode of the btsnoop file)",
+    "description": "Read register 0x38 (AFE short circuit and secondary discharge overcurrent byte pair).",
+    "expected": {
+      "operation": "read",
+      "register": 56,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 65480,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-rx-reg-38",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD3800028D5CFF1577",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (own decode of the btsnoop file)",
+    "description": "JBD-SP04S034-L4S-200A-B-U, register 0x38: AFE short circuit and secondary discharge overcurrent byte pair.",
+    "expected": {
+      "register": 56,
+      "status": 0,
+      "dataLength": 2,
+      "checksumValid": true,
+      "setting": "jbd.afe_sc_ocd2",
+      "raw": 36188,
+      "ti": {
+        "rsns": true,
+        "scdDelayUs": 100,
+        "scdThresholdCode": 5,
+        "scdThresholdMv": 155,
+        "ocdDelayMs": 320,
+        "ocdThresholdCode": 12,
+        "ocdThresholdMv": 83
+      }
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-tx-read-36",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "DDA53600FFCA77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (official app inside factory mode; own decode of the btsnoop file)",
+    "description": "Read register 0x36 (hardware cell overvoltage).",
+    "expected": {
+      "operation": "read",
+      "register": 54,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 65482,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-rx-reg-36",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD3600020F3CFFB377",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (own decode of the btsnoop file)",
+    "description": "JBD-SP04S034-L4S-200A-B-U, register 0x36: hardware cell overvoltage.",
+    "expected": {
+      "register": 54,
+      "status": 0,
+      "dataLength": 2,
+      "checksumValid": true,
+      "setting": "jbd.cell_ovp_hw",
+      "raw": 3900,
+      "value": 3.9,
+      "unit": "V"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-tx-read-39",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "DDA53900FFC777",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (official app inside factory mode; own decode of the btsnoop file)",
+    "description": "Read register 0x39 (AFE hardware delays and short circuit release time).",
+    "expected": {
+      "operation": "read",
+      "register": 57,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 65479,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-rx-reg-39",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD390002F064FEAA77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (own decode of the btsnoop file)",
+    "description": "JBD-SP04S034-L4S-200A-B-U, register 0x39: AFE hardware delays and short circuit release time.",
+    "expected": {
+      "register": 57,
+      "status": 0,
+      "dataLength": 2,
+      "checksumValid": true,
+      "setting": "jbd.afe_hw_delays",
+      "raw": 61540,
+      "ti": {
+        "uvDelayS": 16,
+        "ovDelayS": 8
+      },
+      "scpRecoveryS": 100
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-tx-read-37",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "DDA53700FFC977",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (official app inside factory mode; own decode of the btsnoop file)",
+    "description": "Read register 0x37 (hardware cell undervoltage).",
+    "expected": {
+      "operation": "read",
+      "register": 55,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 65481,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-rx-reg-37",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD37000207D0FF2777",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (own decode of the btsnoop file)",
+    "description": "JBD-SP04S034-L4S-200A-B-U, register 0x37: hardware cell undervoltage.",
+    "expected": {
+      "register": 55,
+      "status": 0,
+      "dataLength": 2,
+      "checksumValid": true,
+      "setting": "jbd.cell_uvp_hw",
+      "raw": 2000,
+      "value": 2,
+      "unit": "V"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-tx-read-2a",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "DDA52A00FFD677",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (official app inside factory mode; own decode of the btsnoop file)",
+    "description": "Read register 0x2A (balance start voltage).",
+    "expected": {
+      "operation": "read",
+      "register": 42,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 65494,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-rx-reg-2a",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD2A00020C80FF7277",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (own decode of the btsnoop file)",
+    "description": "JBD-SP04S034-L4S-200A-B-U, register 0x2A: balance start voltage.",
+    "expected": {
+      "register": 42,
+      "status": 0,
+      "dataLength": 2,
+      "checksumValid": true,
+      "setting": "balance.start_voltage",
+      "raw": 3200,
+      "value": 3.2,
+      "unit": "V"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-tx-read-2b",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "DDA52B00FFD577",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (official app inside factory mode; own decode of the btsnoop file)",
+    "description": "Read register 0x2B (balance window).",
+    "expected": {
+      "operation": "read",
+      "register": 43,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 65493,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-rx-reg-2b",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD2B0002001EFFE077",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (own decode of the btsnoop file)",
+    "description": "JBD-SP04S034-L4S-200A-B-U, register 0x2B: balance window.",
+    "expected": {
+      "register": 43,
+      "status": 0,
+      "dataLength": 2,
+      "checksumValid": true,
+      "setting": "balance.trigger_delta",
+      "raw": 30,
+      "value": 0.03,
+      "unit": "V"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-tx-read-30",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "DDA53000FFD077",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (official app inside factory mode; own decode of the btsnoop file)",
+    "description": "Read register 0x30 (switch control time).",
+    "expected": {
+      "operation": "read",
+      "register": 48,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 65488,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-rx-reg-30",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD300002001EFFE077",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (own decode of the btsnoop file)",
+    "description": "JBD-SP04S034-L4S-200A-B-U, register 0x30: switch control time.",
+    "expected": {
+      "register": 48,
+      "status": 0,
+      "dataLength": 2,
+      "checksumValid": true,
+      "setting": "jbd.switch_time",
+      "raw": 30,
+      "value": 30,
+      "unit": "s"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-tx-read-10",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "DDA51000FFF077",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (official app inside factory mode; own decode of the btsnoop file)",
+    "description": "Read register 0x10 (design capacity).",
+    "expected": {
+      "operation": "read",
+      "register": 16,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 65520,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-rx-reg-10",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD1000026D60FF3177",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (own decode of the btsnoop file)",
+    "description": "JBD-SP04S034-L4S-200A-B-U, register 0x10: design capacity.",
+    "expected": {
+      "register": 16,
+      "status": 0,
+      "dataLength": 2,
+      "checksumValid": true,
+      "setting": "capacity.nominal",
+      "raw": 28000,
+      "value": 280,
+      "unit": "Ah"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-tx-read-11",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "DDA51100FFEF77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (official app inside factory mode; own decode of the btsnoop file)",
+    "description": "Read register 0x11 (cycle capacity).",
+    "expected": {
+      "operation": "read",
+      "register": 17,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 65519,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-rx-reg-11",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD1100025780FF2777",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (own decode of the btsnoop file)",
+    "description": "JBD-SP04S034-L4S-200A-B-U, register 0x11: cycle capacity.",
+    "expected": {
+      "register": 17,
+      "status": 0,
+      "dataLength": 2,
+      "checksumValid": true,
+      "setting": "capacity.cycle",
+      "raw": 22400,
+      "value": 224,
+      "unit": "Ah"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-tx-read-12",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "DDA51200FFEE77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (official app inside factory mode; own decode of the btsnoop file)",
+    "description": "Read register 0x12 (cell voltage at 100 %).",
+    "expected": {
+      "operation": "read",
+      "register": 18,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 65518,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-rx-reg-12",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD1200020DACFF4577",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (own decode of the btsnoop file)",
+    "description": "JBD-SP04S034-L4S-200A-B-U, register 0x12: cell voltage at 100 %.",
+    "expected": {
+      "register": 18,
+      "status": 0,
+      "dataLength": 2,
+      "checksumValid": true,
+      "setting": "charge.soc100_voltage",
+      "raw": 3500,
+      "value": 3.5,
+      "unit": "V"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-tx-read-13",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "DDA51300FFED77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (official app inside factory mode; own decode of the btsnoop file)",
+    "description": "Read register 0x13 (cell voltage at 0 %).",
+    "expected": {
+      "operation": "read",
+      "register": 19,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 65517,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-rx-reg-13",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD1300020AF0FF0477",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (own decode of the btsnoop file)",
+    "description": "JBD-SP04S034-L4S-200A-B-U, register 0x13: cell voltage at 0 %.",
+    "expected": {
+      "register": 19,
+      "status": 0,
+      "dataLength": 2,
+      "checksumValid": true,
+      "setting": "charge.soc0_voltage",
+      "raw": 2800,
+      "value": 2.8,
+      "unit": "V"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-tx-read-32",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "DDA53200FFCE77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (official app inside factory mode; own decode of the btsnoop file)",
+    "description": "Read register 0x32 (cell voltage at 80 %).",
+    "expected": {
+      "operation": "read",
+      "register": 50,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 65486,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-rx-reg-32",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD3200020D48FFA977",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (own decode of the btsnoop file)",
+    "description": "JBD-SP04S034-L4S-200A-B-U, register 0x32: cell voltage at 80 %.",
+    "expected": {
+      "register": 50,
+      "status": 0,
+      "dataLength": 2,
+      "checksumValid": true,
+      "setting": "jbd.soc80_voltage",
+      "raw": 3400,
+      "value": 3.4,
+      "unit": "V"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-tx-read-33",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "DDA53300FFCD77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (official app inside factory mode; own decode of the btsnoop file)",
+    "description": "Read register 0x33 (cell voltage at 60 %).",
+    "expected": {
+      "operation": "read",
+      "register": 51,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 65485,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-rx-reg-33",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD3300020D16FFDB77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (own decode of the btsnoop file)",
+    "description": "JBD-SP04S034-L4S-200A-B-U, register 0x33: cell voltage at 60 %.",
+    "expected": {
+      "register": 51,
+      "status": 0,
+      "dataLength": 2,
+      "checksumValid": true,
+      "setting": "jbd.soc60_voltage",
+      "raw": 3350,
+      "value": 3.35,
+      "unit": "V"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-tx-read-34",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "DDA53400FFCC77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (official app inside factory mode; own decode of the btsnoop file)",
+    "description": "Read register 0x34 (cell voltage at 40 %).",
+    "expected": {
+      "operation": "read",
+      "register": 52,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 65484,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-rx-reg-34",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD3400020CE4FF0E77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (own decode of the btsnoop file)",
+    "description": "JBD-SP04S034-L4S-200A-B-U, register 0x34: cell voltage at 40 %.",
+    "expected": {
+      "register": 52,
+      "status": 0,
+      "dataLength": 2,
+      "checksumValid": true,
+      "setting": "jbd.soc40_voltage",
+      "raw": 3300,
+      "value": 3.3,
+      "unit": "V"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-tx-read-35",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "DDA53500FFCB77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (official app inside factory mode; own decode of the btsnoop file)",
+    "description": "Read register 0x35 (cell voltage at 20 %).",
+    "expected": {
+      "operation": "read",
+      "register": 53,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 65483,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-rx-reg-35",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD3500020C1CFFD677",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (own decode of the btsnoop file)",
+    "description": "JBD-SP04S034-L4S-200A-B-U, register 0x35: cell voltage at 20 %.",
+    "expected": {
+      "register": 53,
+      "status": 0,
+      "dataLength": 2,
+      "checksumValid": true,
+      "setting": "jbd.soc20_voltage",
+      "raw": 3100,
+      "value": 3.1,
+      "unit": "V"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-tx-read-14",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "DDA51400FFEC77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (official app inside factory mode; own decode of the btsnoop file)",
+    "description": "Read register 0x14 (self discharge rate).",
+    "expected": {
+      "operation": "read",
+      "register": 20,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 65516,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-rx-reg-14",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD1400020002FFFC77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (own decode of the btsnoop file)",
+    "description": "JBD-SP04S034-L4S-200A-B-U, register 0x14: self discharge rate.",
+    "expected": {
+      "register": 20,
+      "status": 0,
+      "dataLength": 2,
+      "checksumValid": true,
+      "setting": "jbd.self_discharge_rate",
+      "raw": 2,
+      "value": 0.2,
+      "unit": "%"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-tx-read-2f",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "DDA52F00FFD177",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (official app inside factory mode; own decode of the btsnoop file)",
+    "description": "Read register 0x2F (cell count).",
+    "expected": {
+      "operation": "read",
+      "register": 47,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 65489,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-rx-reg-2f",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD2F00020004FFFA77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (own decode of the btsnoop file)",
+    "description": "JBD-SP04S034-L4S-200A-B-U, register 0x2F: cell count.",
+    "expected": {
+      "register": 47,
+      "status": 0,
+      "dataLength": 2,
+      "checksumValid": true,
+      "setting": "system.cell_count",
+      "raw": 4,
+      "value": 4
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-tx-read-17",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "DDA51700FFE977",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (official app inside factory mode; own decode of the btsnoop file)",
+    "description": "Read register 0x17 (cycle count).",
+    "expected": {
+      "operation": "read",
+      "register": 23,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 65513,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-rx-reg-17",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD1700020000FFFE77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (own decode of the btsnoop file)",
+    "description": "JBD-SP04S034-L4S-200A-B-U, register 0x17: cycle count.",
+    "expected": {
+      "register": 23,
+      "status": 0,
+      "dataLength": 2,
+      "checksumValid": true,
+      "setting": "jbd.cycle_count",
+      "raw": 0,
+      "value": 0
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-rx-reg-15",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD1500022C7CFF5677",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (own decode of the btsnoop file)",
+    "description": "JBD-SP04S034-L4S-200A-B-U, register 0x15: production date.",
+    "expected": {
+      "register": 21,
+      "status": 0,
+      "dataLength": 2,
+      "checksumValid": true,
+      "setting": "jbd.production_date",
+      "raw": 11388,
+      "value": "2022-03-28"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-tx-read-a1",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "DDA5A100FF5F77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (official app inside factory mode; own decode of the btsnoop file)",
+    "description": "Read register 0xA1 (model string).",
+    "expected": {
+      "operation": "read",
+      "register": 161,
+      "dataLength": 0,
+      "data": "",
+      "checksum": 65375,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "sp04s034-ble-rx-reg-a1",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DDA1001A194A42442D53503034533033342D4C34532D323030412D422D55F9EE77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/btsnoop_hci_jbd-sp04s034-l4s-200a-b-u.log (own decode of the btsnoop file)",
+    "description": "JBD-SP04S034-L4S-200A-B-U, register 0xA1: model string.",
+    "expected": {
+      "register": 161,
+      "status": 0,
+      "dataLength": 26,
+      "checksumValid": true,
+      "setting": "jbd.model",
+      "textLength": 25,
+      "text": "JBD-SP04S034-L4S-200A-B-U",
+      "notifications": [
+        "DDA1001A194A42442D53503034533033342D4C34",
+        "532D323030412D422D55F9EE77"
+      ]
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "i94-ble-rx-hwver-v13",
+    "variant": "JBD",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "DD05000F53503034533033344C345332303041FC5A77",
+    "source": "https://github.com/syssi/esphome-jbd-bms/issues/94 (comment 2325146392, official iOS app capture of a JBD-SP04S034 with the FF AA module)",
+    "description": "Hardware version of the newer module generation: \"SP04S034L4S200A\" (15 characters, no dashes), split 20 + 2 bytes.",
+    "expected": {
+      "register": 5,
+      "status": 0,
+      "dataLength": 15,
+      "checksumValid": true,
+      "hardwareVersion": "SP04S034L4S200A",
+      "notifications": [
+        "DD05000F53503034533033344C345332303041FC",
+        "5A77"
+      ]
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "up16s-rs485-tx-status-addr1",
+    "variant": "JBD_UP",
+    "link": "rs485",
+    "direction": "tx",
+    "hex": "0178100010A000007FB2",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/pdus/JBD-UP16S020-two-devices.txt; https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/tests/components/jbd_bms_up_pack/frames.h; https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/tests/components/jbd_bms_up/request_frame_test.cpp",
+    "description": "Pack status request to address 1: function 0x78, start 0x1000, end 0x10A0, no data, CRC-16/MODBUS low byte first.",
+    "expected": {
+      "address": 1,
+      "function": 120,
+      "startAddress": 4096,
+      "endAddress": 4256,
+      "dataLength": 0,
+      "crcValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "up16s-rs485-rx-status-addr1",
+    "variant": "JBD_UP",
+    "link": "rs485",
+    "direction": "rx",
+    "hex": "0178100010A0009E14C50000000493E017CF17CF2710271002C602D600000064000000000000000000030004000C00030D0300080CF50CFB000402C8000202C002C4024807D001C007D000100CFE0CF60D030CF60CF80CFB0D000CF50CFC0CFB0CFE0CFB0CFC0CFD0CFD0CFA000402C502C002C602C8000000000C044A4244343831303030303000000000000000000000000000000000000000000200035AA60000000000006A2E",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/pdus/JBD-UP16S020-two-devices.txt; https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/tests/components/jbd_bms_up_pack/frames.h; https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/tests/components/jbd_bms_up/request_frame_test.cpp",
+    "description": "JBD-UP16S020 at address 1 (ECO-WORTHY 48 V 100 Ah rack battery): 53.17 V, 0.00 A, SOC 60.95 %, 16 cells, 4 temperatures, model \"JBD48100000\".",
+    "expected": {
+      "address": 1,
+      "function": 120,
+      "startAddress": 4096,
+      "endAddress": 4256,
+      "dataLength": 158,
+      "crcValid": true,
+      "status": {
+        "totalVoltage": 53.17,
+        "current": 0,
+        "soc": 60.95,
+        "remainingCapacity": 60.95,
+        "fullCapacity": 100,
+        "ratedCapacity": 100,
+        "mosTemperature": 21,
+        "ambientTemperature": 22.6,
+        "operationStatus": 0,
+        "soh": 100,
+        "protectionBits": 0,
+        "alarmBits": 0,
+        "mosStatus": 3,
+        "cycles": 12,
+        "maxCellIndex": 3,
+        "maxCellVoltage": 3.331,
+        "minCellIndex": 8,
+        "minCellVoltage": 3.317,
+        "avgCellVoltage": 3.323,
+        "chargeVoltageLimit": 58.4,
+        "chargeCurrentLimit": 200,
+        "dischargeVoltageLimit": 44.8,
+        "dischargeCurrentLimit": 200,
+        "cellCount": 16,
+        "cellVoltages": [
+          3.326,
+          3.318,
+          3.331,
+          3.318,
+          3.32,
+          3.323,
+          3.328,
+          3.317,
+          3.324,
+          3.323,
+          3.326,
+          3.323,
+          3.324,
+          3.325,
+          3.325,
+          3.322
+        ],
+        "temperatures": [
+          20.9,
+          20.4,
+          21,
+          21.2
+        ],
+        "balanceBits": 0,
+        "firmwareVersion": "12.4",
+        "model": "JBD48100000"
+      }
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "up16s-rs485-tx-status-addr2",
+    "variant": "JBD_UP",
+    "link": "rs485",
+    "direction": "tx",
+    "hex": "0278100010A000003FA7",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/pdus/JBD-UP16S020-two-devices.txt; https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/tests/components/jbd_bms_up_pack/frames.h; https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/tests/components/jbd_bms_up/request_frame_test.cpp",
+    "description": "Pack status request to address 2.",
+    "expected": {
+      "address": 2,
+      "function": 120,
+      "startAddress": 4096,
+      "endAddress": 4256,
+      "dataLength": 0,
+      "crcValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "up16s-rs485-rx-status-addr2",
+    "variant": "JBD_UP",
+    "link": "rs485",
+    "direction": "rx",
+    "hex": "0278100010A0009614C914C9000493E01C841C9F2710271002CA02DA00000064000000000000000000030000000200040D0100010CFA0CFD000302D0000202C902CC024803E801C003E800100CFA0CFF0CFB0D010CFF0CFC0CFC0D000CFB0CFE0D000CFC0CFF0CFE0D000CFD000402CA02C902D002CE0000000000044A424434383130303030300000000000000000000000000000000000000000010002BCC0",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/pdus/JBD-UP16S020-two-devices.txt; https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/tests/components/jbd_bms_up_pack/frames.h; https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/tests/components/jbd_bms_up/request_frame_test.cpp",
+    "description": "Second pack on the same bus: 53.21 V, SOC 73.00 %, 150 data bytes (shorter tail than address 1).",
+    "expected": {
+      "address": 2,
+      "function": 120,
+      "startAddress": 4096,
+      "endAddress": 4256,
+      "dataLength": 150,
+      "crcValid": true,
+      "status": {
+        "totalVoltage": 53.21,
+        "current": 0,
+        "soc": 73,
+        "remainingCapacity": 73.27,
+        "fullCapacity": 100,
+        "ratedCapacity": 100,
+        "mosTemperature": 21.4,
+        "ambientTemperature": 23,
+        "operationStatus": 0,
+        "soh": 100,
+        "protectionBits": 0,
+        "alarmBits": 0,
+        "mosStatus": 3,
+        "cycles": 2,
+        "maxCellIndex": 4,
+        "maxCellVoltage": 3.329,
+        "minCellIndex": 1,
+        "minCellVoltage": 3.322,
+        "avgCellVoltage": 3.325,
+        "chargeVoltageLimit": 58.4,
+        "chargeCurrentLimit": 100,
+        "dischargeVoltageLimit": 44.8,
+        "dischargeCurrentLimit": 100,
+        "cellCount": 16,
+        "cellVoltages": [
+          3.322,
+          3.327,
+          3.323,
+          3.329,
+          3.327,
+          3.324,
+          3.324,
+          3.328,
+          3.323,
+          3.326,
+          3.328,
+          3.324,
+          3.327,
+          3.326,
+          3.328,
+          3.325
+        ],
+        "temperatures": [
+          21.4,
+          21.3,
+          22,
+          21.8
+        ],
+        "balanceBits": 0,
+        "firmwareVersion": "0.4",
+        "model": "JBD48100000"
+      }
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "up16s-rs485-tx-params-addr1",
+    "variant": "JBD_UP",
+    "link": "rs485",
+    "direction": "tx",
+    "hex": "01781C001CA000007C2E",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/docs/pdus/JBD-UP16S020-two-devices.txt; https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/tests/components/jbd_bms_up_pack/frames.h; https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/tests/components/jbd_bms_up/request_frame_test.cpp",
+    "description": "Pack parameter block request (start 0x1C00); answer layout only partly known, not decoded.",
+    "expected": {
+      "address": 1,
+      "function": 120,
+      "startAddress": 7168,
+      "endAddress": 7328,
+      "dataLength": 0,
+      "crcValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "up16s-rs485-tx-mos-charge-off",
+    "variant": "JBD_UP",
+    "link": "rs485",
+    "direction": "tx",
+    "hex": "0179290229040006114A424400011585",
+    "source": "https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/tests/components/jbd_bms_up/write_frame_test.cpp (MosfetWriteFrameTest.DisableCharging); https://github.com/syssi/esphome-jbd-bms/blob/4eea180b18e357b8cab244ab301c3b5030bd6c6b/components/jbd_bms_up_pack/jbd_bms_up_pack.cpp (ADDR_MOSFET_CTRL)",
+    "description": "UP protocol MOSFET write (function 0x79, 0x2902..0x2904, marker 11 \"JBD\", value 0x0001 = discharge only). Constructed by the syssi unit test; no capture of the device answer.",
+    "expected": {
+      "address": 1,
+      "function": 121,
+      "startAddress": 10498,
+      "endAddress": 10500,
+      "dataLength": 6,
+      "crcValid": true,
+      "write": {
+        "marker": "114A4244",
+        "value": 1
+      }
+    },
+    "expectedComputed": true
+  }
+]
