@@ -6,6 +6,7 @@ import { neeyDrivers } from './neey/index.js';
 import { dalyBalancerDrivers } from './daly-balancer/index.js';
 import { jbdDefinition, jbdUpRs485Definition } from './jbd/index.js';
 import { seplosDrivers } from './seplos/index.js';
+import { deyeBleDefinition, deyeCanDefinition, deyeRs485Definition } from './deye/index.js';
 
 /**
  * @typedef {{ name: string, chunkSize?: number, create: (link: import('@ubms/transport').Link) => { stop?: () => void } }} DemoDefinition
@@ -27,7 +28,12 @@ import { seplosDrivers } from './seplos/index.js';
  *   0.25 s, and an unnamed FF00 device is more often a JBD than a Daly), then the Daly balancer
  *   before `daly-modbus`, which would accept a balancer, then the Daly BMS drivers, then Seplos
  *   (its names BPxx, SPxxB, XZH rank first anyway).
- * - Serial: the rare address based `jbd-up-rs485` after the Daly drivers.
+ * - FFF1 (Deye): no other family uses it, so `deye-ble` only matters for ties and sits after
+ *   Seplos and before Atorch.
+ * - Serial: the rare address based `jbd-up-rs485` after the Daly drivers, then `deye-rs485`
+ *   (one short AA 55 read that Seplos and Pylontech packs ignore; after Seplos a Deye pack would
+ *   first sit through the three Seplos trials). `deye-can` needs an SLCAN USB-CAN adapter and
+ *   carries `links.serial.autoDetect: false`, so it runs only when selected explicitly.
  * See the detection sections of docs/protocols/*.md and the comments in each family's index.js.
  * @type {DriverDefinitionWithDemo[]}
  */
@@ -39,7 +45,10 @@ export const drivers = [
   ...dalyBalancerDrivers,
   ...dalyDrivers,
   jbdUpRs485Definition,
+  deyeRs485Definition,
   ...seplosDrivers,
+  deyeBleDefinition,
+  deyeCanDefinition,
   ...atorchDrivers,
 ];
 

@@ -15,6 +15,7 @@ the frames in `packages/bms-drivers/test/vectors/<family>.json` are the referenc
 | Daly active balancers | [daly-balancer.md](daly-balancer.md) | Modbus D2 | BLE, UART |
 | JBD BMS | [jbd.md](jbd.md) | DD A5 protocol, UP series Modbus style protocol | BLE, UART, RS485 |
 | Seplos BMS | [seplos.md](seplos.md) | version 2 ASCII and its Bluetooth binary form, version 3 Modbus RTU | BLE, RS485, RS232 |
+| Deye batteries | [deye.md](deye.md) | AA 55 protocol (RS485 and AES encrypted Bluetooth), PCS CAN broadcast (Pylontech style) | RS485, BLE, CAN through SLCAN |
 
 ## Drivers
 
@@ -37,6 +38,9 @@ the frames in `packages/bms-drivers/test/vectors/<family>.json` are the referenc
 | `seplos-v3` | Seplos | version 3 | Modbus function 0x04 and 0x01 reads |
 | `seplos-v2-ble` | Seplos | version 2 over Bluetooth | 0x51 and 0x61 reads |
 | `seplos-v2` | Seplos | version 2 ASCII | 0x51 and 0x42 reads at 19200, then 9600 baud |
+| `deye-rs485` | Deye | AA 55 over RS485 | read AA 55 01 01 00 00 20 0D 0A at 9600 baud, CRC and plausibility checks; before Seplos |
+| `deye-ble` | Deye | AA 55 in an AES session | handshake message `random`, only a Deye BMS computes the expected cipher block from the advertised name |
+| `deye-can` | Deye | PCS CAN through SLCAN | explicit selection only (`autoDetect: false`); opens the adapter listen-only and never transmits a CAN frame |
 
 Within a family the order above is also the detection order.
 
