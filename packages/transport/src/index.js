@@ -11,3 +11,4 @@ export { WebBluetoothProvider, WebBleDevice, WebBleLink } from './web-bluetooth.
 export { WebSerialProvider, WebSerialPort, WebSerialLink, USB_SERIAL_ADAPTERS } from './web-serial.js';
 export { TauriBleProvider, TauriSerialProvider, isTauri } from './tauri.js';
 export { detectEnvironment } from './environment.js';
+export { SLCAN_BITRATES, SLCAN_CR, SLCAN_BEL, SLCAN_MAX_LINE, slcanCommand, slcanBitrateCommand, formatSlcanFrame, encodeSlcanFrame, parseSlcanLine, SlcanDecoder } from './slcan.js';
