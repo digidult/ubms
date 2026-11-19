@@ -9,6 +9,8 @@ the frames in `packages/bms-drivers/test/vectors/<family>.json` are the referenc
 | JK BMS (Jikong) | [jk.md](jk.md) | JK02 24S and 32S (BLE), JK04 (BLE), JK-PB RS485 Modbus, JK-B UART "4E 57" | BLE, RS485, UART |
 | ANT BMS | [ant.md](ant.md) | 2021+ protocol (7E A1 frames), legacy protocol (AA 55 AA FF status) | BLE, UART |
 | Daly BMS | [daly.md](daly.md) | classic 13-byte protocol, newer Modbus style protocol | BLE, UART, RS485 |
+| JK active balancers | [jk-balancer.md](jk-balancer.md) | JK04 (BLE), JK-DZ11-B2A24S RS485 | BLE, RS485 |
+| Atorch meters and loads | [atorch.md](atorch.md) | FF 55 reports and commands, PX100 load frames | BLE |
 
 ## Drivers
 
@@ -21,6 +23,9 @@ the frames in `packages/bms-drivers/test/vectors/<family>.json` are the referenc
 | `ant-legacy` | ANT | legacy protocol | status request DB DB 00 00 00 00 (BLE) or 5A 5A 00 00 01 01 (UART) |
 | `daly-modbus` | Daly | Modbus D2 and 0x81 | status register read (D2 first, then the 0x81 map) |
 | `daly` | Daly | classic A5 | 0x90 request (twice, Daly modules sleep) then 0x94 |
+| `jk-balancer-ble` | JK | JK04 balancer | device info request 0x97, then the first cell frame after 0x96 must have the JK04 layout; registered before `jk-ble` |
+| `jk-balancer-rs485` | JK | RS485 balancer | read request 55 AA 01 FF 00 00 FF at 9600 baud, 74-byte EB 90 answer with plausible cells |
+| `atorch` | Atorch | FF 55 | listens for a report for up to 3 s and never writes; registered last |
 
 Within a family the order above is also the detection order.
 

@@ -229,8 +229,12 @@ export class ViewOverview extends UiElement {
           : nothing}
         <div class="metrics">
           <ui-stat label=${t('Voltage')} icon="battery" .value=${num(s.voltage, 2)} unit="V"></ui-stat>
-          <ui-stat label=${t('Current')} icon="current" .value=${num(s.current, 2, { signed: true })} unit="A" tone=${currentTone}></ui-stat>
-          <ui-stat label=${t('Power')} icon="bolt" .value=${num(s.power, autoDecimals(s.power, 1), { signed: true })} unit="W" tone=${currentTone}></ui-stat>
+          ${s.current != null
+            ? html`<ui-stat label=${t('Current')} icon="current" .value=${num(s.current, 2, { signed: true })} unit="A" tone=${currentTone}></ui-stat>`
+            : nothing}
+          ${s.power != null
+            ? html`<ui-stat label=${t('Power')} icon="bolt" .value=${num(s.power, autoDecimals(s.power, 1), { signed: true })} unit="W" tone=${currentTone}></ui-stat>`
+            : nothing}
           ${s.capacityRemaining !== undefined
             ? html`<ui-stat
                 label=${t('Remaining')}

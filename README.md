@@ -1,7 +1,7 @@
 # ubms
 
 Universal BMS viewer and configurator that runs in the browser. It connects to battery management
-systems and active balancers over **Bluetooth** (Web Bluetooth) or a **serial port** (Web Serial:
+systems, active balancers and meters over **Bluetooth** (Web Bluetooth) or a **serial port** (Web Serial:
 UART and RS485 through USB adapters), shows live data and reads and writes the device settings.
 
 - Works offline: the whole app is one HTML file. Copy it to a phone or laptop and open it.
@@ -13,17 +13,21 @@ UART and RS485 through USB adapters), shows live data and reads and writes the d
 - Languages: English, Ukrainian, Russian, German, French.
 - Demo mode with simulated devices that speak the real protocols.
 
-Supported devices (first stage): **JK BMS** (Jikong), **ANT BMS**, **Daly BMS**.
+Supported devices: **JK BMS** (Jikong), **ANT BMS**, **Daly BMS**, **JK active balancers**,
+**Atorch** meters and electronic loads.
 
 | Driver | Devices and protocol | Links | Settings (writable / read only / actions) |
 | --- | --- | --- | --- |
-| `jk-ble` | JK BMS JK02 (24S and 32S, hardware and firmware 11+ incl. JK-PB) and JK04 | Bluetooth | 32S: 64 / 30 / 9, 24S: 32 / 19 / 0, JK04: 7 / 0 / 0 |
+| `jk-ble` | JK BMS JK02 (24S and 32S, hardware and firmware 11+ incl. JK-PB) and JK04 | Bluetooth | 32S: 64 / 30 / 9, 24S: 32 / 19 / 0, JK04: 6 / 1 / 0 |
 | `jk-pb-rs485` | JK-PB inverter BMS, frame triggers and Modbus writes | RS485 | 47 / 45 / 0 |
 | `jk-uart` | JK-B series, "4E 57" protocol on the GPS/UART port | UART, RS485 | 3 / 35 / 0 |
 | `ant` | ANT BMS from about 2021 (7E A1 frames) | Bluetooth, UART | 49 + switches / 36 / 14 |
 | `ant-legacy` | ANT BMS up to about 2020 (140-byte status) | Bluetooth, UART | switches / 34 / 1 |
 | `daly-modbus` | Daly BMS with the newer Modbus protocol (D2 and 0x81 flavours) | Bluetooth, UART, RS485 | D2: 35 / 5 / 3, 0x81: 7 / 50 / 0 |
 | `daly` | Daly BMS, classic 13-byte A5 protocol | Bluetooth, UART, RS485 | 37 / 14 / 1 |
+| `jk-balancer-ble` | JK active balancers with the JK04 protocol (JK-B2A16S, JK-B2A24S, JK-B5A24S) | Bluetooth | 6 / 1 / 0 |
+| `jk-balancer-rs485` | JK-DZ11-B2A24S active balancer, "55 AA" requests and "EB 90" answers | RS485 | 4 / 1 / 0 |
+| `atorch` | Atorch DC and AC meters, USB testers and DL24 electronic loads, "FF 55" protocol (load control over PX100 is experimental) | Bluetooth | AC: 2 / 0 / 7, DC: 2 / 0 / 8, USB: 0 / 1 / 8 |
 
 Parameters whose encoding is not confirmed by captures or vendor documents are shown read only.
 Every driver ships a simulator, so the demo mode shows each protocol without hardware. See

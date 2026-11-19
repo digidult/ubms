@@ -1,7 +1,7 @@
 import { html, css } from 'lit';
 import { UiElement, define, sharedStyles, StoreController, icon, t, copyText, toast } from '@ubms/ui';
 import { shortUuid } from '@ubms/transport';
-import { num, duration } from '../format.js';
+import { num, duration, linkKindLabel } from '../format.js';
 
 export class ViewInfo extends UiElement {
   static properties = { ctrl: { attribute: false } };
@@ -76,7 +76,7 @@ export class ViewInfo extends UiElement {
     if (i.uptime !== undefined) push(t('Uptime'), duration(i.uptime));
     if (i.powerOnCount !== undefined) push(t('Power-on count'), num(i.powerOnCount, 0));
     for (const e of Object.values(i.extra ?? {})) {
-      push(t(e.label), typeof e.value === 'number' ? `${num(e.value, e.decimals ?? 2)}${e.unit ? ` ${e.unit}` : ''}` : e.value);
+      push(t(e.label), typeof e.value === 'number' ? `${num(e.value, e.decimals ?? 2)}${e.unit ? ` ${e.unit}` : ''}` : t(String(e.value)));
     }
     /** @type {Array<[string, string]>} */
     const link = [];
@@ -85,7 +85,7 @@ export class ViewInfo extends UiElement {
       link.push([t('Driver'), device.driverId]);
     }
     const l = /** @type {any} */ (this.ctrl.session.link?.describe() ?? {});
-    if (l.kind) link.push([t('Connection'), l.kind === 'ble' ? t('Bluetooth') : l.kind === 'serial' ? t('Serial') : l.kind === 'demo' ? t('Demo') : l.kind]);
+    if (l.kind) link.push([t('Connection'), linkKindLabel(l.kind)]);
     if (l.name) link.push([t('Port or device'), l.name]);
     if (l.service) link.push([t('GATT service'), shortUuid(l.service)]);
     if (l.notify) link.push([t('Notify characteristic'), shortUuid(l.notify)]);
