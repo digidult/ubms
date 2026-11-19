@@ -307,8 +307,17 @@ const scenarios = [
         },
         { eval: `(window.ubms.state.snapshot?.cells?.length ?? 0) > 0` },
         {
-          eval: `window.ubms.disconnect().then(() => window.ubms.connectRecent(window.ubms.state.recent.find((r) => r.kind === 'ble'))).then(() => window.ubms.state.state === 'connected')`,
+          // Recent devices connect with the remembered driver, whatever type is selected now.
+          eval: `window.ubms.disconnect().then(() => (window.ubms.setPref('selection', 'family:ant'), window.ubms.connectRecent(window.ubms.state.recent.find((r) => r.kind === 'ble')))).then(() => window.ubms.state.state === 'connected' && window.ubms.state.device.driverId === 'jk-ble')`,
           wait: 1500,
+        },
+        {
+          // The device drops the link: the session reconnects by id, without a scan.
+          eval: `(window.ubms.setPref('selection', 'auto'), window.__tauriMock.dropBle(window.ubms.state.recent.find((r) => r.kind === 'ble').id))`,
+          wait: 4000,
+        },
+        {
+          eval: `window.ubms.state.state === 'connected' && window.__tauriMock.listenerCount('ble://disconnected') === 1 && window.__tauriMock.listenerCount('ble://notify') === 1`,
         },
         {
           eval: `window.ubms.disconnect().then(() => (window.ubms.setPref('transport', 'serial'), window.ubms.setPref('selection', 'family:daly'), true))`,
@@ -322,7 +331,22 @@ const scenarios = [
           shot: 'tauri-daly-overview-phone',
         },
         { eval: `(window.ubms.state.snapshot?.cells?.length ?? 0) > 0` },
-        { eval: `window.ubms.disconnect().then(() => (window.ubms.setPref('transport', 'ble'), window.ubms.setPref('selection', 'auto'), true))` },
+        {
+          // The adapter is unplugged: the link closes and the bridge forgets the port.
+          eval: `window.__tauriMock.dropSerial(window.__tauriMock.openSerial[0])`,
+          wait: 800,
+        },
+        {
+          eval: `window.ubms.state.state === 'error' && window.__tauriMock.openSerial.length === 0 && window.__tauriMock.listenerCount('serial://data') === 0`,
+        },
+        {
+          // Nothing of the lost link holds the port: it opens again (ports are exclusive on Windows).
+          eval: `window.ubms.connectSerialPort({ path: 'COM7' }).then(() => window.ubms.state.state === 'connected')`,
+          wait: 1500,
+        },
+        {
+          eval: `window.ubms.disconnect().then(() => (window.ubms.setPref('transport', 'ble'), window.ubms.setPref('selection', 'auto'), ['ble://device', 'ble://notify', 'ble://disconnected', 'serial://data', 'serial://closed'].every((e) => window.__tauriMock.listenerCount(e) === 0)))`,
+        },
       ],
     },
   ],

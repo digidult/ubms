@@ -73,6 +73,21 @@ const DEFAULT_PREFS = /** @type {Prefs} */ ({
   serialAddress: '',
 });
 
+/** The first driver with a demo; DEFAULT_PREFS cannot name it before the drivers are known. */
+function defaultDemoDriver() {
+  return drivers.find((d) => d.demo)?.id ?? '';
+}
+
+/**
+ * Does the BMS type choice have a driver for the chosen link? A choice without one would still be
+ * used for connecting while the type list shows another option. The demo tab ignores the choice.
+ * @param {DriverRegistry} registry
+ * @param {Prefs} prefs
+ */
+function selectionFits(registry, { selection, transport }) {
+  return transport === 'demo' || selection === 'auto' || registry.select(selection, transport).length > 0;
+}
+
 export class AppController {
   constructor() {
     this.storage = createStorage('ubms');
@@ -87,7 +102,8 @@ export class AppController {
     }
     this.log = new ProtocolLog({ capacity: prefs.logCapacity });
     this.registry = new DriverRegistry(drivers);
-    if (!prefs.demoDriver || !this.registry.get(prefs.demoDriver)) prefs.demoDriver = drivers.find((d) => d.demo)?.id ?? '';
+    if (!prefs.demoDriver || !this.registry.get(prefs.demoDriver)) prefs.demoDriver = defaultDemoDriver();
+    if (!selectionFits(this.registry, prefs)) prefs.selection = 'auto';
     this.session = new BmsSession({ registry: this.registry, log: this.log, pollIntervalMs: prefs.pollMs });
     const tauri = isTauri();
     this.providers = {
@@ -120,13 +136,18 @@ export class AppController {
     );
     /** @type {(() => Promise<void>) | null} */
     this.stopScanFn = null;
+    /** Number of the latest availability check; an older one that finishes later is ignored. */
+    this.availabilitySeq = 0;
 
     i18n.setLocale(prefs.lang);
     applyTheme(prefs.theme);
     this.#wireSession();
     if (typeof document !== 'undefined') {
       document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible') this.#updateWakeLock();
+        if (document.visibilityState === 'visible') {
+          this.#updateWakeLock();
+          this.refreshAvailability();
+        }
       });
     }
   }
@@ -136,8 +157,21 @@ export class AppController {
   }
 
   async init() {
+    await this.refreshAvailability();
+    // Bluetooth can be switched on while the app is open. Check again when the browser reports a
+    // change or the window gets the focus back (the desktop app has no such event).
+    const bt = /** @type {any} */ (typeof navigator !== 'undefined' ? navigator : {}).bluetooth;
+    bt?.addEventListener?.('availabilitychanged', () => this.refreshAvailability());
+    if (typeof window !== 'undefined') window.addEventListener('focus', () => this.refreshAvailability());
+  }
+
+  /** Check again whether Bluetooth and serial ports can be used. */
+  async refreshAvailability() {
+    const seq = ++this.availabilitySeq;
     const [ble, serial] = await Promise.all([this.providers.ble.availability(), this.providers.serial.availability()]);
-    this.store.set({ availability: { ble, serial } });
+    if (seq !== this.availabilitySeq) return; // a newer check is running
+    const availability = { ble, serial };
+    if (JSON.stringify(availability) !== JSON.stringify(this.state.availability)) this.store.set({ availability });
   }
 
   #wireSession() {
@@ -159,9 +193,11 @@ export class AppController {
         };
         this.#rememberDevice();
       }
-      if (state === 'idle' || state === 'error') {
+      if (state === 'idle' || state === 'error' || state === 'connecting') {
         patch.detect = null;
-        if (state === 'idle') {
+        // 'connecting' starts a new connection, also straight from the error state: the data of
+        // the previous device must not be shown (or written back) as data of the new one.
+        if (state === 'idle' || state === 'connecting') {
           patch.device = null;
           patch.snapshot = null;
           patch.info = null;
@@ -185,6 +221,7 @@ export class AppController {
    */
   setPref(key, value) {
     const prefs = { ...this.state.prefs, [key]: value };
+    if (key === 'transport' && !selectionFits(this.registry, prefs)) prefs.selection = 'auto';
     this.storage.set('prefs', prefs);
     this.store.set({ prefs });
     if (key === 'lang') i18n.setLocale(/** @type {string} */ (value));
@@ -196,10 +233,12 @@ export class AppController {
 
   resetPrefs() {
     this.storage.remove('prefs');
-    const prefs = { ...DEFAULT_PREFS, lang: this.state.prefs.lang };
+    const prefs = { ...DEFAULT_PREFS, lang: this.state.prefs.lang, demoDriver: defaultDemoDriver() };
     this.store.set({ prefs });
     applyTheme(prefs.theme);
     this.session.setPollInterval(prefs.pollMs);
+    this.log.capacity = prefs.logCapacity;
+    this.#updateWakeLock();
   }
 
   /** Is the current selection filterable in the Bluetooth chooser? */
@@ -230,9 +269,13 @@ export class AppController {
       if (/** @type {any} */ (err)?.name === 'NotFoundError') return;
       throw err;
     }
+    await this.#connect({ kind: 'serial', handle: port, selection, options: this.#serialOptions() });
+  }
+
+  /** RS485 device address or board number from the Connect screen; empty for the protocol default. */
+  #serialOptions() {
     const address = Number.parseInt(this.state.prefs.serialAddress, 10);
-    const options = Number.isFinite(address) ? { address, board: address } : {};
-    await this.#connect({ kind: 'serial', handle: port, selection, options });
+    return Number.isFinite(address) ? { address, board: address } : {};
   }
 
   /** True when Bluetooth devices are found by an in-app scan (desktop app) instead of a browser chooser. */
@@ -248,6 +291,8 @@ export class AppController {
   /** Start an in-app Bluetooth scan (desktop app). Results go to `state.scan.devices`. */
   async startBleScan() {
     await this.stopBleScan();
+    // Every start and stop counts up: results, errors and the timer of an older scan are ignored.
+    const seq = ++this.scanSeq;
     const { selection, showAllBle } = this.state.prefs;
     const defs = this.registry.select(selection, 'ble');
     const filters = showAllBle
@@ -260,7 +305,8 @@ export class AppController {
     this.store.set({ scan: { active: true, devices: [] } });
     const provider = /** @type {any} */ (this.providers.ble);
     try {
-      this.stopScanFn = await provider.scan({ ...filters, timeoutMs: 20000 }, (/** @type {ScannedDevice} */ d) => {
+      const stop = await provider.scan({ ...filters, timeoutMs: 20000 }, (/** @type {ScannedDevice} */ d) => {
+        if (seq !== this.scanSeq) return;
         const devices = [...this.state.scan.devices];
         const i = devices.findIndex((x) => x.id === d.id);
         const entry = { id: d.id, name: d.name || t('Unnamed device'), rssi: d.rssi, services: d.services };
@@ -268,27 +314,42 @@ export class AppController {
         else devices.push(entry);
         this.store.set({ scan: { active: this.state.scan.active, devices } });
       });
-      setTimeout(() => {
-        if (this.state.scan.active) this.stopBleScan();
+      if (seq !== this.scanSeq) {
+        // Stopped (or restarted) while the scan was starting. After a restart the provider's stop
+        // only removes this scan's listener, so it cannot end the newer scan.
+        await stop().catch(() => {});
+        return;
+      }
+      this.stopScanFn = stop;
+      // This scan's own timer; stopBleScan() clears it, so it never stops a later scan.
+      this.scanTimer = setTimeout(() => {
+        if (seq === this.scanSeq) this.stopBleScan();
       }, 20000);
     } catch (err) {
+      if (seq !== this.scanSeq) return;
       this.store.set({ scan: { active: false, devices: this.state.scan.devices } });
       toast(t(err instanceof Error ? err.message : String(err)), { tone: 'danger' });
     }
   }
 
   async stopBleScan() {
+    this.scanSeq = (this.scanSeq ?? 0) + 1;
+    clearTimeout(this.scanTimer);
+    this.scanTimer = undefined;
     const stop = this.stopScanFn;
     this.stopScanFn = null;
     if (stop) await stop().catch(() => {});
     if (this.state.scan.active) this.store.set({ scan: { active: false, devices: this.state.scan.devices } });
   }
 
-  /** @param {ScannedDevice} device */
-  async connectScannedDevice(device) {
+  /**
+   * @param {ScannedDevice} device
+   * @param {string} [selection] driver choice; Recent devices pass the driver they were used with
+   */
+  async connectScannedDevice(device, selection = this.state.prefs.selection) {
     await this.stopBleScan();
     const handle = /** @type {any} */ (this.providers.ble).get(device);
-    await this.#connect({ kind: 'ble', handle, selection: this.state.prefs.selection });
+    await this.#connect({ kind: 'ble', handle, selection });
   }
 
   /** @param {RecentDevice} recent */
@@ -297,34 +358,44 @@ export class AppController {
     if (!showAll) this.setPref('showAllBle', true);
     await this.startBleScan();
     if (!showAll) this.setPref('showAllBle', false);
+    if (!this.stopScanFn) return; // the scan did not start; startBleScan() told the user why
     const deadline = Date.now() + 12000;
-    while (Date.now() < deadline) {
+    while (Date.now() < deadline && this.state.scan.active) {
       const found = this.state.scan.devices.find((d) => d.id === recent.id);
-      if (found) return this.connectScannedDevice(found);
+      // Like the browser path: the remembered driver, not the type selected right now.
+      if (found) return this.connectScannedDevice(found, recent.driverId ?? 'auto');
       await new Promise((r) => setTimeout(r, 250));
     }
+    if (!this.state.scan.active) return; // stopped by the user or replaced by another scan
     await this.stopBleScan();
     toast(t('{name} was not found. Wake the BMS up and scan again.', { name: recent.name }), { tone: 'warn' });
   }
 
   /** Refresh the serial port list (desktop app). */
   async listSerialPorts() {
+    // An older, slower refresh must not replace the result of a newer one.
+    const seq = (this.portsSeq ?? 0) + 1;
+    this.portsSeq = seq;
     this.store.set({ ports: { loading: true, list: this.state.ports.list } });
     try {
       const ports = await /** @type {any} */ (this.providers.serial).list();
+      if (seq !== this.portsSeq) return;
       this.serialHandles = ports;
       this.store.set({ ports: { loading: false, list: ports.map((/** @type {any} */ p) => ({ ...p.info })) } });
     } catch (err) {
+      if (seq !== this.portsSeq) return;
       this.store.set({ ports: { loading: false, list: [] } });
       toast(t(err instanceof Error ? err.message : String(err)), { tone: 'danger' });
     }
   }
 
-  /** @param {{ path: string }} port */
-  async connectSerialPort(port) {
+  /**
+   * @param {{ path: string }} port
+   * @param {string} [selection] driver choice; Recent devices pass the driver they were used with
+   */
+  async connectSerialPort(port, selection = this.state.prefs.selection) {
     const handle = (this.serialHandles ?? []).find((/** @type {any} */ h) => h.info.path === port.path);
     if (!handle) return;
-    const { selection } = this.state.prefs;
     const address = Number.parseInt(this.state.prefs.serialAddress, 10);
     const options = Number.isFinite(address) ? { address, board: address } : {};
     await this.#connect({ kind: 'serial', handle, selection, options });
@@ -337,7 +408,7 @@ export class AppController {
     if (recent.kind === 'serial' && this.nativeSerial) {
       await this.listSerialPorts();
       if (this.state.ports.list.some((p) => p.path === recent.id)) {
-        return this.connectSerialPort({ path: recent.id });
+        return this.connectSerialPort({ path: recent.id }, recent.driverId ?? 'auto');
       }
       toast(t('The port {name} is not available. Check the adapter and pick a port from the list.', { name: recent.name }), { tone: 'warn' });
       return;
@@ -366,19 +437,24 @@ export class AppController {
     });
     await device.open();
     const sim = def.demo.create(device);
-    this.stopDemo = () => {
+    const stop = () => {
       sim.stop?.();
       device.close();
     };
+    this.stopDemo = stop;
     host.once('close', () => {
-      this.stopDemo?.();
-      this.stopDemo = null;
+      // Stop this demo only: a demo started while this one was connected owns stopDemo by now.
+      stop();
+      if (this.stopDemo === stop) this.stopDemo = null;
     });
     await this.#connect({ kind: 'link', link: host, selection: def.id });
   }
 
   /** @param {import('@ubms/bms-core/session').ConnectTarget} target */
   async #connect(target) {
+    // Granted ports (Recent devices) come without options: use the RS485 address of the Connect
+    // screen, like the port chooser does.
+    if (target.kind === 'serial' && !target.options) target = { ...target, options: this.#serialOptions() };
     try {
       await this.session.connect(target);
     } catch (err) {

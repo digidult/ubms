@@ -9,6 +9,14 @@ const REASONS = {
     'insecure-context': msg('Device access needs a secure page: open the app over https, from localhost or as a local file.'),
     'adapter-unavailable': msg('Bluetooth is switched off or no Bluetooth adapter was found.'),
     'not-tauri': msg('Native Bluetooth is only available in the desktop app.'),
+    // Desktop app (ble_adapter_state reasons, docs/tauri.md). The Rust bridge uses the same texts.
+    'no-adapter': msg('Bluetooth is switched off or no Bluetooth adapter was found.'),
+    'powered-off': msg('Bluetooth is switched off or no Bluetooth adapter was found.'),
+    'permission-denied': msg('The app is not allowed to use Bluetooth. Allow it in the system settings.'),
+    'permission-restricted': msg('Bluetooth use is restricted on this computer, for example by a device management profile.'),
+    'permission-pending': msg('The app is waiting for permission to use Bluetooth. Answer the system prompt.'),
+    'permission-unknown': msg('The Bluetooth permission state is unknown. Check the Bluetooth permission in the system settings.'),
+    error: msg('Bluetooth is not available.'),
   },
   serial: {
     unsupported: msg('This browser cannot open serial ports. Use Chrome or Edge on a computer (Android Chrome supports it in recent versions).'),
@@ -149,6 +157,12 @@ export class ViewConnect extends UiElement {
         flex: 1;
         cursor: pointer;
       }
+      .devlist ui-list-row:focus-visible,
+      .recent-row ui-list-row:focus-visible {
+        outline: 2px solid var(--ui-primary);
+        outline-offset: -2px;
+        border-radius: var(--ui-radius-sm);
+      }
     `,
   ];
 
@@ -204,7 +218,7 @@ export class ViewConnect extends UiElement {
       state === 'connecting'
         ? t('Connecting to the device…')
         : detect
-          ? t('Trying {protocol} ({index} of {total})…', { protocol: detect.protocol, index: detect.index + 1, total: detect.total })
+          ? t('Trying {protocol} ({index} of {total})…', { protocol: t(detect.protocol), index: detect.index + 1, total: detect.total })
           : t('Identifying the device…');
     return html`<div class="card progress" role="status" aria-live="polite">
       <div class="spinner"></div>
@@ -264,10 +278,12 @@ export class ViewConnect extends UiElement {
       </button>
       ${scan.active && !scan.devices.length ? html`<div class="steps" role="status">${t('Scanning…')}</div>` : nothing}
       ${scan.devices.length
-        ? html`<div class="devlist" role="list" aria-label=${t('Devices found')}>
+        ? html`<div class="devlist" role="group" aria-label=${t('Devices found')}>
             ${scan.devices.map(
               (d) => html`<ui-list-row
-                role="listitem"
+                role="button"
+                tabindex="0"
+                @keydown=${activateOnKey}
                 icon="bluetooth"
                 heading=${d.name}
                 text=${d.rssi !== undefined && d.rssi !== null ? `${d.rssi} dBm` : ''}
@@ -286,10 +302,12 @@ export class ViewConnect extends UiElement {
     return html`
       <button class="btn go" ?disabled=${!available || ports.loading} @click=${() => this.ctrl.listSerialPorts()}>${icon('refresh')} ${t('Refresh port list')}</button>
       ${ports.list.length
-        ? html`<div class="devlist" role="list" aria-label=${t('Serial ports')}>
+        ? html`<div class="devlist" role="group" aria-label=${t('Serial ports')}>
             ${ports.list.map(
               (p) => html`<ui-list-row
-                role="listitem"
+                role="button"
+                tabindex="0"
+                @keydown=${activateOnKey}
                 icon="usb"
                 heading=${p.name ?? p.path}
                 text=${p.usbVendorId !== undefined && p.usbVendorId !== null
@@ -403,17 +421,21 @@ export class ViewConnect extends UiElement {
     const { recent } = this.sc.value;
     return html`<div class="section-title">${t('Recent devices')}</div>
       <div class="card recent">
-        ${recent.map(
-          (r) => html`<div class="recent-row">
+        ${recent.map((r) => {
+          const protocol = this.ctrl.registry.get(r.driverId ?? '')?.protocol;
+          return html`<div class="recent-row">
             <ui-list-row
+              role="button"
+              tabindex="0"
+              @keydown=${activateOnKey}
               icon=${r.kind === 'ble' ? 'bluetooth' : 'usb'}
               heading=${r.name}
-              text=${`${this.ctrl.registry.get(r.driverId ?? '')?.protocol ?? ''} · ${ago(r.at)}`}
+              text=${`${protocol ? t(protocol) : ''} · ${ago(r.at)}`}
               @click=${() => this.ctrl.connectRecent(r)}
             ></ui-list-row>
             <button class="btn ghost icon" title=${t('Forget')} aria-label=${t('Forget')} @click=${() => this.ctrl.forgetRecent(r)}>${icon('close', { size: 18 })}</button>
-          </div>`,
-        )}
+          </div>`;
+        })}
       </div>`;
   }
 
@@ -425,3 +447,13 @@ export class ViewConnect extends UiElement {
   };
 }
 define('view-connect', ViewConnect);
+
+/**
+ * Enter and Space activate a clickable list row (role="button") like a real button.
+ * @param {KeyboardEvent} e
+ */
+function activateOnKey(e) {
+  if ((e.key !== 'Enter' && e.key !== ' ') || e.repeat) return;
+  e.preventDefault();
+  /** @type {HTMLElement} */ (e.currentTarget).click();
+}

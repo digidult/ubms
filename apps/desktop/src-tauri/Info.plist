@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Merged by Tauri into the Info.plist of the macOS app bundle (and embedded into the binary for
+  development runs). macOS 10.15 and later terminate an app that uses Bluetooth without
+  NSBluetoothAlwaysUsageDescription; the app creates its Bluetooth adapter when the window opens.
+-->
+<plist version="1.0">
+<dict>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>ubms uses Bluetooth to find and connect to your battery management systems and balancers.</string>
+</dict>
+</plist>

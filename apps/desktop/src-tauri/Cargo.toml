@@ -4,7 +4,9 @@ version = "0.1.0"
 description = "ubms desktop app: the ubms web UI with native Bluetooth and serial ports"
 edition = "2021"
 license = "MIT"
-rust-version = "1.77"
+# tauri 2.12.7 and tauri-build 2.7.6 declare rust-version 1.90 (the highest of all dependencies;
+# bluest is edition 2024, which needs 1.85). There is no Cargo.lock here, so recheck on updates.
+rust-version = "1.90"
 publish = false
 
 [lib]
@@ -19,11 +21,24 @@ tauri-build = { version = "2", features = [] }
 tauri = { version = "2", features = [] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-btleplug = "0.13"
+# Bluetooth LE: bluest keeps one object per native GATT characteristic, so two characteristics
+# with the same UUID in one service (JK BMS: write FFE1 and notify FFE1) stay distinct.
+# Pinned to main (Cargo version 0.6.10, unreleased): 0.6.9 depends on bluer 0.16.1, which no
+# longer compiles with Rust 1.100. Replace with the crates.io release once 0.6.10 is published.
+# The serde feature is needed to turn a remembered device id string back into a DeviceId.
+bluest = { git = "https://github.com/alexmoon/bluest", rev = "11df9e9e1114b97b4b864b9add730ab3e3f2701c", features = ["serde"] }
 serialport = "4"
 tokio = { version = "1", features = ["macros", "sync", "time", "rt"] }
 futures = "0.3"
-uuid = "1"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+# Scan shim: the bluest Linux scan has no RSSI and lists cached devices. Same requirement as
+# bluest (^0.17.4), so only one bluer is compiled.
+bluer = { version = "0.17.4", features = ["bluetoothd"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+# Permission shim (+[CBManager authorization]); already compiled by bluest.
+objc2-core-bluetooth = "0.3"
 
 [profile.release]
 codegen-units = 1
