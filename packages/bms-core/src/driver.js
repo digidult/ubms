@@ -27,6 +27,10 @@ import { msg } from './msg.js';
  * @typedef {Object} SerialRequirements
  * @property {SerialProfile[]} profiles serial settings to try, most likely first
  * @property {string} [note] English hint about wiring / adapters
+ * @property {boolean} [autoDetect] false keeps the definition out of automatic and family wide
+ *   serial detection: its probe would disturb other devices (for example SLCAN commands for a
+ *   USB-CAN adapter) or other probes would disturb its adapter. It is tried only when the user
+ *   selects this driver explicitly.
  *
  * @typedef {Object} DriverDefinition
  * @property {string} id unique id, for example 'jk-ble'

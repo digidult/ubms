@@ -129,14 +129,18 @@ export class DriverRegistry {
   }
 
   /**
-   * Serial candidates in trial order.
+   * Serial candidates in trial order. Definitions with `links.serial.autoDetect: false` take part
+   * only when the selection names them.
    * @param {{ selection?: string }} [opts]
    * @returns {Array<{ definition: DriverDefinition, profile: SerialProfile }>}
    */
   serialCandidates({ selection = 'auto' } = {}) {
     /** @type {Array<{ definition: DriverDefinition, profile: SerialProfile }>} */
     const out = [];
+    const explicit = this.byId.has(selection);
     for (const def of this.select(selection, 'serial')) {
+      // Opted out of detection (driver.js SerialRequirements.autoDetect): only an explicit choice.
+      if (def.links.serial?.autoDetect === false && !explicit) continue;
       for (const profile of def.links.serial?.profiles ?? []) out.push({ definition: def, profile });
     }
     return out;

@@ -248,3 +248,12 @@ test('DriverRegistry: family prefix wins over a driver with the same id', () => 
   assert.deepEqual(reg.select('jk').map((d) => d.id), ['jk-ble']);
   assert.deepEqual(reg.serialCandidates({ selection: 'family:daly' }).map((c) => c.definition.id), ['daly-modbus', 'daly']);
 });
+
+test('DriverRegistry: a serial definition with autoDetect false is tried only when selected', () => {
+  const mk = (id, family, autoDetect) => ({ id, family, vendor: family, protocol: id, deviceType: 'bms', links: { serial: { autoDetect, profiles: [{ id: `${id}-p`, baudRate: 9600 }] } }, create: () => null });
+  const reg = new DriverRegistry([mk('x-rs485', 'x', undefined), mk('x-can', 'x', false), mk('y', 'y', undefined)]);
+  const ids = (selection) => reg.serialCandidates({ selection }).map((c) => c.definition.id);
+  assert.deepEqual(ids('auto'), ['x-rs485', 'y']);
+  assert.deepEqual(ids('family:x'), ['x-rs485']);
+  assert.deepEqual(ids('x-can'), ['x-can']);
+});
