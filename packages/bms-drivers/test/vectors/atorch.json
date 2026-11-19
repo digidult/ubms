@@ -1,0 +1,1615 @@
+[
+  {
+    "id": "dc-dl24-report-syssi-1",
+    "variant": "DC_METER",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "FF550102000020004E200013FA000000110000000000000000250002211A3C0000000009",
+    "source": "https://github.com/syssi/esphome-atorch-dl24/blob/main/tests/components/atorch_dl24/common.h DC_FRAME_1; https://github.com/syssi/esphome-atorch-dl24/blob/main/docs/pdus/atorch-dl24.txt line 1; https://github.com/syssi/esphome-atorch-dl24/blob/main/tests/components/atorch_dl24/atorch_dl24_test.cpp AtorchDL24DcMeterTest",
+    "description": "DL24 electronic load (syssi, firmware V5.1) report, 3.2 V at 20 A. Values as asserted by the syssi unit tests; power is V x I.",
+    "expected": {
+      "messageType": 1,
+      "deviceType": 2,
+      "voltage": 3.2,
+      "current": 20,
+      "power": 64,
+      "capacity": 51.14,
+      "energy": 170,
+      "temperature": 37,
+      "runtime": 9206,
+      "backlight": 60,
+      "checksumValid": true
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "dc-dl24-report-syssi-2",
+    "variant": "DC_METER",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "FF550102000020004E1E0013FA000000110000000000000000250002211B3C0000000008",
+    "source": "https://github.com/syssi/esphome-atorch-dl24/blob/main/tests/components/atorch_dl24/common.h DC_FRAME_2; https://github.com/syssi/esphome-atorch-dl24/blob/main/docs/pdus/atorch-dl24.txt line 2",
+    "description": "Next DL24 report one second later: seconds byte 26 -> 27, current 19.998 A. syssi derives \"running\" from the changing seconds byte.",
+    "expected": {
+      "messageType": 1,
+      "deviceType": 2,
+      "voltage": 3.2,
+      "current": 19.998,
+      "power": 63.9936,
+      "capacity": 51.14,
+      "energy": 170,
+      "price": 0,
+      "temperature": 37,
+      "runtime": 9207,
+      "backlight": 60,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "dc-dl24-report-idle-dl24_ble",
+    "variant": "DC_METER",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "FF5501020000000000000022620000001C000000000000000013000418053C0000000057",
+    "source": "https://github.com/syssi/esphome-atorch-dl24/issues/10#issuecomment-1048539984 (raw frame of the device named DL24_BLE); decoded values of the same device in https://github.com/syssi/esphome-atorch-dl24/issues/10#issuecomment-1025167646",
+    "description": "DL24 (BLE name DL24_BLE, MTU 248 negotiated) idle report in a single 36 byte notification; the decoded log shows 88.02 Ah, 280 Wh, 19 C, timer 04:24:05, backlight 60.",
+    "expected": {
+      "messageType": 1,
+      "deviceType": 2,
+      "voltage": 0,
+      "current": 0,
+      "capacity": 88.02,
+      "energy": 280,
+      "temperature": 19,
+      "runtime": 15845,
+      "backlight": 60,
+      "checksumValid": true
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "dc-dl24-report-idle-split-20-16",
+    "variant": "DC_METER",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "FF5501020000000000000000000000000000000000000000001E000000003C0000000019",
+    "source": "https://github.com/syssi/esphome-atorch-dl24/issues/10#issuecomment-1048553131 (two notifications 20 + 16 bytes); checksum confirmed by syssi in https://github.com/syssi/esphome-atorch-dl24/issues/10#issuecomment-1048555566",
+    "description": "DL24 (BLE name DL24-BLE, advertises FFE0 and FEE7) idle report split into a 20 and a 16 byte notification; all counters zero, 30 C.",
+    "expected": {
+      "messageType": 1,
+      "deviceType": 2,
+      "voltage": 0,
+      "current": 0,
+      "power": 0,
+      "capacity": 0,
+      "energy": 0,
+      "price": 0,
+      "temperature": 30,
+      "runtime": 0,
+      "backlight": 60,
+      "checksumValid": true,
+      "notifications": [
+        "FF55010200000000000000000000000000000000",
+        "00000000001E000000003C0000000019"
+      ]
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "dc-dl24-report-split-30-6",
+    "variant": "DC_METER",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "FF550102000021003A83000A9B00000009000000000000000022000000003C00000000A9",
+    "source": "https://github.com/syssi/esphome-atorch-dl24/issues/33 (log in the issue body, after the reset runtime command FF551102030000000052)",
+    "description": "DL24 report received as a 30 byte and a 6 byte notification right after a reset runtime command; runtime is zero.",
+    "expected": {
+      "messageType": 1,
+      "deviceType": 2,
+      "voltage": 3.3,
+      "current": 14.979,
+      "power": 49.4307,
+      "capacity": 27.15,
+      "energy": 90,
+      "price": 0,
+      "temperature": 34,
+      "runtime": 0,
+      "backlight": 60,
+      "checksumValid": true,
+      "notifications": [
+        "FF550102000021003A83000A9B0000000900000000000000002200000000",
+        "3C00000000A9"
+      ]
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "dc-nicelabs-sample-1",
+    "variant": "DC_METER",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "FF55010200011A00003C0004D40000002000006400000000002600590D363C00000000F0",
+    "source": "https://github.com/NiceLabs/atorch-console/blob/master/src/service/atorch-packet/packet-meter-dc.spec.ts; also https://github.com/syssi/esphome-atorch-dl24/blob/main/components/atorch_dl24/atorch_dl24.cpp (comment above assemble)",
+    "description": "DC meter sample report of atorch-console, model not named. 12.36 Ah and 320 Wh at 28.2 V are consistent with capacity in 0.01 Ah and energy in 10 Wh units.",
+    "expected": {
+      "messageType": 1,
+      "deviceType": 2,
+      "voltage": 28.2,
+      "current": 0.06,
+      "power": 1.692,
+      "capacity": 12.36,
+      "energy": 320,
+      "price": 1,
+      "temperature": 38,
+      "runtime": 321234,
+      "backlight": 60,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "dc-nicelabs-sample-2",
+    "variant": "DC_METER",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "FF55010200011A0000000004D40000002000006400000000002A00590E343C000000003F",
+    "source": "https://github.com/NiceLabs/atorch-console/blob/master/src/service/atorch-packet/packet-meter-dc.spec.ts",
+    "description": "Second DC meter sample of atorch-console with zero current and 42 C.",
+    "expected": {
+      "messageType": 1,
+      "deviceType": 2,
+      "voltage": 28.2,
+      "current": 0,
+      "power": 0,
+      "capacity": 12.36,
+      "energy": 320,
+      "price": 1,
+      "temperature": 42,
+      "runtime": 321292,
+      "backlight": 60,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "dc-dt3010-report-1",
+    "variant": "DC_METER",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "FF550102000A1000007600000A0000680E000064000000000016000000003C000000008D",
+    "source": "https://github.com/syssi/esphome-atorch-dl24/blob/main/docs/pdus/atorch-dt3010.txt line 1",
+    "description": "DT3010 DC meter report at 257.6 V; the runtime bytes are zero on this device (syssi tests/esp32-atorch-dt3010.yaml).",
+    "expected": {
+      "messageType": 1,
+      "deviceType": 2,
+      "voltage": 257.6,
+      "current": 0.118,
+      "power": 30.3968,
+      "capacity": 0.1,
+      "energy": 266380,
+      "price": 1,
+      "temperature": 22,
+      "runtime": 0,
+      "backlight": 60,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "dc-dt24tw-300a-report-checksum-constant",
+    "variant": "DC_METER",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "FF5501020002410047EB0027100000069800003400000000001600041F2D3C0000000023",
+    "source": "https://github.com/syssi/esphome-atorch-dl24/issues/73#issuecomment-2049483329 (notifications 20 + 16 and the values published by the syssi component in the same log)",
+    "description": "DT24TW-300A DC meter. The last byte is 0x23 in every frame of this device, so the standard checksum fails (check_crc: false). Values as published by the syssi component.",
+    "expected": {
+      "messageType": 1,
+      "deviceType": 2,
+      "voltage": 57.7,
+      "current": 18.411,
+      "capacity": 100,
+      "energy": 16880,
+      "temperature": 22,
+      "runtime": 16305,
+      "backlight": 60,
+      "checksumValid": false,
+      "notifications": [
+        "FF5501020002410047EB00271000000698000034",
+        "00000000001600041F2D3C0000000023"
+      ]
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "dc-dl24-2025-report-checksum-constant",
+    "variant": "DC_METER",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "FF5501020000ED0008AB000DAE0000005300006400000000003D000A00001E0000000023",
+    "source": "https://github.com/syssi/esphome-atorch-dl24/discussions/107#discussioncomment-15467593 (byte table by syssi; the attached log has 37 frames, all ending in 0x23)",
+    "description": "Newer DL24 (2025) report with a constant last byte 0x23; runtime bytes stay 10:00:00 over the whole log, backlight 30 s.",
+    "expected": {
+      "messageType": 1,
+      "deviceType": 2,
+      "voltage": 23.7,
+      "current": 2.219,
+      "capacity": 35.02,
+      "energy": 830,
+      "price": 1,
+      "temperature": 61,
+      "runtime": 36000,
+      "backlight": 30,
+      "checksumValid": false
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "dc-dl24m-fw2.0-report-random-checksum-a",
+    "variant": "DC_METER",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "FF5501020000000000000000AD00000002000000000000000015000000003C00000000AC",
+    "source": "https://github.com/syssi/esphome-atorch-dl24/issues/59",
+    "description": "DL24M (firmware 2.0). The same 35 bytes arrive every second with a different last byte (AC, CF, EA, 8D, 28); the device does not compute the checksum.",
+    "expected": {
+      "messageType": 1,
+      "deviceType": 2,
+      "voltage": 0,
+      "current": 0,
+      "power": 0,
+      "capacity": 1.73,
+      "energy": 20,
+      "price": 0,
+      "temperature": 21,
+      "runtime": 0,
+      "backlight": 60,
+      "checksumValid": false
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "dc-dl24m-fw2.0-report-random-checksum-b",
+    "variant": "DC_METER",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "FF5501020000000000000000AD00000002000000000000000015000000003C00000000CF",
+    "source": "https://github.com/syssi/esphome-atorch-dl24/issues/59",
+    "description": "Next DL24M firmware 2.0 report: identical payload, last byte CF instead of AC.",
+    "expected": {
+      "messageType": 1,
+      "deviceType": 2,
+      "voltage": 0,
+      "current": 0,
+      "power": 0,
+      "capacity": 1.73,
+      "energy": 20,
+      "price": 0,
+      "temperature": 21,
+      "runtime": 0,
+      "backlight": 60,
+      "checksumValid": false
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "dc-dl24m-report-flaviutamas",
+    "variant": "DC_METER",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "FF5501020000320001890000080000000000000000000000001600000000000000000030",
+    "source": "https://flaviutamas.com/2022/dl24m-reversing (section \"Reading data\", first frame)",
+    "description": "DL24M (BLE name DL24M_BLE) report while the display showed about 5.04 V, 0.40 A, 80 mAh; runtime and backlight bytes are zero and the last byte is not a valid checksum.",
+    "expected": {
+      "messageType": 1,
+      "deviceType": 2,
+      "voltage": 5,
+      "current": 0.393,
+      "power": 1.965,
+      "capacity": 0.08,
+      "energy": 0,
+      "price": 0,
+      "temperature": 22,
+      "runtime": 0,
+      "backlight": 0,
+      "checksumValid": false
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "dc-dl24m-purple-report",
+    "variant": "DC_METER",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "FF55010200008C00000000000F0000000000000000000000001A000000003C00000000C4",
+    "source": "https://github.com/syssi/esphome-atorch-dl24/issues/76#issuecomment-2161645632",
+    "description": "DL24M \"Purple\" (firmware 2.1) report with the load off; 14.0 V, 0.15 Ah (display 155 mAh), 26 C. check_crc was disabled for this device.",
+    "expected": {
+      "messageType": 1,
+      "deviceType": 2,
+      "voltage": 14,
+      "current": 0,
+      "power": 0,
+      "capacity": 0.15,
+      "energy": 0,
+      "price": 0,
+      "temperature": 26,
+      "runtime": 0,
+      "backlight": 60,
+      "checksumValid": false
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "ac-nicelabs-sample-1",
+    "variant": "AC_METER",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "FF55010100090400000E0000040000000000006401F40085002F00000A093C0000000039",
+    "source": "https://github.com/syssi/esphome-atorch-dl24/blob/main/tests/components/atorch_dl24/common.h AC_FRAME_1 and atorch_dl24_test.cpp AtorchDL24AcMeterTest; frame from https://github.com/NiceLabs/atorch-console/blob/master/src/service/atorch-packet/packet-meter-ac.spec.ts",
+    "description": "AC meter sample report. Values as asserted by the syssi tests, except power: syssi reads bytes 10–12 as capacity 0.04 Ah, this spec reads them as active power 0.4 W (NiceLabs, decompiled E-test app).",
+    "expected": {
+      "messageType": 1,
+      "deviceType": 1,
+      "voltage": 230.8,
+      "current": 0.014,
+      "power": 0.4,
+      "energy": 0,
+      "price": 1,
+      "frequency": 50,
+      "powerFactor": 0.133,
+      "temperature": 47,
+      "runtime": 609,
+      "backlight": 60,
+      "checksumValid": true
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "ac-at3010-report-1",
+    "variant": "AC_METER",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "FF5501010009120009CA00158600028B960001AE01F303B3001D000000003C0000000024",
+    "source": "https://github.com/syssi/esphome-atorch-dl24/issues/94 attachment logs_at3010_work.txt (line 146, notifications 20 + 16)",
+    "description": "AT3010 AC energy meter (BLE name AT3010-BLE), about 2.5 A resistive load: 232.2 V x 2.506 A x PF 0.947 = 551.0 W, which confirms bytes 10–12 as active power. Runtime bytes are zero.",
+    "expected": {
+      "messageType": 1,
+      "deviceType": 1,
+      "voltage": 232.2,
+      "current": 2.506,
+      "power": 551,
+      "energy": 1668060,
+      "price": 4.3,
+      "frequency": 49.9,
+      "powerFactor": 0.947,
+      "temperature": 29,
+      "runtime": 0,
+      "backlight": 60,
+      "checksumValid": true,
+      "notifications": [
+        "FF5501010009120009CA00158600028B960001AE",
+        "01F303B3001D000000003C0000000024"
+      ]
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "ac-at3010-report-energy-step",
+    "variant": "AC_METER",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "FF5501010008FF000A4D0016CB00028B970001AE01F303C0001D000000003C0000000060",
+    "source": "https://github.com/syssi/esphome-atorch-dl24/issues/94 attachment logs_at3010_work.txt (line 975)",
+    "description": "AT3010 about 40 s later at about 580 W: the energy counter stepped by one raw unit, consistent with 0.01 kWh (10 Wh) per unit.",
+    "expected": {
+      "messageType": 1,
+      "deviceType": 1,
+      "voltage": 230.3,
+      "current": 2.637,
+      "power": 583.5,
+      "energy": 1668070,
+      "price": 4.3,
+      "frequency": 49.9,
+      "powerFactor": 0.96,
+      "temperature": 29,
+      "runtime": 0,
+      "backlight": 60,
+      "checksumValid": true,
+      "notifications": [
+        "FF5501010008FF000A4D0016CB00028B970001AE",
+        "01F303C0001D000000003C0000000060"
+      ]
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "ac-s1-report-checksum-invalid",
+    "variant": "AC_METER",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "FF550101000906000028000007000000ED00006401F400530020000E0D083C000000005F",
+    "source": "https://github.com/syssi/esphome-atorch-dl24/issues/60#issuecomment-1981739302 (frames from a Wireshark capture); decoded log in https://github.com/syssi/esphome-atorch-dl24/issues/60#issuecomment-1981768794",
+    "description": "Atorch S1 AC meter (smart socket). The last byte never matches the standard checksum (check_crc: false in the syssi S1 test config). Values from the syssi decode log, power from bytes 10–12.",
+    "expected": {
+      "messageType": 1,
+      "deviceType": 1,
+      "voltage": 231,
+      "current": 0.04,
+      "power": 0.7,
+      "energy": 2370,
+      "price": 1,
+      "frequency": 50,
+      "powerFactor": 0.083,
+      "temperature": 32,
+      "runtime": 51188,
+      "backlight": 60,
+      "checksumValid": false
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "usb-ud18-nicelabs-sample-1",
+    "variant": "USB_METER",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "FF5501030001F3000000000638000003110007000A000000122E333C000000000000004E",
+    "source": "https://github.com/syssi/esphome-atorch-dl24/blob/main/tests/components/atorch_dl24/common.h USB_FRAME_1 and AtorchDL24UsbMeterTest; frame from https://github.com/NiceLabs/atorch-console/blob/master/src/service/atorch-packet/packet-meter-usb.spec.ts and https://github.com/msillano/UD18-protocol-and-node-red UD18_protocol.txt",
+    "description": "UD18 USB meter idle report. Values as asserted by the syssi tests.",
+    "expected": {
+      "messageType": 1,
+      "deviceType": 3,
+      "voltage": 4.99,
+      "current": 0,
+      "capacity": 1.592,
+      "energy": 7.85,
+      "dataMinus": 0.07,
+      "dataPlus": 0.1,
+      "temperature": 0,
+      "runtime": 67611,
+      "backlight": 60,
+      "checksumValid": true
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "usb-ud18-nicelabs-sample-3",
+    "variant": "USB_METER",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "FF5501030001CD00007F003CC80000554E0009000A00000047300D3C000000000000008F",
+    "source": "https://github.com/NiceLabs/atorch-console/blob/master/src/service/atorch-packet/packet-meter-usb.spec.ts",
+    "description": "UD18 report with a 1.27 A load.",
+    "expected": {
+      "messageType": 1,
+      "deviceType": 3,
+      "voltage": 4.61,
+      "current": 1.27,
+      "power": 5.8547,
+      "capacity": 15.56,
+      "energy": 218.38,
+      "dataMinus": 0.09,
+      "dataPlus": 0.1,
+      "temperature": 0,
+      "runtime": 258493,
+      "backlight": 60,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "usb-ud18-lispnik-capture",
+    "variant": "USB_METER",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "FF5501030004B000001C00B6A10000DCA000D600ED000000C60B083C000000000000003B",
+    "source": "https://github.com/lispnik/ud18 captures/ud18-2026-08-19.hex line 1 (all 321 frames of the capture pass the standard checksum)",
+    "description": "UD18 (BLE name UD18_BLE) on a 12 V source: 12.00 V, 0.28 A, 46.753 Ah, 564.80 Wh, data lines 2.14 V and 2.37 V, runtime 198:11:08, backlight byte 60 (always on).",
+    "expected": {
+      "messageType": 1,
+      "deviceType": 3,
+      "voltage": 12,
+      "current": 0.28,
+      "power": 3.36,
+      "capacity": 46.753,
+      "energy": 564.8,
+      "dataMinus": 2.14,
+      "dataPlus": 2.37,
+      "temperature": 0,
+      "runtime": 713468,
+      "backlight": 60,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "usb-qc2-9v-bukys",
+    "variant": "USB_METER",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "FF550103000383000080004EBA000027D7004B0147001F003312111E0000000000000072",
+    "source": "http://bukys.eu/project/powermon/start (section \"Checksum calculation\", example message)",
+    "description": "USB meter on a 9 V source: bytes 17–18 = 0.75 V and 19–20 = 3.27 V, which matches Quick Charge 2.0 at 9 V (D- 0.6 V, D+ 3.3 V) and so the D- / D+ order of this spec. Backlight 30 s.",
+    "expected": {
+      "messageType": 1,
+      "deviceType": 3,
+      "voltage": 8.99,
+      "current": 1.28,
+      "power": 11.5072,
+      "capacity": 20.154,
+      "energy": 101.99,
+      "dataMinus": 0.75,
+      "dataPlus": 3.27,
+      "temperature": 31,
+      "runtime": 184697,
+      "backlight": 30,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "usb-j7h-devanlai",
+    "variant": "USB_METER",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "FF5501030001FC00000000000000000000000800070013000000063C0DAC000003E86429",
+    "source": "https://github.com/devanlai/webvoltmeter/blob/master/REVERSE.md (section \"Bluetooth notifications\", sample notification of a J7-H)",
+    "description": "J7-H USB tester (advertised name JDY-19): valid standard checksum; bytes 28–34 are not zero on the J7 family (0D AC 00 00 03 E8 64).",
+    "expected": {
+      "messageType": 1,
+      "deviceType": 3,
+      "voltage": 5.08,
+      "current": 0,
+      "power": 0,
+      "capacity": 0,
+      "energy": 0,
+      "dataMinus": 0.08,
+      "dataPlus": 0.07,
+      "temperature": 19,
+      "runtime": 6,
+      "backlight": 60,
+      "checksumValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "usb-j7c-forum-checksum-invalid",
+    "variant": "USB_METER",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "FF5501030001D900006B0003080000016F004B004B001F00002C103C0DAC012C032000C5",
+    "source": "https://forum.arduino.cc/t/usb-digital-tester-bt-protocol/943891 (post 2, raw data and display values); also https://github.com/koedame/usbmeter src/protocol.test.ts J7C_FRAMES[3]",
+    "description": "J7-C USB tester report whose screen values were posted: 4.73 V, 1.07 A, 776 mAh, 3.67 Wh, 00:44:16, 31 C. The last byte matches no simple checksum rule.",
+    "expected": {
+      "messageType": 1,
+      "deviceType": 3,
+      "voltage": 4.73,
+      "current": 1.07,
+      "capacity": 0.776,
+      "energy": 3.67,
+      "temperature": 31,
+      "runtime": 2656,
+      "checksumValid": false
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "usb-j7c-syssi-checksum-invalid",
+    "variant": "USB_METER",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "FF5501030007EF00002300015A000002BF00090009001F000026003C0DAC01220320000D",
+    "source": "https://github.com/syssi/esphome-atorch-dl24/blob/main/docs/pdus/atorch-j7-c.txt line 1 (log in https://github.com/syssi/esphome-atorch-dl24/issues/48, decoded values in https://github.com/syssi/esphome-atorch-dl24/pull/49)",
+    "description": "J7-C at about 20.3 V and 0.35 A; the J7-C needs check_crc: false in the syssi component. Values from the decode in pull request 49 (temperature from bytes 21–22 as in the current code).",
+    "expected": {
+      "messageType": 1,
+      "deviceType": 3,
+      "voltage": 20.31,
+      "current": 0.35,
+      "capacity": 0.346,
+      "energy": 7.03,
+      "dataMinus": 0.09,
+      "dataPlus": 0.09,
+      "temperature": 31,
+      "runtime": 2280,
+      "backlight": 60,
+      "checksumValid": false
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "usb-j7c-dallanwagz-checksum-from-byte3",
+    "variant": "USB_METER",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "FF5501030003860000D2000D6D00000952011901180028000409163C0C800000032000D8",
+    "source": "https://github.com/dallanwagz/atorch-ble tests/fixtures/known_frames.py REAL_CAPTURED_FRAME; checksum rule in https://github.com/dallanwagz/atorch-ble src/atorch_ble/_decoder.py decode_usb_meter",
+    "description": "J7-C frame whose last byte equals (sum of bytes 3..34) XOR 0x44, i.e. the standard rule without the message type byte; the source claims this for 639 frames of one meter (single source). The source names bytes 17–18 D+; this vector uses the order of this spec.",
+    "expected": {
+      "messageType": 1,
+      "deviceType": 3,
+      "voltage": 9.02,
+      "current": 2.1,
+      "power": 18.942,
+      "capacity": 3.437,
+      "energy": 23.86,
+      "dataMinus": 2.81,
+      "dataPlus": 2.8,
+      "temperature": 40,
+      "runtime": 14962,
+      "backlight": 60,
+      "checksumValid": false,
+      "checksumFrom3Valid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "reply-ok",
+    "variant": "ANY",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "FF55020101000040",
+    "source": "https://github.com/NiceLabs/atorch-console/blob/master/src/service/atorch-packet/packet-reply.spec.ts; https://github.com/msillano/UD18-protocol-and-node-red UD18_protocol.txt (ack after WH reset); https://www.improwis.com/projects/sw_dl24/ (reply to command 0x32)",
+    "description": "Reply \"OK\" (status 0x01).",
+    "expected": {
+      "messageType": 2,
+      "replyType": 1,
+      "status": 1,
+      "checksumValid": true,
+      "meaning": "ok"
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "reply-ok-split-4-4",
+    "variant": "DC_METER",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "FF55020101000040",
+    "source": "https://github.com/syssi/esphome-atorch-dl24/issues/33",
+    "description": "DL24 reply to FF551102030000000052 delivered as two 4 byte notifications; byte 3 is 0x01 although the command carried device type 0x02.",
+    "expected": {
+      "messageType": 2,
+      "replyType": 1,
+      "status": 1,
+      "checksumValid": true,
+      "meaning": "ok",
+      "notifications": [
+        "FF550201",
+        "01000040"
+      ]
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "reply-unsupported",
+    "variant": "ANY",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "FF55020103000042",
+    "source": "https://github.com/NiceLabs/atorch-console/blob/master/src/service/atorch-packet/packet-reply.spec.ts; https://www.improwis.com/projects/sw_dl24/ (reply to command 0xFF); https://github.com/lispnik/ud18 README \"Commands\"",
+    "description": "Reply \"unsupported command\" (status 0x03), for example to 0x11 / 0x12 / 0x21 / 0x22 on a UD18 or to an unknown opcode on a DL24.",
+    "expected": {
+      "messageType": 2,
+      "replyType": 1,
+      "status": 3,
+      "checksumValid": true,
+      "meaning": "unsupported"
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "reply-status-2",
+    "variant": "ANY",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "FF55020102000041",
+    "source": "https://github.com/syssi/esphome-atorch-dl24/blob/main/components/atorch_dl24/atorch_dl24.cpp decode() comment \"Command failed\"; https://github.com/lispnik/ud18 README \"Commands\" (status 02 = wrong device type)",
+    "description": "Reply status 0x02: \"command failed\" in syssi, \"wrong device type\" per lispnik (command device type byte other than the report device type).",
+    "expected": {
+      "messageType": 2,
+      "replyType": 1,
+      "status": 2,
+      "checksumValid": true,
+      "meaning": "failed or wrong device type"
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "reply-status-5-wrong-class",
+    "variant": "USB_METER",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "FF5502010500004C",
+    "source": "https://github.com/lispnik/ud18 README \"Commands\" (status table)",
+    "description": "Reply status 0x05 (message class other than 0x11), mapped on a UD18 by sending wrong frames; bytes built from the status table (single source).",
+    "expected": {
+      "messageType": 2,
+      "replyType": 1,
+      "status": 5,
+      "checksumValid": true,
+      "meaning": "wrong message class"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "reply-status-6-malformed",
+    "variant": "USB_METER",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "FF5502010600004D",
+    "source": "https://github.com/lispnik/ud18 README \"Commands\" (status table)",
+    "description": "Reply status 0x06 (well-formed frame of the wrong length), UD18; bytes built from the status table (single source).",
+    "expected": {
+      "messageType": 2,
+      "replyType": 1,
+      "status": 6,
+      "checksumValid": true,
+      "meaning": "malformed frame"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "reply-zero",
+    "variant": "ANY",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "FF55020000000046",
+    "source": "https://github.com/NiceLabs/atorch-console/blob/master/src/service/atorch-packet/packet-reply.spec.ts; https://github.com/syssi/esphome-atorch-dl24/blob/main/components/atorch_dl24/atorch_dl24.cpp (comment above assemble)",
+    "description": "Reply sample with bytes 3–4 = 00 00; no source explains it, syssi logs it as an unsupported reply.",
+    "expected": {
+      "messageType": 2,
+      "replyType": 0,
+      "status": 0,
+      "checksumValid": true,
+      "meaning": "unknown"
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "ac-cmd-reset-energy",
+    "variant": "AC_METER",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "FF551101010000000057",
+    "source": "https://github.com/syssi/esphome-atorch-dl24/blob/main/components/atorch_dl24/button/__init__.py (frame comments)",
+    "description": "Reset energy (Wh) of an AC meter. Bytes as written in the syssi component comments.",
+    "expected": {
+      "messageType": 17,
+      "deviceType": 1,
+      "command": 1,
+      "name": "resetEnergy",
+      "value": 0,
+      "checksum": 87
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "ac-cmd-reset-capacity",
+    "variant": "AC_METER",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "FF551101020000000050",
+    "source": "https://github.com/syssi/esphome-atorch-dl24/blob/main/components/atorch_dl24/button/__init__.py (frame comments)",
+    "description": "Reset capacity (Ah), device type 0x01. Bytes as written in the syssi component comments.",
+    "expected": {
+      "messageType": 17,
+      "deviceType": 1,
+      "command": 2,
+      "name": "resetCapacity",
+      "value": 0,
+      "checksum": 80
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "ac-cmd-reset-runtime",
+    "variant": "AC_METER",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "FF551101030000000051",
+    "source": "https://github.com/syssi/esphome-atorch-dl24/blob/main/components/atorch_dl24/button/__init__.py (frame comments)",
+    "description": "Reset duration, device type 0x01. Bytes as written in the syssi component comments.",
+    "expected": {
+      "messageType": 17,
+      "deviceType": 1,
+      "command": 3,
+      "name": "resetRuntime",
+      "value": 0,
+      "checksum": 81
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "ac-cmd-reset-all",
+    "variant": "AC_METER",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "FF551101050000000053",
+    "source": "https://github.com/syssi/esphome-atorch-dl24/blob/main/components/atorch_dl24/button/__init__.py (frame comments)",
+    "description": "Reset all, device type 0x01. Bytes as written in the syssi component comments.",
+    "expected": {
+      "messageType": 17,
+      "deviceType": 1,
+      "command": 5,
+      "name": "resetAll",
+      "value": 0,
+      "checksum": 83
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "ac-cmd-plus",
+    "variant": "AC_METER",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "FF551101110000000067",
+    "source": "https://github.com/syssi/esphome-atorch-dl24/blob/main/components/atorch_dl24/button/__init__.py (frame comments)",
+    "description": "[+] key for AC and DC meters per NiceLabs; DL24M ignores it, UD18 answers unsupported. Bytes as written in the syssi component comments.",
+    "expected": {
+      "messageType": 17,
+      "deviceType": 1,
+      "command": 17,
+      "name": "plus",
+      "value": 0,
+      "checksum": 103
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "ac-cmd-minus",
+    "variant": "AC_METER",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "FF551101120000000060",
+    "source": "https://github.com/syssi/esphome-atorch-dl24/blob/main/components/atorch_dl24/button/__init__.py (frame comments)",
+    "description": "[-] key for AC and DC meters per NiceLabs. Bytes as written in the syssi component comments.",
+    "expected": {
+      "messageType": 17,
+      "deviceType": 1,
+      "command": 18,
+      "name": "minus",
+      "value": 0,
+      "checksum": 96
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "ac-cmd-setup",
+    "variant": "AC_METER",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "FF551101310000000007",
+    "source": "https://github.com/syssi/esphome-atorch-dl24/blob/main/components/atorch_dl24/button/__init__.py (frame comments)",
+    "description": "Setup key, device type 0x01. Bytes as written in the syssi component comments.",
+    "expected": {
+      "messageType": 17,
+      "deviceType": 1,
+      "command": 49,
+      "name": "setup",
+      "value": 0,
+      "checksum": 7
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "ac-cmd-enter",
+    "variant": "AC_METER",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "FF551101320000000000",
+    "source": "https://github.com/syssi/esphome-atorch-dl24/blob/main/components/atorch_dl24/button/__init__.py (frame comments)",
+    "description": "Enter key, device type 0x01. Bytes as written in the syssi component comments.",
+    "expected": {
+      "messageType": 17,
+      "deviceType": 1,
+      "command": 50,
+      "name": "enter",
+      "value": 0,
+      "checksum": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "ac-cmd-backlight-1s",
+    "variant": "AC_METER",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "FF551101210000000170",
+    "source": "https://github.com/syssi/esphome-atorch-dl24/blob/main/components/atorch_dl24/button/__init__.py (frame comments)",
+    "description": "Set backlight time, value 1 (range 0–60; 0 = always off, 60 = always on). Bytes as written in the syssi component comments.",
+    "expected": {
+      "messageType": 17,
+      "deviceType": 1,
+      "command": 33,
+      "name": "setBacklight",
+      "value": 1,
+      "checksum": 112
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "ac-cmd-price-0.01",
+    "variant": "AC_METER",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "FF551101220000000171",
+    "source": "https://github.com/syssi/esphome-atorch-dl24/blob/main/components/atorch_dl24/button/__init__.py (frame comments)",
+    "description": "Set price, raw value 1 = 0.01 per kWh (range 1–999999). Bytes as written in the syssi component comments.",
+    "expected": {
+      "messageType": 17,
+      "deviceType": 1,
+      "command": 34,
+      "name": "setPrice",
+      "value": 1,
+      "checksum": 113
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "ac-cmd-backlight-30s",
+    "variant": "AC_METER",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "FF551101210000001E15",
+    "source": "https://github.com/NiceLabs/atorch-console/blob/master/src/service/atorch-packet/packet-command.ts setBacklightTime",
+    "description": "Set backlight time to 30 s on an AC meter (constructed).",
+    "expected": {
+      "messageType": 17,
+      "deviceType": 1,
+      "command": 33,
+      "name": "setBacklight",
+      "value": 30,
+      "checksum": 21,
+      "backlight": 30
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "ac-cmd-price-1.25",
+    "variant": "AC_METER",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "FF551101220000007DF5",
+    "source": "https://github.com/NiceLabs/atorch-console/blob/master/src/service/atorch-packet/packet-command.ts setPrice and PrintReport SetupPriceCommand (value = price x 100)",
+    "description": "Set price 1.25 per kWh on an AC meter: raw 125 (constructed).",
+    "expected": {
+      "messageType": 17,
+      "deviceType": 1,
+      "command": 34,
+      "name": "setPrice",
+      "value": 125,
+      "checksum": 245,
+      "price": 1.25
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "ac-cmd-plus-app-0x33",
+    "variant": "AC_METER",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "FF551101330000000001",
+    "source": "https://flaviutamas.com/2022/dl24m-reversing (decompiled E-test button handler: button_jia sends 51 with the report device type)",
+    "description": "[+] as the E-test app sends it for every device type (0x33), here for device type 0x01 (constructed, unverified on AC meters).",
+    "expected": {
+      "messageType": 17,
+      "deviceType": 1,
+      "command": 51,
+      "name": "plusUsb",
+      "value": 0,
+      "checksum": 1
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "dc-cmd-reset-energy",
+    "variant": "DC_METER",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "FF551102010000000050",
+    "source": "https://www.ordinoscope.net/index.php/Electronique/Hardware/Outils/Atorch/DL24P (table \"Touches\", Windows app) and https://web.archive.org/web/20220116222351/https://auto-scripting.com/2020/05/03/atorch-dl24-hack-1/",
+    "description": "Reset energy of a DL24 / DL24P (the Windows app sends the same frame for \"Electric\", \"Carbon Dioxide\" and \"Electric Fees\" reset).",
+    "expected": {
+      "messageType": 17,
+      "deviceType": 2,
+      "command": 1,
+      "name": "resetEnergy",
+      "value": 0,
+      "checksum": 80
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "dc-cmd-reset-capacity",
+    "variant": "DC_METER",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "FF551102020000000051",
+    "source": "https://web.archive.org/web/20220116222351/https://auto-scripting.com/2020/05/03/atorch-dl24-hack-1/",
+    "description": "Reset capacity of a DL24 (E-test app capture).",
+    "expected": {
+      "messageType": 17,
+      "deviceType": 2,
+      "command": 2,
+      "name": "resetCapacity",
+      "value": 0,
+      "checksum": 81
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "dc-cmd-reset-runtime",
+    "variant": "DC_METER",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "FF551102030000000052",
+    "source": "https://github.com/syssi/esphome-atorch-dl24/issues/33 and https://web.archive.org/web/20220116222351/https://auto-scripting.com/2020/05/03/atorch-dl24-hack-1/",
+    "description": "Reset duration of a DL24: answered with FF55020101000040 and the next report shows 0:00:00.",
+    "expected": {
+      "messageType": 17,
+      "deviceType": 2,
+      "command": 3,
+      "name": "resetRuntime",
+      "value": 0,
+      "checksum": 82
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "dc-cmd-reset-all",
+    "variant": "DC_METER",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "FF55110205000000005C",
+    "source": "https://www.ordinoscope.net/index.php/Electronique/Hardware/Outils/Atorch/DL24P (table \"Touches\"); https://web.archive.org/web/20220116222351/https://auto-scripting.com/2020/05/03/atorch-dl24-hack-1/ prints this opcode with checksum 0x54",
+    "description": "Reset all of a DL24P (energy, capacity, duration). The auto-scripting table shows this opcode with checksum 0x54, which does not follow the checksum rule.",
+    "expected": {
+      "messageType": 17,
+      "deviceType": 2,
+      "command": 5,
+      "name": "resetAll",
+      "value": 0,
+      "checksum": 92
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "dc-cmd-setup",
+    "variant": "DC_METER",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "FF551102310000000000",
+    "source": "https://www.ordinoscope.net/index.php/Electronique/Hardware/Outils/Atorch/DL24P (table \"Touches\"), https://web.archive.org/web/20220116222351/https://auto-scripting.com/2020/05/03/atorch-dl24-hack-1/ and https://github.com/syssi/esphome-atorch-dl24/issues/76#issuecomment-2161626142",
+    "description": "Setup key of a DL24 / DL24P / DL24M (works on the DL24M Purple).",
+    "expected": {
+      "messageType": 17,
+      "deviceType": 2,
+      "command": 49,
+      "name": "setup",
+      "value": 0,
+      "checksum": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "dc-cmd-enter-load-toggle",
+    "variant": "DC_METER",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "FF551102320000000001",
+    "source": "https://www.ordinoscope.net/index.php/Electronique/Hardware/Outils/Atorch/DL24P (table \"Touches\"), https://web.archive.org/web/20220116222351/https://auto-scripting.com/2020/05/03/atorch-dl24-hack-1/, https://www.improwis.com/projects/sw_dl24/",
+    "description": "Enter / ON-OFF key of a DL24: toggles the load (no explicit on or off), answered with FF55020101000040.",
+    "expected": {
+      "messageType": 17,
+      "deviceType": 2,
+      "command": 50,
+      "name": "enter",
+      "value": 0,
+      "checksum": 1
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "dc-cmd-plus-0x33",
+    "variant": "DC_METER",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "FF551102330000000002",
+    "source": "https://www.ordinoscope.net/index.php/Electronique/Hardware/Outils/Atorch/DL24P (table \"Touches\") and https://github.com/syssi/esphome-atorch-dl24/issues/76#issuecomment-2162971542 (btsnoop of the Android app)",
+    "description": "[+] key of a DL24 / DL24P / DL24M as the vendor apps send it (0x33).",
+    "expected": {
+      "messageType": 17,
+      "deviceType": 2,
+      "command": 51,
+      "name": "plusUsb",
+      "value": 0,
+      "checksum": 2
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "dc-cmd-minus-0x34",
+    "variant": "DC_METER",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "FF551102340000000003",
+    "source": "https://www.ordinoscope.net/index.php/Electronique/Hardware/Outils/Atorch/DL24P (table \"Touches\") and https://github.com/syssi/esphome-atorch-dl24/issues/76#issuecomment-2162971542",
+    "description": "[-] key of a DL24 / DL24P / DL24M as the vendor apps send it (0x34).",
+    "expected": {
+      "messageType": 17,
+      "deviceType": 2,
+      "command": 52,
+      "name": "minusUsb",
+      "value": 0,
+      "checksum": 3
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "dc-cmd-plus-0x11-ignored-dl24m",
+    "variant": "DC_METER",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "FF551102110000000060",
+    "source": "https://github.com/syssi/esphome-atorch-dl24/issues/76#issuecomment-2161626142",
+    "description": "[+] with opcode 0x11 as the syssi component sends it: no beep and no effect on the DL24M Purple.",
+    "expected": {
+      "messageType": 17,
+      "deviceType": 2,
+      "command": 17,
+      "name": "plus",
+      "value": 0,
+      "checksum": 96
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "dc-cmd-unknown-0xff",
+    "variant": "DC_METER",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "FF551102FF0000000056",
+    "source": "https://www.improwis.com/projects/sw_dl24/",
+    "description": "Unknown opcode 0xFF to a DL24: answered FF55020103000042 (unsupported).",
+    "expected": {
+      "messageType": 17,
+      "deviceType": 2,
+      "command": 255,
+      "name": "unknown",
+      "value": 0,
+      "checksum": 86
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "dc-cmd-backlight-30s",
+    "variant": "DC_METER",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "FF551102210000001E16",
+    "source": "https://github.com/NiceLabs/atorch-console/blob/master/src/service/atorch-packet/packet-command.ts setBacklightTime",
+    "description": "Set backlight time 30 s with device type 0x02 (constructed; not confirmed on a DL24).",
+    "expected": {
+      "messageType": 17,
+      "deviceType": 2,
+      "command": 33,
+      "name": "setBacklight",
+      "value": 30,
+      "checksum": 22,
+      "backlight": 30
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "dc-cmd-price-1.00",
+    "variant": "DC_METER",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "FF5511022200000064DD",
+    "source": "https://github.com/NiceLabs/atorch-console/blob/master/src/service/atorch-packet/packet-command.ts setPrice",
+    "description": "Set price 1.00 per kWh with device type 0x02: raw 100 (constructed; not confirmed on a DL24).",
+    "expected": {
+      "messageType": 17,
+      "deviceType": 2,
+      "command": 34,
+      "name": "setPrice",
+      "value": 100,
+      "checksum": 221,
+      "price": 1
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "usb-cmd-reset-energy",
+    "variant": "USB_METER",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "FF551103010000000051",
+    "source": "https://github.com/msillano/UD18-protocol-and-node-red UD18_protocol.txt (\"commands PC => UD18\"); https://www.improwis.com/projects/sw_dl24/; http://bukys.eu/project/powermon/start; https://github.com/lispnik/ud18 README \"The command set\"",
+    "description": "UD18 / UD24 command resetEnergy. lispnik verified reset duration and [+] / [-] (display pages) on a UD18; 0x01, 0x02, 0x05, 0x31, 0x32 were answered OK.",
+    "expected": {
+      "messageType": 17,
+      "deviceType": 3,
+      "command": 1,
+      "name": "resetEnergy",
+      "value": 0,
+      "checksum": 81
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "usb-cmd-reset-capacity",
+    "variant": "USB_METER",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "FF551103020000000052",
+    "source": "https://github.com/msillano/UD18-protocol-and-node-red UD18_protocol.txt (\"commands PC => UD18\"); https://www.improwis.com/projects/sw_dl24/; http://bukys.eu/project/powermon/start; https://github.com/lispnik/ud18 README \"The command set\"",
+    "description": "UD18 / UD24 command resetCapacity. lispnik verified reset duration and [+] / [-] (display pages) on a UD18; 0x01, 0x02, 0x05, 0x31, 0x32 were answered OK.",
+    "expected": {
+      "messageType": 17,
+      "deviceType": 3,
+      "command": 2,
+      "name": "resetCapacity",
+      "value": 0,
+      "checksum": 82
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "usb-cmd-reset-runtime",
+    "variant": "USB_METER",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "FF551103030000000053",
+    "source": "https://github.com/msillano/UD18-protocol-and-node-red UD18_protocol.txt (\"commands PC => UD18\"); https://www.improwis.com/projects/sw_dl24/; http://bukys.eu/project/powermon/start; https://github.com/lispnik/ud18 README \"The command set\"",
+    "description": "UD18 / UD24 command resetRuntime. lispnik verified reset duration and [+] / [-] (display pages) on a UD18; 0x01, 0x02, 0x05, 0x31, 0x32 were answered OK.",
+    "expected": {
+      "messageType": 17,
+      "deviceType": 3,
+      "command": 3,
+      "name": "resetRuntime",
+      "value": 0,
+      "checksum": 83
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "usb-cmd-reset-all",
+    "variant": "USB_METER",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "FF55110305000000005D",
+    "source": "https://github.com/msillano/UD18-protocol-and-node-red UD18_protocol.txt (\"commands PC => UD18\"); https://www.improwis.com/projects/sw_dl24/; http://bukys.eu/project/powermon/start; https://github.com/lispnik/ud18 README \"The command set\"",
+    "description": "UD18 / UD24 command resetAll. lispnik verified reset duration and [+] / [-] (display pages) on a UD18; 0x01, 0x02, 0x05, 0x31, 0x32 were answered OK.",
+    "expected": {
+      "messageType": 17,
+      "deviceType": 3,
+      "command": 5,
+      "name": "resetAll",
+      "value": 0,
+      "checksum": 93
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "usb-cmd-setup",
+    "variant": "USB_METER",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "FF551103310000000001",
+    "source": "https://github.com/msillano/UD18-protocol-and-node-red UD18_protocol.txt (\"commands PC => UD18\"); https://www.improwis.com/projects/sw_dl24/; http://bukys.eu/project/powermon/start; https://github.com/lispnik/ud18 README \"The command set\"",
+    "description": "UD18 / UD24 command setup. lispnik verified reset duration and [+] / [-] (display pages) on a UD18; 0x01, 0x02, 0x05, 0x31, 0x32 were answered OK.",
+    "expected": {
+      "messageType": 17,
+      "deviceType": 3,
+      "command": 49,
+      "name": "setup",
+      "value": 0,
+      "checksum": 1
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "usb-cmd-enter",
+    "variant": "USB_METER",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "FF551103320000000002",
+    "source": "https://github.com/msillano/UD18-protocol-and-node-red UD18_protocol.txt (\"commands PC => UD18\"); https://www.improwis.com/projects/sw_dl24/; http://bukys.eu/project/powermon/start; https://github.com/lispnik/ud18 README \"The command set\"",
+    "description": "UD18 / UD24 command enter. lispnik verified reset duration and [+] / [-] (display pages) on a UD18; 0x01, 0x02, 0x05, 0x31, 0x32 were answered OK.",
+    "expected": {
+      "messageType": 17,
+      "deviceType": 3,
+      "command": 50,
+      "name": "enter",
+      "value": 0,
+      "checksum": 2
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "usb-cmd-plus",
+    "variant": "USB_METER",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "FF551103330000000003",
+    "source": "https://github.com/msillano/UD18-protocol-and-node-red UD18_protocol.txt (\"commands PC => UD18\"); https://www.improwis.com/projects/sw_dl24/; http://bukys.eu/project/powermon/start; https://github.com/lispnik/ud18 README \"The command set\"",
+    "description": "UD18 / UD24 command plusUsb. lispnik verified reset duration and [+] / [-] (display pages) on a UD18; 0x01, 0x02, 0x05, 0x31, 0x32 were answered OK.",
+    "expected": {
+      "messageType": 17,
+      "deviceType": 3,
+      "command": 51,
+      "name": "plusUsb",
+      "value": 0,
+      "checksum": 3
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "usb-cmd-minus",
+    "variant": "USB_METER",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "FF55110334000000000C",
+    "source": "https://github.com/msillano/UD18-protocol-and-node-red UD18_protocol.txt (\"commands PC => UD18\"); https://www.improwis.com/projects/sw_dl24/; http://bukys.eu/project/powermon/start; https://github.com/lispnik/ud18 README \"The command set\"",
+    "description": "UD18 / UD24 command minusUsb. lispnik verified reset duration and [+] / [-] (display pages) on a UD18; 0x01, 0x02, 0x05, 0x31, 0x32 were answered OK.",
+    "expected": {
+      "messageType": 17,
+      "deviceType": 3,
+      "command": 52,
+      "name": "minusUsb",
+      "value": 0,
+      "checksum": 12
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "usb-cmd-plus-0x11-unsupported",
+    "variant": "USB_METER",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "FF551103110000000061",
+    "source": "https://github.com/lispnik/ud18 README \"The command set\"",
+    "description": "Opcode 0x11 with device type 0x03: a UD18 answers status 0x03 (unsupported) (constructed).",
+    "expected": {
+      "messageType": 17,
+      "deviceType": 3,
+      "command": 17,
+      "name": "plus",
+      "value": 0,
+      "checksum": 97
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "usb-cmd-backlight-unsupported",
+    "variant": "USB_METER",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "FF55110321000000140D",
+    "source": "https://github.com/lispnik/ud18 README \"The command set\"",
+    "description": "Set backlight 20 s with device type 0x03: a UD18 answers unsupported (constructed).",
+    "expected": {
+      "messageType": 17,
+      "deviceType": 3,
+      "command": 33,
+      "name": "setBacklight",
+      "value": 20,
+      "checksum": 13,
+      "backlight": 20
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "s1-cmd-relay-toggle",
+    "variant": "USB_METER",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "FF551103020000000052",
+    "source": "http://bukys.eu/project/powermon/start (table \"Commands for S1-B\")",
+    "description": "S1-B smart socket: the same bytes as the USB reset capacity command toggle the internal relay per bukys.eu (single source; note the device type 0x03 although the S1 reports type 0x01).",
+    "expected": {
+      "messageType": 17,
+      "deviceType": 3,
+      "command": 2,
+      "name": "resetCapacity",
+      "value": 0,
+      "checksum": 82
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "px100-load-on",
+    "variant": "DL24_PX100",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "B1B2010100B6",
+    "source": "https://www.improwis.com/projects/sw_dl24/ (section \"PX100 protocol\"); https://github.com/RobThree/LibAtorch/blob/main/LibAtorch/Request.cs and CommandType.cs (serial); whisker73 \"DL24 Android Monitor\" (GitHub user whisker73), app/src/main/java/com/dl24/monitor/ble/DL24Protocol.kt CommandBuilder and README \"Direktsteuerung\" (BLE)",
+    "description": "Load on: command 0x01, d1 = 1. Answer: the single byte 0x6F. Over BLE only whisker73 uses it (unverified).",
+    "expected": {
+      "frame": "px100",
+      "command": 1,
+      "d1": 1,
+      "d2": 0,
+      "loadOn": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "px100-load-off",
+    "variant": "DL24_PX100",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "B1B2010000B6",
+    "source": "https://www.improwis.com/projects/sw_dl24/ (section \"transaction examples\": RAWPX100:01)",
+    "description": "Load off (command 0x01, d1 = 0), answered 0x6F in the transaction example (Bluetooth SPP link).",
+    "expected": {
+      "frame": "px100",
+      "command": 1,
+      "d1": 0,
+      "d2": 0,
+      "loadOn": false
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "px100-ack",
+    "variant": "DL24_PX100",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "6F",
+    "source": "https://www.improwis.com/projects/sw_dl24/ (section \"transaction examples\"); https://github.com/RobThree/LibAtorch/blob/main/LibAtorch/AtorchDevice.cs (0x6F => OkResponse)",
+    "description": "PX100 short acknowledgement of a set command, one byte.",
+    "expected": {
+      "frame": "px100-ack"
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "px100-set-current-1.50a",
+    "variant": "DL24_PX100",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "B1B2020132B6",
+    "source": "https://www.improwis.com/projects/sw_dl24/ (section \"PX100 protocol\"); https://github.com/RobThree/LibAtorch/blob/main/LibAtorch/Request.cs and CommandType.cs (serial); whisker73 \"DL24 Android Monitor\" (GitHub user whisker73), app/src/main/java/com/dl24/monitor/ble/DL24Protocol.kt CommandBuilder and README \"Direktsteuerung\" (BLE)",
+    "description": "Set load current 1.50 A: d1 = whole amperes, d2 = hundredths (0–99, binary) (constructed).",
+    "expected": {
+      "frame": "px100",
+      "command": 2,
+      "d1": 1,
+      "d2": 50,
+      "current": 1.5
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "px100-set-cutoff-10.50v",
+    "variant": "DL24_PX100",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "B1B2030A32B6",
+    "source": "https://www.improwis.com/projects/sw_dl24/ (section \"PX100 protocol\"); https://github.com/RobThree/LibAtorch/blob/main/LibAtorch/Request.cs and CommandType.cs (serial); whisker73 \"DL24 Android Monitor\" (GitHub user whisker73), app/src/main/java/com/dl24/monitor/ble/DL24Protocol.kt CommandBuilder and README \"Direktsteuerung\" (BLE)",
+    "description": "Set cutoff voltage 10.50 V: d1 = whole volts, d2 = hundredths (constructed).",
+    "expected": {
+      "frame": "px100",
+      "command": 3,
+      "d1": 10,
+      "d2": 50,
+      "cutoffVoltage": 10.5
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "px100-set-timer-3600s",
+    "variant": "DL24_PX100",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "B1B2040E10B6",
+    "source": "https://www.improwis.com/projects/sw_dl24/ (section \"PX100 protocol\"); https://github.com/RobThree/LibAtorch/blob/main/LibAtorch/Request.cs and CommandType.cs (serial); whisker73 \"DL24 Android Monitor\" (GitHub user whisker73), app/src/main/java/com/dl24/monitor/ble/DL24Protocol.kt CommandBuilder and README \"Direktsteuerung\" (BLE)",
+    "description": "Set the discharge timer to 3600 s (u16 big-endian seconds; whisker73 reports that the device keeps whole minutes) (constructed).",
+    "expected": {
+      "frame": "px100",
+      "command": 4,
+      "d1": 14,
+      "d2": 16,
+      "timer": 3600
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "px100-query-load-state",
+    "variant": "DL24_PX100",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "B1B2100000B6",
+    "source": "https://www.improwis.com/projects/sw_dl24/ (section \"transaction examples\": RAWPX100:10)",
+    "description": "Query load state (0x10).",
+    "expected": {
+      "frame": "px100",
+      "command": 16,
+      "d1": 0,
+      "d2": 0
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "px100-reply-load-off",
+    "variant": "DL24_PX100",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "CACB000000CECF",
+    "source": "https://www.improwis.com/projects/sw_dl24/ (section \"transaction examples\": reply to RAWPX100:10)",
+    "description": "Query reply CA CB d1 d2 d3 CE CF: load off (d3 = 0).",
+    "expected": {
+      "frame": "px100-reply",
+      "value": 0,
+      "loadOn": false
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "px100-query-current-setting",
+    "variant": "DL24_PX100",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "B1B2170000B6",
+    "source": "https://www.improwis.com/projects/sw_dl24/ (section \"PX100 protocol\"); https://github.com/RobThree/LibAtorch/blob/main/LibAtorch/Request.cs and CommandType.cs (serial); whisker73 \"DL24 Android Monitor\" (GitHub user whisker73), app/src/main/java/com/dl24/monitor/ble/DL24Protocol.kt CommandBuilder and README \"Direktsteuerung\" (BLE)",
+    "description": "Query the current setting (0x17) (constructed).",
+    "expected": {
+      "frame": "px100",
+      "command": 23,
+      "d1": 0,
+      "d2": 0
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "px100-reply-current-setting-1.50a",
+    "variant": "DL24_PX100",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "CACB000096CECF",
+    "source": "https://www.improwis.com/projects/sw_dl24/ (\"preset current 10s mA\"); https://github.com/RobThree/LibAtorch/blob/main/LibAtorch/AtorchDevice.cs (CurrentSetting / 100)",
+    "description": "Reply to 0x17: u24 in 10 mA units, 150 = 1.50 A (constructed).",
+    "expected": {
+      "frame": "px100-reply",
+      "value": 150,
+      "current": 1.5
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "px100-query-cutoff-setting",
+    "variant": "DL24_PX100",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "B1B2180000B6",
+    "source": "https://www.improwis.com/projects/sw_dl24/ (section \"PX100 protocol\"); https://github.com/RobThree/LibAtorch/blob/main/LibAtorch/Request.cs and CommandType.cs (serial); whisker73 \"DL24 Android Monitor\" (GitHub user whisker73), app/src/main/java/com/dl24/monitor/ble/DL24Protocol.kt CommandBuilder and README \"Direktsteuerung\" (BLE)",
+    "description": "Query the cutoff voltage setting (0x18); reply u24 in 10 mV units (constructed).",
+    "expected": {
+      "frame": "px100",
+      "command": 24,
+      "d1": 0,
+      "d2": 0
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "px100-reset-counters",
+    "variant": "DL24_PX100",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "B1B2050000B6",
+    "source": "https://www.improwis.com/projects/sw_dl24/ (section \"PX100 protocol\": reset counters 05 00 00)",
+    "description": "PX100 reset counters (constructed).",
+    "expected": {
+      "frame": "px100",
+      "command": 5,
+      "d1": 0,
+      "d2": 0
+    },
+    "expectedComputed": true
+  }
+]
