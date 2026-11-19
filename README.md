@@ -13,8 +13,9 @@ UART and RS485 through USB adapters), shows live data and reads and writes the d
 - Languages: English, Ukrainian, Russian, German, French.
 - Demo mode with simulated devices that speak the real protocols.
 
-Supported devices: **JK BMS** (Jikong), **ANT BMS**, **Daly BMS**, **JK active balancers**,
-**Atorch** meters and electronic loads.
+Supported devices: **JK BMS** (Jikong), **ANT BMS**, **Daly BMS**, **JBD BMS** (and the brands built
+on it), **Seplos BMS**, active balancers from **JK**, **NEEY** (Heltec) and **Daly**, **Atorch** meters
+and electronic loads.
 
 | Driver | Devices and protocol | Links | Settings (writable / read only / actions) |
 | --- | --- | --- | --- |
@@ -28,6 +29,13 @@ Supported devices: **JK BMS** (Jikong), **ANT BMS**, **Daly BMS**, **JK active b
 | `jk-balancer-ble` | JK active balancers with the JK04 protocol (JK-B2A16S, JK-B2A24S, JK-B5A24S) | Bluetooth | 6 / 1 / 0 |
 | `jk-balancer-rs485` | JK-DZ11-B2A24S active balancer, "55 AA" requests and "EB 90" answers | RS485 | 4 / 1 / 0 |
 | `atorch` | Atorch DC and AC meters, USB testers and DL24 electronic loads, "FF 55" protocol (load control over PX100 is experimental) | Bluetooth | AC: 2 / 0 / 7, DC: 2 / 0 / 8, USB: 0 / 1 / 8 |
+| `neey-ble` | NEEY (Heltec, Enerkon) active balancers GW-24S4EB, EK-24S4EB, EK-16S2EB and newer, two settings layouts | Bluetooth | V1: 6 / 3 / 0, V2: 1 / 33 / 0 |
+| `daly-balancer` | Daly active balancers, Modbus D2 protocol | Bluetooth, UART | 4 / 2 / 0 |
+| `jbd` | JBD (Jiabaida) BMS and the brands built on it (Xiaoxiang app, Overkill Solar and others), "DD A5" protocol | Bluetooth, UART, RS485 | 59 / 26 / 2 (serial 57 / 26 / 2) |
+| `jbd-up-rs485` | JBD UP series, Modbus style protocol (experimental) | RS485 | read only |
+| `seplos-v3` | Seplos BMS version 3, Modbus RTU | Bluetooth, RS485 | 170 / 8 / 2 |
+| `seplos-v2-ble` | Seplos BMS version 2 through its Bluetooth module (binary 7E frames) | Bluetooth | 150 / 1 / 0 |
+| `seplos-v2` | Seplos BMS version 2, ASCII "~20" protocol | RS485, RS232 | 150 / 1 / 0 |
 
 Parameters whose encoding is not confirmed by captures or vendor documents are shown read only.
 Every driver ships a simulator, so the demo mode shows each protocol without hardware. See

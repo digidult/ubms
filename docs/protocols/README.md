@@ -11,6 +11,10 @@ the frames in `packages/bms-drivers/test/vectors/<family>.json` are the referenc
 | Daly BMS | [daly.md](daly.md) | classic 13-byte protocol, newer Modbus style protocol | BLE, UART, RS485 |
 | JK active balancers | [jk-balancer.md](jk-balancer.md) | JK04 (BLE), JK-DZ11-B2A24S RS485 | BLE, RS485 |
 | Atorch meters and loads | [atorch.md](atorch.md) | FF 55 reports and commands, PX100 load frames | BLE |
+| NEEY active balancers | [neey.md](neey.md) | V1 (100-byte settings), V2 (150-byte settings, EK-B models) | BLE |
+| Daly active balancers | [daly-balancer.md](daly-balancer.md) | Modbus D2 | BLE, UART |
+| JBD BMS | [jbd.md](jbd.md) | DD A5 protocol, UP series Modbus style protocol | BLE, UART, RS485 |
+| Seplos BMS | [seplos.md](seplos.md) | version 2 ASCII and its Bluetooth binary form, version 3 Modbus RTU | BLE, RS485, RS232 |
 
 ## Drivers
 
@@ -26,6 +30,13 @@ the frames in `packages/bms-drivers/test/vectors/<family>.json` are the referenc
 | `jk-balancer-ble` | JK | JK04 balancer | device info request 0x97, then the first cell frame after 0x96 must have the JK04 layout; registered before `jk-ble` |
 | `jk-balancer-rs485` | JK | RS485 balancer | read request 55 AA 01 FF 00 00 FF at 9600 baud, 74-byte EB 90 answer with plausible cells |
 | `atorch` | Atorch | FF 55 | listens for a report for up to 3 s and never writes; registered last |
+| `neey-ble` | NEEY | V1 and V2 | device info request AA 55 11 01 01 00 14 00 (sum8, then the xor8 form of the old app once); registered after JK and before ANT |
+| `daly-balancer` | Daly | Modbus D2 balancer | D2 read of 62 status registers with plausible cells; registered before `daly-modbus`, which would accept a balancer |
+| `jbd` | JBD | DD A5 | basic info read DD A5 03 00 FF FD 77, on FF00 at most one app key frame; registered before the Daly drivers |
+| `jbd-up-rs485` | JBD | UP series | Modbus read at the configured address; serial only, after the Daly drivers |
+| `seplos-v3` | Seplos | version 3 | Modbus function 0x04 and 0x01 reads |
+| `seplos-v2-ble` | Seplos | version 2 over Bluetooth | 0x51 and 0x61 reads |
+| `seplos-v2` | Seplos | version 2 ASCII | 0x51 and 0x42 reads at 19200, then 9600 baud |
 
 Within a family the order above is also the detection order.
 

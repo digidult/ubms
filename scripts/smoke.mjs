@@ -378,7 +378,8 @@ for (const id of demoIds) {
         { eval: `window.ubms.state.state === 'connected'`, shot: `demo-${id}-overview-phone` },
         { hash: '/cells', shot: `demo-${id}-cells-phone` },
         { hash: '/settings', wait: 2500, shot: `demo-${id}-settings-phone` },
-        { eval: `window.ubms.state.settings.values !== null` },
+        // Read only drivers without settings (jbd-up-rs485) have nothing to load.
+        { eval: `!window.ubms.session.driver?.capabilities.settings || window.ubms.state.settings.values !== null` },
         { eval: writeCheck, wait: 300 },
         { hash: `/settings/${'cell_voltage'}`, shot: `demo-${id}-settings-group-phone` },
         { hash: '/settings/controls', shot: `demo-${id}-settings-controls-phone` },
