@@ -15,3 +15,4 @@ decision and its consequences. Superseded records stay in place with a note.
 | [0008](0008-protocol-log.md) | Protocol log with lazy decoding |
 | [0009](0009-detection-by-probing.md) | Protocol detection by probing |
 | [0010](0010-device-simulators.md) | Protocol level device simulators for demo mode and tests |
+| [0011](0011-history-and-charts.md) | Reading history per device (IndexedDB, desktop files) and the Charts view |

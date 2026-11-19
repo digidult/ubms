@@ -8,4 +8,15 @@ export { UiElement, define } from './element.js';
 export { UiNav } from './components/nav.js';
 export { UiStat, UiRing, UiSparkline, UiSwitch, UiSegmented, UiEmpty, UiListRow } from './components/widgets.js';
 export { UiDialog, UiToaster, UiHexview, confirmDialog, toast } from './components/overlays.js';
-export { downloadFile, pickFile, copyText } from './files.js';
+export { UiChart, niceTicks, timeTicks, estimateInterval, splitSegments, nearestPoint } from './components/chart.js';
+export { downloadFile, pickFile, copyText, setFileSaver } from './files.js';
+export {
+  createSeriesStore,
+  indexedDbBackend,
+  tauriFileBackend,
+  memoryBackend,
+  fallbackBackend,
+  downsampleMinMax,
+  csvEscape,
+  toCsv,
+} from './timeseries.js';

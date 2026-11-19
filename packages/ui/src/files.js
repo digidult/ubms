@@ -3,13 +3,39 @@
  */
 
 /**
- * Offer data as a file download.
+ * @typedef {(name: string, blob: Blob) => Promise<any>} FileSaver
+ */
+
+/** @type {FileSaver | null} */
+let saver = null;
+
+/**
+ * Replace the browser download with an app specific saver, for example a desktop app that writes
+ * the file through a native command (blob downloads do not work in every webview). Pass null to
+ * restore the browser download.
+ * @param {FileSaver | null} fn
+ */
+export function setFileSaver(fn) {
+  saver = typeof fn === 'function' ? fn : null;
+}
+
+/**
+ * Offer data as a file download, or hand it to the saver set with `setFileSaver()`.
  * @param {string} filename
  * @param {string | Blob} data
  * @param {string} [type]
+ * @returns {Promise<any>} the saver's promise (for example the saved path); resolves at once for
+ *   a browser download
  */
 export function downloadFile(filename, data, type = 'application/json') {
   const blob = data instanceof Blob ? data : new Blob([data], { type });
+  if (saver) {
+    try {
+      return Promise.resolve(saver(filename, blob));
+    } catch (err) {
+      return Promise.reject(err);
+    }
+  }
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -19,6 +45,7 @@ export function downloadFile(filename, data, type = 'application/json') {
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+  return Promise.resolve();
 }
 
 /**

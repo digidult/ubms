@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Main window: core defaults (events included). The app's own Bluetooth and serial commands are allowed for every window.",
+  "description": "Main window: core defaults (events included), and destroying the window, which the close handler of the web app needs (it writes the last chart readings, then Tauri destroys the window). The app's own commands (Bluetooth, serial ports, history files, saving exports) need no entry: Tauri allows app commands for every window while the app defines no permissions of its own.",
   "windows": ["main"],
-  "permissions": ["core:default"]
+  "permissions": ["core:default", "core:window:allow-destroy"]
 }

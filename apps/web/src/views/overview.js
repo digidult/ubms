@@ -363,7 +363,7 @@ export class ViewOverview extends UiElement {
     if (current.length < 3 && voltage.length < 3) return nothing;
     const last = current.at(-1)?.v ?? 0;
     return html`<section class="card">
-      <h2>${icon('current', { size: 18 })}${t('Last 10 minutes')}</h2>
+      <h2>${icon('current', { size: 18 })}${t('Last 10 minutes')}<a href="#/charts">${t('Charts')}</a></h2>
       ${current.length > 2
         ? html`<div class="trend-label"><span>${t('Current')}</span><span>${num(Math.min(...current.map((p) => p.v)), 1)} / ${num(Math.max(...current.map((p) => p.v)), 1)} A</span></div>
             <ui-sparkline .points=${current} zero tone=${last > 0.15 ? 'charge' : last < -0.15 ? 'discharge' : ''}></ui-sparkline>`

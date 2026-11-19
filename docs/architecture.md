@@ -72,6 +72,8 @@ separate repository. They contain no BMS knowledge and no BMS strings.
    history buffer and the settings state. It emits events.
 6. The **AppController** (apps/web) maps session events into an observable store; views subscribe
    to the slices they need and re-render only when those change.
+7. The **HistoryRecorder** (apps/web) turns snapshots into history records for the Charts view and
+   writes them to a series store (see "History and charts" below).
 
 ## Unified model
 
@@ -122,11 +124,14 @@ time, reads everything back and reports per field whether the device really took
 
 `packages/bms-core/src/driver.js`. A **definition** is static metadata plus a factory:
 
-- `id`, `family` (brand: `jk`, `ant`, `daly`), `vendor`, `protocol` label, `deviceType`
-  (`bms` or `balancer`).
+- `id`, `family` (brand: `jk`, `ant`, `daly` and so on), `vendor`, `protocol` label, `deviceType`
+  (`bms`, `balancer` or `meter`).
 - `links.ble`: GATT profiles (service, notify and write characteristics, write mode, chunk size),
   advertised name prefixes and patterns, advertised services, manufacturer ids.
-- `links.serial`: serial profiles to try (baud rate, framing), most likely first.
+- `links.serial`: serial profiles to try (baud rate, framing), most likely first. `autoDetect:
+  false` keeps a definition out of automatic and family wide serial detection, for example a CAN
+  driver that needs an SLCAN USB-CAN adapter (`@ubms/transport` slcan.js): it runs only when the
+  user selects it.
 - `create(ctx)`: returns a driver instance bound to an open Link.
 - `demo` (optional): a device simulator that speaks the real protocol, used by the demo mode and
   by tests.
@@ -195,11 +200,42 @@ English source strings are the translation keys (`t('Cell overvoltage protection
 code marks strings with `msg()` and the UI translates them when rendering. Catalogs are separate
 JSON files per language; missing entries fall back to English. See [i18n.md](i18n.md).
 
+## History and charts
+
+```
+ BmsSession ──snapshot, info, state──> HistoryRecorder ──append, meta──> SeriesStore ──> backend
+                                        (apps/web)        (every 10 s)    (@ubms/ui)     IndexedDB, Tauri files or memory
+                                            │ live tail (2 h)                  │ read once per range
+                                            v                                  v
+                                         Charts view (apps/web) ──series──> ui-chart (@ubms/ui)
+```
+
+- `@ubms/bms-core/history.js`: the record format (`historyRecord()`), chart series and groups,
+  device meta and the device key (serial number, else stable link id, else name; with the RS485
+  address when one is set).
+- `@ubms/ui/timeseries.js`: `createSeriesStore()` (operations per key run in order) with the
+  backends `indexedDbBackend()`, `tauriFileBackend(invoke)` and `memoryBackend()`, and
+  `fallbackBackend(primary, secondary)`, min/max downsampling and CSV helpers. `@ubms/ui/components/chart.js`: the `ui-chart` canvas element.
+  Both are generic: keys, records and labels come from the app.
+- `apps/web/src/history/recorder.js`: waits for the device key, throttles to the recording
+  interval, writes in batches, keeps the meta current, prunes by retention, keeps a live tail.
+- `apps/web/src/controller.js` picks the store: files through the desktop bridge in Tauri,
+  IndexedDB in the browser, memory when neither works (`fallbackBackend()`: also when IndexedDB
+  exists but cannot be opened), and always a separate memory store for demo sessions. In the
+  browser it asks for persistent storage once the first readings are stored. In Tauri it also
+  sets `setFileSaver()`, so every export (settings, log, CSV, PNG) goes through `save_file`, and
+  writes the buffered readings when the window is closed.
+- `apps/web/src/views/charts.js`: the Charts view.
+
+Details and measurements: [decisions/0011-history-and-charts.md](decisions/0011-history-and-charts.md).
+
 ## Persistence
 
-Only preferences (language, theme, poll interval, log size, last selections) and the list of
-recent devices are stored, in `localStorage` under the `ubms:` namespace, through a guarded
-wrapper that falls back to memory when storage is blocked. Nothing leaves the device.
+Preferences (language, theme, poll interval, log size, last selections, history and chart
+choices) and the list of recent devices are stored in `localStorage` under the `ubms:` namespace,
+through a guarded wrapper that falls back to memory when storage is blocked. The reading history
+is stored per device: in IndexedDB (`ubms-history`) in the browser, in files in the desktop app
+(next to a portable app, otherwise in the user profile). Nothing leaves the device.
 
 ## Build
 

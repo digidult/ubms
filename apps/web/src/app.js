@@ -6,6 +6,7 @@ import './views/cells.js';
 import './views/settings.js';
 import './views/info.js';
 import './views/log.js';
+import './views/charts.js';
 import './views/prefs.js';
 import './views/more.js';
 
@@ -17,6 +18,7 @@ export const router = new HashRouter(
     { name: 'connect', path: '/connect' },
     { name: 'overview', path: '/overview' },
     { name: 'cells', path: '/cells' },
+    { name: 'charts', path: '/charts' },
     { name: 'settings', path: '/settings/:group?' },
     { name: 'info', path: '/info' },
     { name: 'log', path: '/log' },
@@ -179,18 +181,21 @@ export class UbmsApp extends UiElement {
     const connected = this.#connected;
     /** @type {any[]} */
     const items = [];
+    const charts = { id: 'charts', label: t('Charts'), icon: 'chart', href: '#/charts' };
+    // At most five items fit the bottom bar: while connected the protocol log moves into More.
     if (connected) {
       items.push(
         { id: 'overview', label: t('Overview'), icon: 'gauge', href: '#/overview', badge: alarms || undefined, tone: worst === 'fault' || worst === 'protection' ? 'danger' : 'warn' },
         ...(this.app.value.hasCells ? [{ id: 'cells', label: t('Cells'), icon: 'cells', href: '#/cells' }] : []),
+        charts,
         { id: 'settings', label: t('Settings'), icon: 'sliders', href: '#/settings' },
       );
     } else {
-      items.push({ id: 'connect', label: t('Connect'), icon: 'link', href: '#/connect' });
+      items.push({ id: 'connect', label: t('Connect'), icon: 'link', href: '#/connect' }, charts, { id: 'log', label: t('Log'), icon: 'terminal', href: '#/log' });
     }
-    items.push({ id: 'log', label: t('Log'), icon: 'terminal', href: '#/log' });
     items.push({ id: 'more', label: t('More'), icon: 'more', href: '#/more' });
-    const active = route === 'info' || route === 'prefs' ? 'more' : route;
+    const inMore = route === 'info' || route === 'prefs' || (route === 'log' && connected);
+    const active = inMore ? 'more' : route;
     return { items, active };
   }
 
@@ -200,6 +205,7 @@ export class UbmsApp extends UiElement {
       connect: t('Connect'),
       overview: t('Overview'),
       cells: t('Cells'),
+      charts: t('Charts'),
       settings: t('Settings'),
       info: t('Device information'),
       log: t('Protocol log'),
@@ -260,6 +266,8 @@ export class UbmsApp extends UiElement {
         return html`<view-overview .ctrl=${c}></view-overview>`;
       case 'cells':
         return html`<view-cells .ctrl=${c}></view-cells>`;
+      case 'charts':
+        return html`<view-charts .ctrl=${c}></view-charts>`;
       case 'settings':
         return html`<view-settings .ctrl=${c} .group=${route.params.group ?? ''}></view-settings>`;
       case 'info':

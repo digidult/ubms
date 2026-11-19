@@ -250,6 +250,67 @@ const fixture = `(() => {
   return true;
 })()`;
 
+/** The Charts view element (inside the app's shadow root). */
+const chartsView = `document.querySelector('ubms-app').shadowRoot.querySelector('view-charts')`;
+
+/** Every chart canvas of the Charts view has drawn pixels (at least `min` charts). */
+const chartsDrawn = (min) => `(() => {
+  const v = ${chartsView};
+  const charts = v ? [...v.shadowRoot.querySelectorAll('ui-chart')] : [];
+  if (charts.length < ${min}) return false;
+  return charts.every((c) => {
+    const cv = c.shadowRoot.querySelector('canvas.base');
+    if (!cv || !cv.width || !cv.height) return false;
+    const d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data;
+    let n = 0;
+    for (let i = 3; i < d.length; i += 4) if (d[i]) n++;
+    return n > 300;
+  });
+})()`;
+
+/** The chart cards share the time axis: the same plot left edge and width in every card. */
+const chartsAligned = `(() => {
+  const charts = [...${chartsView}.shadowRoot.querySelectorAll('ui-chart')];
+  const xs = new Set(charts.map((c) => c.__layout?.plot.x));
+  const ws = new Set(charts.map((c) => c.__layout?.plot.w));
+  return charts.length > 1 && xs.size === 1 && ws.size === 1 && !xs.has(undefined);
+})()`;
+
+/** The CSV export (built through the view, no download) has a header and data rows. */
+const chartsCsv = (minRows) => `(() => {
+  const csv = ${chartsView}.buildCsv();
+  const lines = csv.replace(/^\\uFEFF/, '').split('\\r\\n').filter(Boolean);
+  return csv.endsWith('\\r\\n') && lines.length > ${minRows} && lines[0].startsWith('Time,Unix time (ms),Voltage (V)') && /^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d[+-]\\d\\d:\\d\\d,\\d{13},/.test(lines[1]);
+})()`;
+
+/** The PNG export draws every visible chart into one image. */
+const chartsPng = `${chartsView}.buildPng().then((b) => !!b && b.type === 'image/png' && b.size > 8000)`;
+
+/** One hour of a stored 4 cell battery (a record per 4 s, a gap in the middle) in the persistent store. */
+const seedHistory = `(async () => {
+  const s = window.ubms.historyStore;
+  const now = Date.now();
+  const recs = [];
+  for (let i = 0; i < 900; i++) {
+    if (i > 420 && i < 470) continue;
+    const c = [3.31, 3.322, 3.305, 3.318].map((v, k) => Math.round((v + 0.012 * Math.sin(i / 60 + k) + (0.0004 * i) / 9) * 1000) / 1000);
+    const u = Math.round(c.reduce((a, b) => a + b) * 1000) / 1000;
+    const cur = Math.round(25 * Math.sin(i / 120) * 1000) / 1000;
+    const cmin = Math.min(...c);
+    const cmax = Math.max(...c);
+    recs.push({
+      t: now - (900 - i) * 4000, u, i: cur, p: Math.round(u * cur * 10) / 10, soc: Math.round((52 + i / 30) * 10) / 10,
+      cmin, cmax, cavg: Math.round((u / 4) * 1000) / 1000, cdel: Math.round((cmax - cmin) * 10000) / 10000, c,
+      tc: [Math.round((24 + 3 * Math.sin(i / 200)) * 10) / 10, Math.round((21 + i / 300) * 10) / 10],
+    });
+  }
+  await s.remove('sn:smoke:0001');
+  await s.writeMeta('sn:smoke:0001', { name: 'Smoke stored BMS', vendor: 'Smoke', cellCount: 4, tempLabels: ['MOSFET', 'Sensor 1'] });
+  await s.append('sn:smoke:0001', recs);
+  const list = await s.list();
+  return list.some((d) => d.key === 'sn:smoke:0001' && d.count === recs.length);
+})()`;
+
 /** Imitation of the Tauri bridge, see scripts/tauri-mock.js. */
 const tauriMock = readFileSync(path.join(root, 'scripts', 'tauri-mock.js'), 'utf8');
 
@@ -306,6 +367,23 @@ const scenarios = [
           shot: 'tauri-jk-overview-phone',
         },
         { eval: `(window.ubms.state.snapshot?.cells?.length ?? 0) > 0` },
+        // Charts on the desktop path: history files through the bridge, exports through save_file.
+        { hash: '/charts', wait: 3000, shot: 'tauri-charts-phone' },
+        { eval: hasText('C:/ubms-mock/history') },
+        { eval: chartsDrawn(3) },
+        {
+          eval: `${chartsView}.exportCsv().then((path) => typeof path === 'string' && path.startsWith('C:/Users/mock/Downloads/') && path.endsWith('.csv') && window.__tauriMock.savedFiles.length === 1)`,
+          wait: 300,
+        },
+        { eval: `window.ubms.recorder.flush().then(() => window.__tauriMock.calls.history_append >= 1 && window.__tauriMock.historyKeys.some((k) => k.startsWith('sn:jk:')))` },
+        {
+          // Closing the window writes the readings taken since the last write, then lets it close.
+          eval: `new Promise((r) => setTimeout(r, 2600)).then(() => { const before = window.__tauriMock.calls.history_append ?? 0; return window.__tauriMock.requestClose().then((c) => c.handlers === 1 && c.destroyed === 1 && window.__tauriMock.calls.history_append > before); })`,
+        },
+        // The stored device list reports the time of the last record, not the meta write.
+        {
+          eval: `window.ubms.historyStore.list().then((l) => l.length > 0 && l.every((d) => { const lines = window.__tauriMock.historyLines(d.key); return lines.length > 0 && d.last === JSON.parse(lines.at(-1)).t; }))`,
+        },
         {
           // Recent devices connect with the remembered driver, whatever type is selected now.
           eval: `window.ubms.disconnect().then(() => (window.ubms.setPref('selection', 'family:ant'), window.ubms.connectRecent(window.ubms.state.recent.find((r) => r.kind === 'ble')))).then(() => window.ubms.state.state === 'connected' && window.ubms.state.device.driverId === 'jk-ble')`,
@@ -347,6 +425,97 @@ const scenarios = [
         {
           eval: `window.ubms.disconnect().then(() => (window.ubms.setPref('transport', 'ble'), window.ubms.setPref('selection', 'auto'), ['ble://device', 'ble://notify', 'ble://disconnected', 'serial://data', 'serial://closed'].every((e) => window.__tauriMock.listenerCount(e) === 0)))`,
         },
+        {
+          // Every session wrote its records (on disconnect at the latest) and a meta file.
+          eval: `window.ubms.historyStore.list().then((list) => window.__tauriMock.calls.history_append >= 3 && window.__tauriMock.calls.history_write_meta >= 2 && list.length >= 2 && list.every((d) => d.bytes > 0 && d.meta?.name))`,
+        },
+      ],
+    },
+  ],
+  [
+    'charts-demo-phone',
+    {
+      ...phone,
+      hash: '/connect',
+      steps: [
+        {
+          eval: `(window.ubms.setPref('historyIntervalMs', 1000), window.ubms.setPref('chartRange', '5m'), window.ubms.connectDemo('jk-ble').then(() => window.ubms.state.state === 'connected'))`,
+          wait: 6500,
+        },
+        { hash: '/charts', wait: 1500, shot: 'charts-demo-phone' },
+        { eval: chartsDrawn(3) },
+        { eval: chartsCsv(3) },
+        { eval: chartsPng },
+        // Demo sessions stay in memory: nothing reaches the persistent store.
+        { eval: `window.ubms.historyStore.list().then((l) => !l.some((d) => d.meta?.driverId === 'jk-ble'))` },
+        { eval: `(window.ubms.setPref('theme', 'dark'), window.ubms.setPref('chartCells', 'all'), true)`, wait: 900, shot: 'charts-demo-phone-dark' },
+        { eval: chartsDrawn(3) },
+        {
+          eval: `(window.ubms.setPref('theme', 'auto'), window.ubms.setPref('chartCells', 'summary'), window.ubms.setPref('historyIntervalMs', 2000), window.ubms.setPref('chartRange', '15m'), true)`,
+        },
+      ],
+    },
+  ],
+  [
+    'charts-demo-desktop',
+    {
+      ...desktop,
+      hash: '/connect',
+      steps: [
+        {
+          eval: `(window.ubms.setPref('historyIntervalMs', 1000), window.ubms.setPref('chartRange', 'all'), window.ubms.connectDemo('ant').then(() => window.ubms.state.state === 'connected'))`,
+          wait: 6500,
+        },
+        { hash: '/charts', wait: 1500, shot: 'charts-demo-desktop' },
+        { eval: chartsDrawn(3) },
+        { eval: chartsAligned },
+        { eval: chartsCsv(3) },
+        { eval: `(window.ubms.setPref('theme', 'dark'), true)`, wait: 900, shot: 'charts-demo-desktop-dark' },
+        { eval: `(window.ubms.setPref('theme', 'auto'), window.ubms.setPref('historyIntervalMs', 2000), window.ubms.setPref('chartRange', '15m'), true)` },
+      ],
+    },
+  ],
+  [
+    'charts-stored-phone',
+    {
+      ...phone,
+      hash: '/connect',
+      steps: [
+        // Browser storage (IndexedDB): a device stored earlier, viewed while nothing is connected.
+        { eval: seedHistory },
+        { eval: `(window.ubms.setPref('chartRange', '1h'), true)`, hash: '/charts', wait: 1500, shot: 'charts-stored-phone' },
+        { eval: chartsDrawn(4) },
+        { eval: chartsCsv(800) },
+        { eval: hasText('Browser storage on this device') },
+        { eval: hasText('Smoke stored BMS') },
+        { eval: chartsAligned },
+        { eval: `(window.ubms.setPref('chartRange', 'all'), window.ubms.setPref('chartCells', 'all'), true)`, wait: 1200 },
+        { eval: chartsDrawn(4) },
+        { eval: chartsAligned },
+        {
+          // A device that was disconnected with nothing stored: an empty state, not another battery.
+          eval: `(() => { const v = ${chartsView}; v.gone = { key: 'sn:smoke:gone', name: 'Gone BMS' }; v.selected = 'stored:sn:smoke:gone'; return true; })()`,
+          wait: 600,
+        },
+        { eval: hasText('No readings of Gone BMS were saved.') },
+        { eval: `!${chartsView}.shadowRoot.querySelector('ui-chart')` },
+        { eval: `(${chartsView}.selected = '', true)`, wait: 600 },
+        { eval: `(window.ubms.setPref('chartRange', '15m'), window.ubms.setPref('chartCells', 'summary'), window.ubms.historyStore.remove('sn:smoke:0001').then(() => true))` },
+      ],
+    },
+  ],
+  [
+    'charts-stored-desktop',
+    {
+      ...desktop,
+      hash: '/connect',
+      steps: [
+        { eval: seedHistory },
+        { eval: `(window.ubms.setPref('chartRange', '1h'), true)`, hash: '/charts', wait: 1500, shot: 'charts-stored-desktop' },
+        { eval: chartsDrawn(4) },
+        { eval: chartsAligned },
+        { eval: chartsPng },
+        { eval: `(window.ubms.setPref('chartRange', '15m'), window.ubms.historyStore.remove('sn:smoke:0001').then(() => true))` },
       ],
     },
   ],

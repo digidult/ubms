@@ -14,8 +14,22 @@
  * - ble_disconnect sends no event; ble://disconnected follows only a remote close.
  * - serial_open returns { handle, warnings }; a port opens only once at a time (as on Windows);
  *   a read error forgets the port and sends serial://closed; closing a forgotten handle is fine.
+ * - history_* keep the files of history.rs in memory (also in sessionStorage, so a reload finds
+ *   them like files): the data folder is C:/ubms-mock/history and portable. Lines with a line
+ *   break are refused, history_read returns the lines whose leading {"t":<integer> is in
+ *   [from, to], history_prune drops older records and lines that are not records, history_list
+ *   returns { key, meta, bytes, modified, last } newest first (modified changes with the records
+ *   only, as the record file's time; last is the newest record time). save_file decodes the
+ *   base64 data and returns a path in C:/Users/mock/Downloads, adding " (2)" and so on for a
+ *   taken name.
+ * - window.getCurrentWindow().onCloseRequested(handler) registers a close handler; like Tauri, the
+ *   window is destroyed after the handler unless it called preventDefault().
+ * - Arguments of the wrong type fail like Tauri's argument check ("invalid args `x` for command").
  *
- * window.__tauriMock.dropBle(id) and .dropSerial(handle) simulate a remote close.
+ * window.__tauriMock.dropBle(id) and .dropSerial(handle) simulate a remote close, .requestClose()
+ * a click on the window's close button (resolves with { handlers, destroyed }). .calls counts the
+ * invoke calls per command; .historyKeys, .historyLines(key), .historyMeta(key) and .savedFiles
+ * show what the app stored and saved.
  */
 (() => {
   /** @type {Map<string, Set<(e: { event: string, payload: any }) => void>>} */
@@ -105,9 +119,219 @@
     serial.delete(handle);
   }
 
+  // ----- History storage and saving (history.rs) -----
+
+  const HISTORY_DIR = 'C:/ubms-mock/history';
+  const DOWNLOADS_DIR = 'C:/Users/mock/Downloads';
+  const HISTORY_SESSION_KEY = '__tauriMockHistory';
+  /** Longest encoded key (MAX_STEM in history.rs). */
+  const MAX_STEM = 180;
+  const MAX_NAME_CHARS = 120;
+  /** @type {Record<string, number>} invoke calls per command */
+  const calls = {};
+  /** @type {Map<string, { lines: string[], meta: string | null, modified: number }>} */
+  const history = new Map();
+  /** @type {{ name: string, path: string, bytes: number, data: string }[]} */
+  const saved = [];
+  const utf8 = new TextEncoder();
+
+  try {
+    const stored = JSON.parse(sessionStorage.getItem(HISTORY_SESSION_KEY) ?? '[]');
+    for (const [key, entry] of stored) history.set(key, entry);
+  } catch {
+    // No sessionStorage (or garbage in it): start empty, like a new data folder.
+  }
+
+  function persistHistory() {
+    try {
+      sessionStorage.setItem(HISTORY_SESSION_KEY, JSON.stringify([...history]));
+    } catch {
+      // Storage full or unavailable: the in-memory copy still serves this page.
+    }
+  }
+
+  /** Tauri's own argument check, before the command runs. */
+  function need(cmd, args, name, type, optional = false) {
+    const value = args[name];
+    if (value === undefined || value === null) {
+      if (optional) return null;
+      throw `invalid args \`${name}\` for command \`${cmd}\`: command ${cmd} missing required key ${name}`;
+    }
+    const ok = type === 'string[]' ? Array.isArray(value) && value.every((v) => typeof v === 'string') : typeof value === type;
+    if (!ok) throw `invalid args \`${name}\` for command \`${cmd}\`: invalid type, expected ${type === 'number' ? 'f64' : type}`;
+    return value;
+  }
+
+  /** The file name stem of history.rs: [A-Za-z0-9._-] stays, other UTF-8 bytes become ~HH. */
+  function encodedLength(key) {
+    let n = 0;
+    for (const b of utf8.encode(key)) n += /[A-Za-z0-9._-]/.test(String.fromCharCode(b)) ? 1 : 3;
+    return n;
+  }
+
+  function historyKey(key) {
+    if (key === '') throw 'History key is empty';
+    if (encodedLength(key) > MAX_STEM) throw 'History key is too long';
+    return key;
+  }
+
+  /** Same rule as line_time in history.rs: {"t":<integer> then , or }, and a closing }. */
+  function lineTime(line) {
+    const m = /^\{"t":(-?\d+)[,}]/.exec(line);
+    return m && line.endsWith('}') ? Number(m[1]) : null;
+  }
+
+  const inRange = (t, from, to) => (from === null || t >= from) && (to === null || t <= to);
+  /** last_record_time of history.rs: the newest record time (the mock looks at every line). */
+  const lastTime = (lines) => lines.reduce((max, line) => {
+    const t = lineTime(line);
+    return t !== null && (max === null || t > max) ? t : max;
+  }, null);
+  const fileBytes = (lines) => lines.reduce((sum, line) => sum + utf8.encode(line).length + 1, 0);
+
+  function historyEntry(key) {
+    let entry = history.get(key);
+    if (!entry) {
+      entry = { lines: [], meta: null, modified: Date.now() };
+      history.set(key, entry);
+    }
+    return entry;
+  }
+
+  /** safe_file_name of history.rs. */
+  function safeFileName(name) {
+    const trim = (s) => s.replace(/^[ .]+|[ .]+$/g, '');
+    const base = name.split(/[\\/]/).pop() ?? '';
+    let out = trim(base.replace(/[\u0000-\u001f\u007f-\u009f<>:"|?*]/g, '_'));
+    const chars = [...out];
+    if (chars.length > MAX_NAME_CHARS) {
+      const dot = out.lastIndexOf('.');
+      let ext = dot > 0 ? out.slice(dot) : '';
+      if ([...ext].length > 16) ext = '';
+      const stem = ext ? out.slice(0, out.length - ext.length) : out;
+      out = trim([...stem].slice(0, MAX_NAME_CHARS - [...ext].length).join('') + ext);
+    }
+    if (!out) out = 'export';
+    if (/^(con|prn|aux|nul|com\d|lpt\d)$/i.test(out.split('.')[0])) out = `_${out}`;
+    return out;
+  }
+
+  function decodeBase64(data) {
+    try {
+      return atob(data.replace(/-/g, '+').replace(/_/g, '/'));
+    } catch {
+      throw 'The file data is not valid base64';
+    }
+  }
+
+  function saveFile(name, data) {
+    const bytes = decodeBase64(data).length;
+    const safe = safeFileName(name);
+    const dot = safe.lastIndexOf('.');
+    const [stem, ext] = dot > 0 ? [safe.slice(0, dot), safe.slice(dot)] : [safe, ''];
+    for (let n = 1; ; n++) {
+      const path = `${DOWNLOADS_DIR}/${n === 1 ? safe : `${stem} (${n})${ext}`}`;
+      if (!saved.some((f) => f.path === path)) {
+        saved.push({ name: path.slice(DOWNLOADS_DIR.length + 1), path, bytes, data });
+        return path;
+      }
+    }
+  }
+
+  async function historyCommand(cmd, args) {
+    switch (cmd) {
+      case 'history_info':
+        return { dir: HISTORY_DIR, portable: true, reason: 'A file named portable or ubms.portable is next to the app' };
+      case 'history_append': {
+        const key = need(cmd, args, 'key', 'string');
+        const lines = need(cmd, args, 'lines', 'string[]');
+        const bad = lines.findIndex((line) => /[\r\n]/.test(line));
+        if (bad >= 0) throw `History line ${bad + 1} contains a line break`;
+        historyKey(key);
+        const add = lines.filter((line) => line !== '');
+        if (add.length) {
+          const entry = historyEntry(key);
+          entry.lines.push(...add);
+          entry.modified = Date.now();
+          persistHistory();
+        }
+        return null;
+      }
+      case 'history_read': {
+        // Tauri checks every argument before the command runs; the key rule comes after.
+        const key = need(cmd, args, 'key', 'string');
+        const from = need(cmd, args, 'from', 'number', true);
+        const to = need(cmd, args, 'to', 'number', true);
+        historyKey(key);
+        return (history.get(key)?.lines ?? []).filter((line) => {
+          const t = lineTime(line);
+          return t !== null && inRange(t, from, to);
+        });
+      }
+      case 'history_write_meta': {
+        const key = need(cmd, args, 'key', 'string');
+        const meta = need(cmd, args, 'meta', 'string');
+        historyKey(key);
+        const entry = historyEntry(key);
+        entry.meta = meta;
+        // The meta file's time counts only while there is no record file (history.rs list_keys).
+        if (!entry.lines.length) entry.modified = Date.now();
+        persistHistory();
+        return null;
+      }
+      case 'history_list':
+        return [...history]
+          .map(([key, e]) => ({ key, meta: e.meta, bytes: fileBytes(e.lines), modified: e.modified, last: lastTime(e.lines) }))
+          .sort((a, b) => b.modified - a.modified || (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
+      case 'history_remove': {
+        const key = historyKey(need(cmd, args, 'key', 'string'));
+        if (history.delete(key)) persistHistory();
+        return null;
+      }
+      case 'history_prune': {
+        const key = need(cmd, args, 'key', 'string');
+        const before = need(cmd, args, 'before', 'number');
+        historyKey(key);
+        const entry = history.get(key);
+        if (!entry) return 0;
+        const kept = entry.lines.filter((line) => {
+          const t = lineTime(line);
+          return t !== null && t >= before;
+        });
+        const removed = entry.lines.length - kept.length;
+        if (removed > 0) {
+          entry.lines = kept;
+          entry.modified = Date.now();
+          persistHistory();
+        }
+        return removed;
+      }
+      case 'save_file':
+        return saveFile(need(cmd, args, 'name', 'string'), need(cmd, args, 'data', 'string'));
+      default:
+        throw `Unknown command ${cmd}`;
+    }
+  }
+
+  /** Close handlers registered through window.getCurrentWindow().onCloseRequested(). */
+  const closeHandlers = new Set();
+  let destroyed = 0;
+  const currentWindow = {
+    label: 'main',
+    async onCloseRequested(handler) {
+      closeHandlers.add(handler);
+      return () => closeHandlers.delete(handler);
+    },
+  };
+
   window.__TAURI__ = {
+    window: {
+      getCurrentWindow: () => currentWindow,
+    },
     core: {
       async invoke(cmd, args = {}) {
+        calls[cmd] = (calls[cmd] ?? 0) + 1;
+        if (cmd.startsWith('history_') || cmd === 'save_file') return historyCommand(cmd, args ?? {});
         switch (cmd) {
           case 'ble_adapter_state':
             return { state: 'on', reason: null, detail: null };
@@ -224,6 +448,31 @@
     },
     listenerCount(event) {
       return listeners.get(event)?.size ?? 0;
+    },
+    /** The user closes the window: run the close handlers like Tauri, then "destroy" the window. */
+    async requestClose() {
+      let prevented = false;
+      const event = { preventDefault: () => (prevented = true), isPreventDefault: () => prevented };
+      for (const handler of [...closeHandlers]) await handler(event);
+      if (!prevented) destroyed++;
+      return { handlers: closeHandlers.size, destroyed };
+    },
+    /** Invoke calls per command, for example calls.history_append. */
+    get calls() {
+      return { ...calls };
+    },
+    get historyKeys() {
+      return [...history.keys()];
+    },
+    historyLines(key) {
+      return [...(history.get(key)?.lines ?? [])];
+    },
+    historyMeta(key) {
+      return history.get(key)?.meta ?? null;
+    },
+    /** Files written by save_file: { name, path, bytes, data (the base64 text as sent) }. */
+    get savedFiles() {
+      return saved.map((f) => ({ ...f }));
     },
   };
 })();

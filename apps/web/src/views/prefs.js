@@ -1,6 +1,6 @@
-import { html, css } from 'lit';
+import { html, css, nothing } from 'lit';
 import { UiElement, define, sharedStyles, StoreController, icon, t, i18n, confirmDialog } from '@ubms/ui';
-import { LANGUAGES } from '../controller.js';
+import { LANGUAGES, HISTORY_INTERVALS, HISTORY_RETENTION_DAYS } from '../controller.js';
 
 export class ViewPrefs extends UiElement {
   static properties = { ctrl: { attribute: false } };
@@ -70,10 +70,22 @@ export class ViewPrefs extends UiElement {
   connectedCallback() {
     super.connectedCallback();
     this.sc = new StoreController(this, this.ctrl.store, (s) => s.prefs);
+    this.hc = new StoreController(this, this.ctrl.store, (s) => ({ info: s.historyInfo }));
+    if (!this.ctrl.state.historyInfo) this.ctrl.refreshHistoryInfo();
+  }
+
+  /** Where the chart history is kept, as shown under "Storage location". */
+  #historyPlace() {
+    const info = this.hc.value.info;
+    if (!info) return '';
+    if (info.kind === 'file') return `${info.dir ?? ''} (${info.portable ? t('Portable') : t('User profile')})`;
+    if (info.kind === 'indexeddb') return t('Browser storage on this device');
+    return t('This browser cannot store the history: it is lost when the page closes.');
   }
 
   render() {
     const p = this.sc.value;
+    const info = this.hc.value.info;
     const set = (/** @type {any} */ k, /** @type {any} */ v) => this.ctrl.setPref(k, v);
     return html`
       <div class="section-title">${t('Appearance')}</div>
@@ -128,6 +140,50 @@ export class ViewPrefs extends UiElement {
             <div class="sub">${t('Rarely needed BMS parameters such as calibration and factory values.')}</div>
           </div>
           <ui-switch .checked=${p.showAdvanced} label=${t('Show advanced settings')} @change=${(/** @type {any} */ e) => set('showAdvanced', e.detail.checked)}></ui-switch>
+        </div>
+      </div>
+
+      <div class="section-title">${t('History')}</div>
+      <div class="card">
+        <div class="item">
+          ${icon('chart')}
+          <div class="txt">
+            <div class="title">${t('Save chart history')}</div>
+            <div class="sub">${t('Readings are kept between sessions, for every device. When off, the charts show only the current connection.')}</div>
+          </div>
+          <ui-switch .checked=${p.historyEnabled} label=${t('Save chart history')} @change=${(/** @type {any} */ e) => set('historyEnabled', e.detail.checked)}></ui-switch>
+        </div>
+        <div class="item">
+          ${icon('clock')}
+          <div class="txt">
+            <div class="title">${t('Recording interval')}</div>
+            <div class="sub">${t('Time between two stored readings.')}</div>
+          </div>
+          <select @change=${(/** @type {any} */ e) => set('historyIntervalMs', Number(e.target.value))}>
+            ${HISTORY_INTERVALS.map(
+              (ms) => html`<option value=${ms} ?selected=${p.historyIntervalMs === ms}>${t('{s} s', { s: i18n.formatNumber(ms / 1000, { decimals: 0 }) })}</option>`,
+            )}
+          </select>
+        </div>
+        <div class="item">
+          ${icon('trash')}
+          <div class="txt">
+            <div class="title">${t('Keep history')}</div>
+            <div class="sub">${t('Older readings of a device are deleted when it connects.')}</div>
+          </div>
+          <select @change=${(/** @type {any} */ e) => set('historyRetentionDays', Number(e.target.value))}>
+            ${HISTORY_RETENTION_DAYS.map(
+              (days) => html`<option value=${days} ?selected=${p.historyRetentionDays === days}>${days ? t('{count} days', { count: days }) : t('Forever')}</option>`,
+            )}
+          </select>
+        </div>
+        <div class="item">
+          ${icon('save')}
+          <div class="txt" title=${info?.reason ?? ''}>
+            <div class="title">${t('Storage location')}</div>
+            <div class="sub" style="overflow-wrap:anywhere">${this.#historyPlace()}</div>
+            ${info?.kind === 'indexeddb' && info.persisted === false ? html`<div class="sub">${t('The browser may delete it when storage space runs low.')}</div>` : nothing}
+          </div>
         </div>
       </div>
 

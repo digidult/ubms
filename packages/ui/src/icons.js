@@ -14,6 +14,7 @@ const ICONS = {
   cell: '<rect x="7" y="4.5" width="10" height="17" rx="2"/><path d="M10 2.5h4"/><path d="M10 13h4"/>',
   cells: '<rect x="2.5" y="6" width="5" height="14" rx="1.2"/><rect x="9.5" y="6" width="5" height="14" rx="1.2"/><rect x="16.5" y="6" width="5" height="14" rx="1.2"/><path d="M4 4h2M11 4h2M18 4h2"/>',
   gauge: '<path d="M4 17a8 8 0 1 1 16 0"/><path d="M12 17l4.5-5.5"/><circle cx="12" cy="17" r="1.2"/>',
+  chart: '<path d="M3.5 3.5v17h17"/><path d="M7 15.5l3.5-4.5 3 2.5L19.5 6"/>',
   sliders: '<path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/>',
   list: '<path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/>',
   terminal: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9l3 3-3 3M12.5 15H17"/>',

@@ -10,7 +10,23 @@ import {
 } from '@ubms/transport';
 import { BmsSession, DriverRegistry, fieldMap, coerce } from '@ubms/bms-core';
 import { drivers } from '@ubms/bms-drivers';
-import { Store, createStorage, i18n, negotiateLocale, applyTheme, toast, t, downloadFile } from '@ubms/ui';
+import {
+  Store,
+  createStorage,
+  i18n,
+  negotiateLocale,
+  applyTheme,
+  toast,
+  t,
+  downloadFile,
+  setFileSaver,
+  createSeriesStore,
+  indexedDbBackend,
+  tauriFileBackend,
+  memoryBackend,
+  fallbackBackend,
+} from '@ubms/ui';
+import { HistoryRecorder } from './history/recorder.js';
 
 export const LANGUAGES = [
   { code: 'en', name: 'English' },
@@ -35,6 +51,12 @@ export const LANGUAGES = [
  * @property {boolean} showAllBle
  * @property {boolean} adaptersOnly
  * @property {string} serialAddress RS485 device address or board number, empty for the protocol default
+ * @property {boolean} historyEnabled store the readings for the Charts view
+ * @property {number} historyIntervalMs time between two history records
+ * @property {number} historyRetentionDays delete older records when a device connects, 0 keeps everything
+ * @property {string} chartRange Charts view range: '5m', '10m', '15m', '30m', '1h', '2h' or 'all'
+ * @property {string[]} chartHidden chart groups switched off in the Charts view
+ * @property {'summary'|'all'} chartCells cell chart: lowest, highest and average, or every cell
  *
  * @typedef {{ id: string, name: string, kind: 'ble'|'serial', driverId?: string, at: number }} RecentDevice
  *
@@ -53,6 +75,10 @@ export const LANGUAGES = [
  * @property {RecentDevice[]} recent
  * @property {{ active: boolean, devices: ScannedDevice[] }} scan native Bluetooth scan (desktop app)
  * @property {{ loading: boolean, list: Array<{ path: string, name?: string, usbVendorId?: number, usbProductId?: number }> }} ports native port list (desktop app)
+ * @property {RecordingState | null} recording history recording of the connected device
+ * @property {import('@ubms/ui/timeseries').SeriesStoreInfo | null} historyInfo where the history is stored
+ *
+ * @typedef {{ id: number, key: string | null, name: string, demo: boolean, epoch: number, rev: number, error: string | null }} RecordingState
  *
  * @typedef {{ id: string, name: string, rssi?: number, services?: string[] }} ScannedDevice
  */
@@ -71,7 +97,40 @@ const DEFAULT_PREFS = /** @type {Prefs} */ ({
   showAllBle: false,
   adaptersOnly: false,
   serialAddress: '',
+  historyEnabled: true,
+  historyIntervalMs: 2000,
+  historyRetentionDays: 0,
+  chartRange: '15m',
+  chartHidden: ['power', 'capacity'],
+  chartCells: 'summary',
 });
+
+/** Choices offered in the preferences. */
+export const HISTORY_INTERVALS = [1000, 2000, 5000, 10000, 30000, 60000];
+export const HISTORY_RETENTION_DAYS = [0, 7, 30, 90, 365];
+
+/**
+ * Base64 of a blob, for the desktop bridge (`save_file`). The browser encodes it natively (a data
+ * URL), without a binary string of the whole file in JavaScript.
+ * @param {Blob} blob
+ * @returns {Promise<string>}
+ */
+function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const url = String(reader.result ?? '');
+      // 'data:<type>;base64,<data>'; an empty blob may give 'data:' without a comma.
+      const comma = url.indexOf(',');
+      resolve(comma >= 0 ? url.slice(comma + 1) : '');
+    };
+    reader.onerror = () => reject(reader.error ?? new Error('Could not read the file data'));
+    reader.readAsDataURL(blob);
+  });
+}
+
+/** Longest wait for the last history write when the desktop window closes. */
+const CLOSE_FLUSH_MS = 1500;
 
 /** The first driver with a demo; DEFAULT_PREFS cannot name it before the drivers are known. */
 function defaultDemoDriver() {
@@ -132,16 +191,21 @@ export class AppController {
         recent: this.storage.get('recent', []),
         scan: { active: false, devices: [] },
         ports: { loading: false, list: [] },
+        recording: null,
+        historyInfo: null,
       }),
     );
     /** @type {(() => Promise<void>) | null} */
     this.stopScanFn = null;
     /** Number of the latest availability check; an older one that finishes later is ignored. */
     this.availabilitySeq = 0;
+    /** Persistent browser storage was requested for the history (once per page). */
+    this.persistAsked = false;
 
     i18n.setLocale(prefs.lang);
     applyTheme(prefs.theme);
     this.#wireSession();
+    this.#setupHistory(tauri);
     if (typeof document !== 'undefined') {
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') {
@@ -156,7 +220,110 @@ export class AppController {
     return this.store.get();
   }
 
+  /**
+   * Chart history: the store (desktop files, IndexedDB in the browser, memory when neither works,
+   * also when IndexedDB exists but cannot be opened), a memory store for demo sessions and the
+   * recorder. The desktop app also saves exports through the bridge, because blob downloads do not
+   * work in every webview, and writes the last readings before its window closes.
+   * @param {boolean} tauri
+   */
+  #setupHistory(tauri) {
+    /** @type {((cmd: string, args?: Record<string, any>) => Promise<any>) | null} */
+    const invoke = tauri
+      ? async (cmd, args) => {
+          try {
+            return await /** @type {any} */ (window).__TAURI__.core.invoke(cmd, args);
+          } catch (err) {
+            throw err instanceof Error ? err : new Error(String(err));
+          }
+        }
+      : null;
+    const backend = invoke ? tauriFileBackend(invoke) : fallbackBackend(indexedDbBackend(), memoryBackend());
+    /** Stored history of every device. */
+    this.historyStore = createSeriesStore(backend);
+    /** Demo sessions are recorded in memory only, never persisted. */
+    this.demoHistoryStore = createSeriesStore(memoryBackend());
+    this.recorder = new HistoryRecorder({
+      session: this.session,
+      store: this.historyStore,
+      demoStore: this.demoHistoryStore,
+      prefs: () => this.state.prefs,
+      warn: (message) => this.log.warn(`History: ${message}`),
+      onChange: (live) => {
+        this.store.set({
+          recording: live
+            ? { id: live.id, key: live.key, name: live.meta?.name ?? '', demo: live.demo, epoch: live.epoch, rev: live.rev, error: live.error }
+            : null,
+        });
+        // The first device whose readings are stored: ask the browser to keep them.
+        if (live?.key && !live.demo && this.state.prefs.historyEnabled) this.#askPersistentStorage();
+      },
+    });
+    if (invoke) {
+      this.#flushOnClose();
+      setFileSaver(async (name, blob) => {
+        try {
+          const path = await invoke('save_file', { name, data: await blobToBase64(blob) });
+          toast(t('Saved to {path}', { path: String(path) }), { tone: 'ok', timeout: 8000 });
+          return path;
+        } catch (err) {
+          toast(t('Could not save the file: {error}', { error: t(err instanceof Error ? err.message : String(err)) }), { tone: 'danger', timeout: 9000 });
+          return null;
+        }
+      });
+    }
+  }
+
+  /**
+   * Browser storage is "best effort" by default: under storage pressure (common on phones) the
+   * browser may delete it. Ask once, when the first readings are stored, that it is kept. Chromium
+   * and Safari decide without asking the user, Firefox may ask.
+   */
+  async #askPersistentStorage() {
+    if (this.persistAsked) return;
+    this.persistAsked = true;
+    const storage = typeof navigator !== 'undefined' ? navigator.storage : undefined;
+    if (!storage?.persist) return;
+    try {
+      if ((await this.historyStore.info()).kind !== 'indexeddb') return;
+      if (!(await storage.persisted?.())) await storage.persist();
+    } catch {
+      // Not granted or not supported: the data is still stored, only not protected.
+    }
+    this.refreshHistoryInfo();
+  }
+
+  /**
+   * Desktop app: the window close destroys the webview, and a write started on 'pagehide' may not
+   * reach the bridge any more. Write the buffered readings first (at most CLOSE_FLUSH_MS), then let
+   * the window close. Tauri closes the window after the handler (`core:window:allow-destroy`).
+   */
+  #flushOnClose() {
+    const win = /** @type {any} */ (typeof window !== 'undefined' ? window : {}).__TAURI__?.window?.getCurrentWindow?.();
+    if (typeof win?.onCloseRequested !== 'function') return;
+    Promise.resolve(
+      win.onCloseRequested(async () => {
+        const wait = new Promise((resolve) => setTimeout(resolve, CLOSE_FLUSH_MS));
+        await Promise.race([this.recorder.flush().catch(() => {}), wait]);
+      }),
+    ).catch((/** @type {unknown} */ err) => this.log.warn(`History: no flush on close (${err instanceof Error ? err.message : String(err)})`));
+  }
+
+  /** Read where the history is stored (shown in Charts and Preferences). */
+  async refreshHistoryInfo() {
+    try {
+      /** @type {import('@ubms/ui/timeseries').SeriesStoreInfo} */
+      let info = await this.historyStore.info();
+      const storage = typeof navigator !== 'undefined' ? navigator.storage : undefined;
+      if (info.kind === 'indexeddb' && storage?.persisted) info = { ...info, persisted: await storage.persisted().catch(() => false) };
+      this.store.set({ historyInfo: info });
+    } catch {
+      this.store.set({ historyInfo: { kind: 'memory', persistent: false } });
+    }
+  }
+
   async init() {
+    this.refreshHistoryInfo();
     await this.refreshAvailability();
     // Bluetooth can be switched on while the app is open. Check again when the browser reports a
     // change or the window gets the focus back (the desktop app has no such event).

@@ -1,12 +1,15 @@
 //! ubms desktop app.
 //!
 //! The window shows the unchanged ubms web app (`apps/web`, built into `dist/`). This crate only
-//! adds native device access: Bluetooth Low Energy through bluest and serial ports through
-//! serialport, exposed as Tauri commands and events. The command and event contract is documented
-//! in `docs/tauri.md` and consumed by `packages/transport/src/tauri.js`. The Rust side stays
-//! protocol agnostic: it moves bytes, all BMS protocol logic lives in the JavaScript drivers.
+//! adds what a browser cannot do: native device access (Bluetooth Low Energy through bluest,
+//! serial ports through serialport) and files (the chart history next to a portable app or in the
+//! user profile, saving exports), exposed as Tauri commands and events. The command and event
+//! contract is documented in `docs/tauri.md` and consumed by `packages/transport/src/tauri.js` and
+//! `packages/ui/src/timeseries.js`. The Rust side stays protocol agnostic: it moves bytes and
+//! lines, all BMS protocol logic lives in the JavaScript drivers.
 
 mod ble;
+mod history;
 mod serial;
 
 use std::time::Duration;
@@ -19,6 +22,7 @@ pub fn run() {
     let app = tauri::Builder::default()
         .manage(ble::BleState::default())
         .manage(serial::SerialState::default())
+        .manage(history::HistoryState::default())
         .on_page_load(|webview, payload| {
             // A reload starts the web app from scratch: release what the previous page opened
             // (scan, Bluetooth connections, serial ports), since it can no longer close them.
@@ -43,6 +47,14 @@ pub fn run() {
             serial::serial_open,
             serial::serial_write,
             serial::serial_close,
+            history::history_info,
+            history::history_append,
+            history::history_read,
+            history::history_write_meta,
+            history::history_list,
+            history::history_remove,
+            history::history_prune,
+            history::save_file,
         ])
         .build(tauri::generate_context!())
         .expect("error while building the ubms desktop app");
