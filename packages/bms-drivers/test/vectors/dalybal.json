@@ -1,0 +1,1549 @@
+[
+  {
+    "id": "bal-tx-read-status62",
+    "variant": "DALY_BALANCER_D2",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "D2030000003ED7B9",
+    "source": "https://github.com/syssi/esphome-daly-bms/blob/35afc8f/docs/pdus/btsnoop_daly_balancer.log (ATT Write Command to handle 0x0014 (FFF2), records 72, 200, 262)",
+    "description": "Status block, 62 registers from 0x0000, as the official app sends it to the balancer. Reply: D2 03 7C, 129 bytes.",
+    "expected": {
+      "address": 210,
+      "function": 3,
+      "start": 0,
+      "count": 62,
+      "replyLength": 129,
+      "crc": "D7B9"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "bal-tx-read-status80",
+    "variant": "DALY_BALANCER_D2",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "D203000000505655",
+    "source": "https://github.com/cepr/daly-to-lithium-balance-adapter/blob/9449b16/firmware/core/src/daly.rs (REALTIME_REQUEST, test reference_frames); https://github.com/cepr/daly-to-lithium-balance-adapter/blob/9449b16/DALY_Active_Balancer_UART_Protocol.md (section 4.8)",
+    "description": "Status block, 80 registers from 0x0000 (165 byte reply). cepr polls 20S and 24S balancers with it over the UART port every 500 ms and lists \"the balancer answers the 80-register read\" as confirmed on hardware. Frame bytes as printed in both sources.",
+    "expected": {
+      "address": 210,
+      "function": 3,
+      "start": 0,
+      "count": 80,
+      "replyLength": 165,
+      "crc": "5655"
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "bal-tx-read-block003e",
+    "variant": "DALY_BALANCER_D2",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "D203003E0009F7A3",
+    "source": "https://github.com/syssi/esphome-daly-bms/blob/35afc8f/docs/pdus/btsnoop_daly_balancer.log (ATT Write Command to handle 0x0014 (FFF2), records 80, 208, 217, 225, 235, 243, 254, 271)",
+    "description": "Nine registers from 0x003E (balancing bits, balance current, MOSFET and board temperature on newer BMS firmware). Read by the app on every cycle of its balancer page.",
+    "expected": {
+      "address": 210,
+      "function": 3,
+      "start": 62,
+      "count": 9,
+      "replyLength": 23,
+      "crc": "F7A3"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "bal-tx-read-settings",
+    "variant": "DALY_BALANCER_D2",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "D20300800029965F",
+    "source": "https://github.com/syssi/esphome-daly-bms/blob/35afc8f/docs/pdus/btsnoop_daly_balancer.log (ATT Write Command to handle 0x0014 (FFF2), records 70, 198, 215, 223, 233, 241, 252, 260, 269)",
+    "description": "Settings block, 41 registers from 0x0080 (87 byte reply). Read first after connecting and on every cycle of the balancer page.",
+    "expected": {
+      "address": 210,
+      "function": 3,
+      "start": 128,
+      "count": 41,
+      "replyLength": 87,
+      "crc": "965F"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "bal-tx-read-version",
+    "variant": "DALY_BALANCER_D2",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "D20300A900208791",
+    "source": "https://github.com/syssi/esphome-daly-bms/blob/35afc8f/docs/pdus/btsnoop_daly_balancer.log (ATT Write Command to handle 0x0014 (FFF2), records 74, 202, 264)",
+    "description": "Version block, 32 registers from 0x00A9 (software, hardware, machine code).",
+    "expected": {
+      "address": 210,
+      "function": 3,
+      "start": 169,
+      "count": 32,
+      "replyLength": 69,
+      "crc": "8791"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "bal-tx-read-password",
+    "variant": "DALY_BALANCER_D2",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "D20300C90003C656",
+    "source": "https://github.com/syssi/esphome-daly-bms/blob/35afc8f/docs/pdus/btsnoop_daly_balancer.log (ATT Write Command to handle 0x0014 (FFF2), records 76, 204, 266)",
+    "description": "Parameter password, 3 registers from 0x00C9. The app compares the user input with it locally.",
+    "expected": {
+      "address": 210,
+      "function": 3,
+      "start": 201,
+      "count": 3,
+      "replyLength": 11,
+      "crc": "C656"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "bal-tx-read-00cc-2",
+    "variant": "DALY_BALANCER_D2",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "D20300CC00021797",
+    "source": "https://github.com/syssi/esphome-daly-bms/blob/35afc8f/docs/pdus/btsnoop_daly_balancer.log (ATT Write Command to handle 0x0014 (FFF2), records 79, 207, 270)",
+    "description": "Two registers from 0x00CC (production date), read once per session.",
+    "expected": {
+      "address": 210,
+      "function": 3,
+      "start": 204,
+      "count": 2,
+      "replyLength": 9,
+      "crc": "1797"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "bal-tx-read-00cc-5",
+    "variant": "DALY_BALANCER_D2",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "D20300CC00055655",
+    "source": "https://github.com/syssi/esphome-daly-bms/blob/35afc8f/docs/pdus/btsnoop_daly_balancer.log (ATT Write Command to handle 0x0014 (FFF2), records 219, 227, 237, 245, 256)",
+    "description": "Five registers from 0x00CC: production date, 0x00CE, balancer switch 0x00CF, 0x00D0. Read on every cycle of the balancer page; the only read of the switch state by the app.",
+    "expected": {
+      "address": 210,
+      "function": 3,
+      "start": 204,
+      "count": 5,
+      "replyLength": 15,
+      "crc": "5655"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "bal-tx-read-00cf-1",
+    "variant": "DALY_BALANCER_D2",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "D20300CF0001A796",
+    "source": "https://github.com/syssi/esphome-daly-bms/blob/35afc8f/components/daly_bms_ble/daly_bms_ble.cpp (DALY_COMMAND_REQ_BALANCER_SWITCH, polled on every update since pull request 109); https://github.com/cepr/daly-to-lithium-balance-adapter/blob/9449b16/DALY_Active_Balancer_UART_Protocol.md (section 4.8, \"Read balancer switch\")",
+    "description": "Balancer switch register 0x00CF alone. Not sent by the official app, which reads it inside the 0x00CC block.",
+    "expected": {
+      "address": 210,
+      "function": 3,
+      "start": 207,
+      "count": 1,
+      "replyLength": 7,
+      "crc": "A796"
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "bal-tx-read-00df-17",
+    "variant": "DALY_BALANCER_D2",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "D20300DF0011A79F",
+    "source": "https://github.com/syssi/esphome-daly-bms/blob/35afc8f/docs/pdus/btsnoop_daly_balancer.log (ATT Write Command to handle 0x0014 (FFF2), records 210, 221, 229, 239, 247, 258)",
+    "description": "Seventeen registers from 0x00DF, read by the app on its balancer page; this balancer answers with 0xFFFF only.",
+    "expected": {
+      "address": 210,
+      "function": 3,
+      "start": 223,
+      "count": 17,
+      "replyLength": 39,
+      "crc": "A79F"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "bal-tx-read-00d7-1",
+    "variant": "DALY_BALANCER_D2",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "D20300D700012791",
+    "source": "https://github.com/syssi/esphome-daly-bms/blob/35afc8f/docs/pdus/btsnoop_daly_balancer.log (ATT Write Command to handle 0x0014 (FFF2), record 213)",
+    "description": "Register 0x00D7, read once by the app (answer 0, meaning unknown).",
+    "expected": {
+      "address": 210,
+      "function": 3,
+      "start": 215,
+      "count": 1,
+      "replyLength": 7,
+      "crc": "2791"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "bal-tx-read-0057-12",
+    "variant": "DALY_BALANCER_D2",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "D2030057000CE7BC",
+    "source": "https://github.com/syssi/esphome-daly-bms/blob/35afc8f/docs/pdus/btsnoop_daly_balancer.log (ATT Write Command to handle 0x0014 (FFF2), records 81, 211, 272)",
+    "description": "Twelve registers from 0x0057 (GPS block on BMS boards), read once per app session.",
+    "expected": {
+      "address": 210,
+      "function": 3,
+      "start": 87,
+      "count": 12,
+      "replyLength": 29,
+      "crc": "E7BC"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "bal-tx-read-0063-28",
+    "variant": "DALY_BALANCER_D2",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "D2030063001CA7BE",
+    "source": "https://github.com/syssi/esphome-daly-bms/blob/35afc8f/docs/pdus/btsnoop_daly_balancer.log (ATT Write Command to handle 0x0014 (FFF2), records 78, 206, 268)",
+    "description": "Twenty-eight registers from 0x0063, read once per app session (all 0xFFFF on this balancer).",
+    "expected": {
+      "address": 210,
+      "function": 3,
+      "start": 99,
+      "count": 28,
+      "replyLength": 61,
+      "crc": "A7BE"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "bal-tx-read-0089-1",
+    "variant": "DALY_BALANCER_D2",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "D203008900014643",
+    "source": "https://github.com/cepr/daly-to-lithium-balance-adapter/blob/9449b16/DALY_Active_Balancer_UART_Protocol.md (section 4.9, hardware validation log); frame computed",
+    "description": "Single register read of 0x0089 (battery type). cepr read these registers one at a time over the UART port of a real balancer and every request was answered with a valid CRC (reply D2 03 02 <value> <CRC>, 7 bytes); the request bytes are computed.",
+    "expected": {
+      "address": 210,
+      "function": 3,
+      "start": 137,
+      "count": 1,
+      "replyLength": 7,
+      "crc": "4643"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "bal-tx-read-008a-1",
+    "variant": "DALY_BALANCER_D2",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "D203008A0001B643",
+    "source": "https://github.com/cepr/daly-to-lithium-balance-adapter/blob/9449b16/DALY_Active_Balancer_UART_Protocol.md (section 4.9, hardware validation log); frame computed",
+    "description": "Single register read of 0x008A (sleep wait time). cepr read these registers one at a time over the UART port of a real balancer and every request was answered with a valid CRC (reply D2 03 02 <value> <CRC>, 7 bytes); the request bytes are computed.",
+    "expected": {
+      "address": 210,
+      "function": 3,
+      "start": 138,
+      "count": 1,
+      "replyLength": 7,
+      "crc": "B643"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "bal-tx-read-00a3-1",
+    "variant": "DALY_BALANCER_D2",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "D20300A30001678B",
+    "source": "https://github.com/cepr/daly-to-lithium-balance-adapter/blob/9449b16/DALY_Active_Balancer_UART_Protocol.md (section 4.9, hardware validation log); frame computed",
+    "description": "Single register read of 0x00A3 (balance start voltage). cepr read these registers one at a time over the UART port of a real balancer and every request was answered with a valid CRC (reply D2 03 02 <value> <CRC>, 7 bytes); the request bytes are computed.",
+    "expected": {
+      "address": 210,
+      "function": 3,
+      "start": 163,
+      "count": 1,
+      "replyLength": 7,
+      "crc": "678B"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "bal-tx-read-00a4-1",
+    "variant": "DALY_BALANCER_D2",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "D20300A40001D64A",
+    "source": "https://github.com/cepr/daly-to-lithium-balance-adapter/blob/9449b16/DALY_Active_Balancer_UART_Protocol.md (section 4.9, hardware validation log); frame computed",
+    "description": "Single register read of 0x00A4 (balance start voltage difference). cepr read these registers one at a time over the UART port of a real balancer and every request was answered with a valid CRC (reply D2 03 02 <value> <CRC>, 7 bytes); the request bytes are computed.",
+    "expected": {
+      "address": 210,
+      "function": 3,
+      "start": 164,
+      "count": 1,
+      "replyLength": 7,
+      "crc": "D64A"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "bal-tx-read-00a8-1",
+    "variant": "DALY_BALANCER_D2",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "D20300A800011649",
+    "source": "https://github.com/cepr/daly-to-lithium-balance-adapter/blob/9449b16/DALY_Active_Balancer_UART_Protocol.md (section 4.9, hardware validation log); frame computed",
+    "description": "Single register read of 0x00A8 (register 0x00A8, meaning unconfirmed on balancers). cepr read these registers one at a time over the UART port of a real balancer and every request was answered with a valid CRC (reply D2 03 02 <value> <CRC>, 7 bytes); the request bytes are computed.",
+    "expected": {
+      "address": 210,
+      "function": 3,
+      "start": 168,
+      "count": 1,
+      "replyLength": 7,
+      "crc": "1649"
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "bal-tx-write-switch-off",
+    "variant": "DALY_BALANCER_D2",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "D20600CF0000AA56",
+    "source": "https://github.com/syssi/esphome-daly-bms/blob/35afc8f/docs/pdus/btsnoop_daly_balancer.log (ATT Write Command to handle 0x0014 (FFF2), record 231)",
+    "description": "Balancer off (0x00CF = 0), written by the app. Echoed 179 ms later; the next 0x00CC block read shows 0x00CF = 0.",
+    "expected": {
+      "address": 210,
+      "function": 6,
+      "register": 207,
+      "value": 0,
+      "crc": "AA56",
+      "writable": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "bal-tx-write-switch-on",
+    "variant": "DALY_BALANCER_D2",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "D20600CF00016B96",
+    "source": "https://github.com/syssi/esphome-daly-bms/blob/35afc8f/docs/pdus/btsnoop_daly_balancer.log (ATT Write Command to handle 0x0014 (FFF2), records 248, 250)",
+    "description": "Balancer on (0x00CF = 1). The first echo arrived with a bad CRC and the app wrote again after 10 s; the next read shows 0x00CF = 1.",
+    "expected": {
+      "address": 210,
+      "function": 6,
+      "register": 207,
+      "value": 1,
+      "crc": "6B96",
+      "writable": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "bal-tx-write-sleep-never",
+    "variant": "DALY_BALANCER_D2",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "D206008AFFFFBA33",
+    "source": "https://github.com/cepr/daly-to-lithium-balance-adapter/blob/9449b16/firmware/core/src/daly.rs (test reference_frames, write_request(REG_SLEEP_TIME, 0xFFFF)); https://github.com/cepr/daly-to-lithium-balance-adapter/blob/9449b16/DALY_Active_Balancer_UART_Protocol.md (section 4.8 \"Disable sleep (65535)\", section 4.9)",
+    "description": "Sleep wait time 65535 s = never sleep, the value the Daly manual gives to cancel sleep. cepr reports that a write to 0x008A on a real balancer was echoed (value not stated). Frame bytes as printed in both sources.",
+    "expected": {
+      "address": 210,
+      "function": 6,
+      "register": 138,
+      "value": 65535,
+      "crc": "BA33",
+      "writable": true
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "bal-tx-write-sleep-3600",
+    "variant": "DALY_BALANCER_D2",
+    "link": "uart",
+    "direction": "tx",
+    "hex": "D206008A0E10BE2F",
+    "source": "computed for docs/protocols/daly-balancer.md section 7.3",
+    "description": "Sleep wait time 3600 s (factory default per the Daly balancer manual). CRC computed.",
+    "expected": {
+      "address": 210,
+      "function": 6,
+      "register": 138,
+      "value": 3600,
+      "crc": "BE2F",
+      "writable": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "bal-tx-write-start-voltage-3300",
+    "variant": "DALY_BALANCER_D2",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "D20600A30CE46F00",
+    "source": "computed for docs/protocols/daly-balancer.md section 7.1",
+    "description": "Balance start voltage 3300 mV (factory default of the UART/RS485 model). Register read on two balancers; no write to it is captured on a balancer, so ubms verifies by read-back.",
+    "expected": {
+      "address": 210,
+      "function": 6,
+      "register": 163,
+      "value": 3300,
+      "crc": "6F00",
+      "writable": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "bal-tx-write-trigger-delta-20",
+    "variant": "DALY_BALANCER_D2",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "D20600A40014DB85",
+    "source": "computed for docs/protocols/daly-balancer.md section 7.1",
+    "description": "Balance start voltage difference 20 mV (factory default). Register read on two balancers; no write to it is captured on a balancer, so ubms verifies by read-back.",
+    "expected": {
+      "address": 210,
+      "function": 6,
+      "register": 164,
+      "value": 20,
+      "crc": "DB85",
+      "writable": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "bal-tx-write-battery-type-0",
+    "variant": "DALY_BALANCER_D2",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "D206008900004B83",
+    "source": "computed for docs/protocols/daly-balancer.md section 7.3; enumeration from the vendor register list (dalyModbusProtocol.xlsx, register 0x89)",
+    "description": "Battery type 0 (LiFePO4). Encoding from the vendor list; the effect of this write on a balancer is unknown and no write is captured, so ubms keeps the field read-only and never sends this frame.",
+    "expected": {
+      "address": 210,
+      "function": 6,
+      "register": 137,
+      "value": 0,
+      "crc": "4B83",
+      "writable": false
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "bal-tx-write-battery-type-1",
+    "variant": "DALY_BALANCER_D2",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "D206008900018A43",
+    "source": "computed for docs/protocols/daly-balancer.md section 7.3; enumeration from the vendor register list (dalyModbusProtocol.xlsx, register 0x89)",
+    "description": "Battery type 1 (Li-ion (ternary)). Encoding from the vendor list; the effect of this write on a balancer is unknown and no write is captured, so ubms keeps the field read-only and never sends this frame.",
+    "expected": {
+      "address": 210,
+      "function": 6,
+      "register": 137,
+      "value": 1,
+      "crc": "8A43",
+      "writable": false
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "bal-tx-write-battery-type-2",
+    "variant": "DALY_BALANCER_D2",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "D20600890002CA42",
+    "source": "computed for docs/protocols/daly-balancer.md section 7.3; enumeration from the vendor register list (dalyModbusProtocol.xlsx, register 0x89)",
+    "description": "Battery type 2 (LTO). Encoding from the vendor list; the effect of this write on a balancer is unknown and no write is captured, so ubms keeps the field read-only and never sends this frame.",
+    "expected": {
+      "address": 210,
+      "function": 6,
+      "register": 137,
+      "value": 2,
+      "crc": "CA42",
+      "writable": false
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "bal-tx-write-clock-a",
+    "variant": "DALY_BALANCER_D2",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "D21000D40003180B0709341CF7D8",
+    "source": "https://github.com/syssi/esphome-daly-bms/blob/35afc8f/docs/pdus/btsnoop_daly_balancer.log (ATT Write Command to handle 0x0014 (FFF2), record 56)",
+    "description": "Clock write sent by the app right after connecting: function 0x10 without a byte count, 3 registers from 0x00D4 = 24-11-07 09:52:28 (YY MM DD hh mm ss). No reply was logged. ubms does not send it.",
+    "expected": {
+      "address": 210,
+      "function": 16,
+      "register": 212,
+      "count": 3,
+      "values": [
+        6155,
+        1801,
+        13340
+      ],
+      "crc": "F7D8",
+      "clock": "2024-11-07 09:52:28",
+      "writable": false
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "bal-tx-write-clock-b",
+    "variant": "DALY_BALANCER_D2",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "D21000D40003180B070935053782",
+    "source": "https://github.com/syssi/esphome-daly-bms/blob/35afc8f/docs/pdus/btsnoop_daly_balancer.log (ATT Write Command to handle 0x0014 (FFF2), record 184)",
+    "description": "Clock write of the second app session: 2024-11-07 09:53:05. No reply was logged.",
+    "expected": {
+      "address": 210,
+      "function": 16,
+      "register": 212,
+      "count": 3,
+      "values": [
+        6155,
+        1801,
+        13573
+      ],
+      "crc": "3782",
+      "clock": "2024-11-07 09:53:05",
+      "writable": false
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "bal-tx-app-probe-81",
+    "variant": "DALY_MODBUS_81",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "81100F05000200000000876A",
+    "source": "https://github.com/syssi/esphome-daly-bms/blob/35afc8f/docs/pdus/btsnoop_daly_balancer.log (ATT Write Command to handle 0x0014 (FFF2), records 67, 196)",
+    "description": "Write multiple (function 0x10, no byte count) to address 0x81, register 0x0F05, two zero registers. Sent by the official app once per session before any read; purpose unknown. It is a write: a ubms probe must not send it.",
+    "expected": {
+      "address": 129,
+      "function": 16,
+      "register": 3845,
+      "count": 2,
+      "values": [
+        0,
+        0
+      ],
+      "crc": "876A",
+      "writable": false
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "bal-tx-app-probe-a5",
+    "variant": "DALY_CLASSIC",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "A54002080000000000000000EF",
+    "source": "https://github.com/syssi/esphome-daly-bms/blob/35afc8f/docs/pdus/btsnoop_daly_balancer.log (ATT Write Command to handle 0x0014 (FFF2), records 66, 194)",
+    "description": "Classic frame A5 40 02 08 (zero data, checksum EF) sent once per session by the official app. Command 0x02 is not in the Daly V1.2 read list; the balancer did not answer it on BLE (no A5 frame in the capture).",
+    "expected": {
+      "start": 165,
+      "address": 64,
+      "command": 2,
+      "length": 8,
+      "checksum": 239,
+      "checksumValid": true,
+      "answered": false
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "bal-rx-settings",
+    "variant": "DALY_BALANCER_D2",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "D2035201F40C8000010010000600060001000100010000FFFF0DDE0E4208FC0898000000001388138875307530753075300028007D002800000028007D0028000000000000000000000C8000140000000000000057351D",
+    "source": "https://github.com/syssi/esphome-daly-bms/blob/35afc8f/docs/pdus/btsnoop_daly_balancer.log (ATT Handle Value Notification on handle 0x0010 (FFF1), records 71, 199, 216, 224, 234, 242, 253, 261); identical bytes in all eight",
+    "description": "Settings block of a 16S balancer (software B002_111132_03): balance start voltage 3200 mV, start difference 20 mV, sleep 65535 (never), battery type 0 (LiFePO4), one acquisition board with 16 cells. Boards 2 and 3 read 6 cells each although the board count is 1. The BMS protection registers are unused: all four current limits 30000 (0 A), pack high limits 0, pack low limits 5000 (500.0 V), difference limits 0.",
+    "expected": {
+      "address": 210,
+      "function": 3,
+      "byteCount": 82,
+      "registerCount": 41,
+      "ratedCapacity": 50,
+      "cellReferenceVoltage": 3.2,
+      "boardCount": 1,
+      "cellsPerBoard": [
+        16,
+        6,
+        6
+      ],
+      "cellCountConfigured": 16,
+      "cellsAllBoardsSum": 28,
+      "temperatureSensorsPerBoard": [
+        1,
+        1,
+        1
+      ],
+      "batteryType": 0,
+      "batteryTypeLabel": "LiFePO4",
+      "sleepDelay": 65535,
+      "sleepDisabled": true,
+      "cellVoltageLimitsRaw": [
+        3550,
+        3650,
+        2300,
+        2200
+      ],
+      "packVoltageLimitsRaw": [
+        0,
+        0,
+        5000,
+        5000
+      ],
+      "currentLimitsRaw": [
+        30000,
+        30000,
+        30000,
+        30000
+      ],
+      "temperatureLimitsRaw": [
+        40,
+        125,
+        40,
+        0,
+        40,
+        125,
+        40,
+        0
+      ],
+      "differenceLimitsRaw": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "balanceStartVoltage": 3.2,
+      "balanceTriggerDelta": 0.02,
+      "chargeMosSwitchRaw": 0,
+      "dischargeMosSwitchRaw": 0,
+      "socSettingRaw": 0,
+      "register00A8Raw": 87,
+      "balancerSignature": true,
+      "crcValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "bal-rx-status62-a",
+    "variant": "DALY_BALANCER_D2",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "D2037C0D070D060D070D050D080D090D080D090D090D080D0A0D080D060D0A0D080D08000000000000000000000000000000000000000000000000000000000000000000440000000000000000000002150D070215753000000D0A0D0400440044000000000010000100000000000000000D07000600000000000000000000D356",
+    "source": "https://github.com/syssi/esphome-daly-bms/blob/35afc8f/docs/pdus/btsnoop_daly_balancer.log (ATT Handle Value Notification on handle 0x0010 (FFF1), record 73)",
+    "description": "Status block of a 16S balancer, 62 registers, idle (difference below the 20 mV start difference). One temperature sensor (0x0032 = 1) at 28 C. Slots 7 and 8 of the temperature area (0x0026, 0x0027) repeat the total voltage and the average cell voltage, so only the counted slots are temperatures. Current raw 30000, SOC 0, capacity 0, cycles 0, both MOSFET flags 0: the balancer signature of section 11.3. The max, min and delta registers do not match the cell values of the same frame (delta register = max register - min register).",
+    "expected": {
+      "address": 210,
+      "function": 3,
+      "byteCount": 124,
+      "registerCount": 62,
+      "cellCount": 16,
+      "cellVoltages": [
+        3.335,
+        3.334,
+        3.335,
+        3.333,
+        3.336,
+        3.337,
+        3.336,
+        3.337,
+        3.337,
+        3.336,
+        3.338,
+        3.336,
+        3.334,
+        3.338,
+        3.336,
+        3.336
+      ],
+      "unusedCellSlotsZero": true,
+      "totalVoltage": 53.3,
+      "cellVoltageSum": 53.374,
+      "cellVoltageMin": 3.333,
+      "cellVoltageMax": 3.338,
+      "cellVoltageDelta": 0.005,
+      "temperatureSensorCount": 1,
+      "temperatures": [
+        28
+      ],
+      "temperatureSlotsRaw": [
+        68,
+        0,
+        0,
+        0,
+        0,
+        0,
+        533,
+        3335
+      ],
+      "currentRaw": 30000,
+      "socRaw": 0,
+      "cellVoltageMaxRegister": 3.338,
+      "cellVoltageMinRegister": 3.332,
+      "temperatureMaxRegister": 28,
+      "temperatureMinRegister": 28,
+      "chargeDischargeState": 0,
+      "remainingCapacityRaw": 0,
+      "cycles": 0,
+      "balancingState": 0,
+      "chargeMosRaw": 0,
+      "dischargeMosRaw": 0,
+      "cellVoltageAverageRegister": 3.335,
+      "cellVoltageDeltaRegister": 0.006,
+      "powerRaw": 0,
+      "alarmRegisters": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "balancerSignature": true,
+      "crcValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "bal-rx-status62-b",
+    "variant": "DALY_BALANCER_D2",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "D2037C0D090D090D0A0D030D0A0D080D0A0D090D050D090D090D060D080D060D090D09000000000000000000000000000000000000000000000000000000000000000000440000000000000000000002150D080215753000000D080D0300440044000000000010000100000000000000000D080005000000000000000000003C8C",
+    "source": "https://github.com/syssi/esphome-daly-bms/blob/35afc8f/docs/pdus/btsnoop_daly_balancer.log (ATT Handle Value Notification on handle 0x0010 (FFF1), record 201)",
+    "description": "Status block of a 16S balancer, 62 registers, idle (difference below the 20 mV start difference). One temperature sensor (0x0032 = 1) at 28 C. Slots 7 and 8 of the temperature area (0x0026, 0x0027) repeat the total voltage and the average cell voltage, so only the counted slots are temperatures. Current raw 30000, SOC 0, capacity 0, cycles 0, both MOSFET flags 0: the balancer signature of section 11.3. The max, min and delta registers do not match the cell values of the same frame (delta register = max register - min register).",
+    "expected": {
+      "address": 210,
+      "function": 3,
+      "byteCount": 124,
+      "registerCount": 62,
+      "cellCount": 16,
+      "cellVoltages": [
+        3.337,
+        3.337,
+        3.338,
+        3.331,
+        3.338,
+        3.336,
+        3.338,
+        3.337,
+        3.333,
+        3.337,
+        3.337,
+        3.334,
+        3.336,
+        3.334,
+        3.337,
+        3.337
+      ],
+      "unusedCellSlotsZero": true,
+      "totalVoltage": 53.3,
+      "cellVoltageSum": 53.377,
+      "cellVoltageMin": 3.331,
+      "cellVoltageMax": 3.338,
+      "cellVoltageDelta": 0.007,
+      "temperatureSensorCount": 1,
+      "temperatures": [
+        28
+      ],
+      "temperatureSlotsRaw": [
+        68,
+        0,
+        0,
+        0,
+        0,
+        0,
+        533,
+        3336
+      ],
+      "currentRaw": 30000,
+      "socRaw": 0,
+      "cellVoltageMaxRegister": 3.336,
+      "cellVoltageMinRegister": 3.331,
+      "temperatureMaxRegister": 28,
+      "temperatureMinRegister": 28,
+      "chargeDischargeState": 0,
+      "remainingCapacityRaw": 0,
+      "cycles": 0,
+      "balancingState": 0,
+      "chargeMosRaw": 0,
+      "dischargeMosRaw": 0,
+      "cellVoltageAverageRegister": 3.336,
+      "cellVoltageDeltaRegister": 0.005,
+      "powerRaw": 0,
+      "alarmRegisters": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "balancerSignature": true,
+      "crcValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "bal-rx-status62-c",
+    "variant": "DALY_BALANCER_D2",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "D2037C0D050D090D090D090D080D080D090D0A0D080D090D090D060D070D060D070D08000000000000000000000000000000000000000000000000000000000000000000440000000000000000000002150D070215753000000D090D0500440044000000000010000100000000000000000D070004000000000000000000001B3B",
+    "source": "https://github.com/syssi/esphome-daly-bms/blob/35afc8f/docs/pdus/btsnoop_daly_balancer.log (ATT Handle Value Notification on handle 0x0010 (FFF1), record 263)",
+    "description": "Status block of a 16S balancer, 62 registers, idle (difference below the 20 mV start difference). One temperature sensor (0x0032 = 1) at 28 C. Slots 7 and 8 of the temperature area (0x0026, 0x0027) repeat the total voltage and the average cell voltage, so only the counted slots are temperatures. Current raw 30000, SOC 0, capacity 0, cycles 0, both MOSFET flags 0: the balancer signature of section 11.3. The max, min and delta registers do not match the cell values of the same frame (delta register = max register - min register).",
+    "expected": {
+      "address": 210,
+      "function": 3,
+      "byteCount": 124,
+      "registerCount": 62,
+      "cellCount": 16,
+      "cellVoltages": [
+        3.333,
+        3.337,
+        3.337,
+        3.337,
+        3.336,
+        3.336,
+        3.337,
+        3.338,
+        3.336,
+        3.337,
+        3.337,
+        3.334,
+        3.335,
+        3.334,
+        3.335,
+        3.336
+      ],
+      "unusedCellSlotsZero": true,
+      "totalVoltage": 53.3,
+      "cellVoltageSum": 53.375,
+      "cellVoltageMin": 3.333,
+      "cellVoltageMax": 3.338,
+      "cellVoltageDelta": 0.005,
+      "temperatureSensorCount": 1,
+      "temperatures": [
+        28
+      ],
+      "temperatureSlotsRaw": [
+        68,
+        0,
+        0,
+        0,
+        0,
+        0,
+        533,
+        3335
+      ],
+      "currentRaw": 30000,
+      "socRaw": 0,
+      "cellVoltageMaxRegister": 3.337,
+      "cellVoltageMinRegister": 3.333,
+      "temperatureMaxRegister": 28,
+      "temperatureMinRegister": 28,
+      "chargeDischargeState": 0,
+      "remainingCapacityRaw": 0,
+      "cycles": 0,
+      "balancingState": 0,
+      "chargeMosRaw": 0,
+      "dischargeMosRaw": 0,
+      "cellVoltageAverageRegister": 3.335,
+      "cellVoltageDeltaRegister": 0.004,
+      "powerRaw": 0,
+      "alarmRegisters": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "balancerSignature": true,
+      "crcValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "bal-rx-version",
+    "variant": "DALY_BALANCER_D2",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "D20340423030325F3131313133325F30330000453330332D30333244472D534D4200000000000000000000000000000000000000000000000000000000000000000000FE8D",
+    "source": "https://github.com/syssi/esphome-daly-bms/blob/35afc8f/docs/pdus/btsnoop_daly_balancer.log (ATT Handle Value Notification on handle 0x0010 (FFF1), records 75, 203, 265)",
+    "description": "Version block: software B002_111132_03 (bytes 0..15), hardware E303-032DG-SMB (bytes 16..31), machine code empty (bytes 32..63).",
+    "expected": {
+      "address": 210,
+      "function": 3,
+      "byteCount": 64,
+      "softwareVersion": "B002_111132_03",
+      "hardwareVersion": "E303-032DG-SMB",
+      "machineCode": "",
+      "crcValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "bal-rx-password",
+    "variant": "DALY_BALANCER_D2",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "D203063132333435364C69",
+    "source": "https://github.com/syssi/esphome-daly-bms/blob/35afc8f/docs/pdus/btsnoop_daly_balancer.log (ATT Handle Value Notification on handle 0x0010 (FFF1), records 77, 205, 267)",
+    "description": "Parameter password 0x00C9..0x00CB: ASCII 123456 (default).",
+    "expected": {
+      "address": 210,
+      "function": 3,
+      "byteCount": 6,
+      "password": "123456",
+      "crcValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "bal-rx-0063-all-ff",
+    "variant": "DALY_BALANCER_D2",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "D20338FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFD682",
+    "source": "https://github.com/syssi/esphome-daly-bms/blob/35afc8f/docs/pdus/btsnoop_daly_balancer.log (ATT Handle Value Notification on handle 0x0010 (FFF1), record 209), first of two frames in one notification",
+    "description": "Reply to the 28 register read at 0x0063: 56 bytes of 0xFF (block not implemented on this balancer).",
+    "expected": {
+      "address": 210,
+      "function": 3,
+      "byteCount": 56,
+      "allFF": true,
+      "crcValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "bal-rx-00cc-2",
+    "variant": "DALY_BALANCER_D2",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "D203040001010048AE",
+    "source": "https://github.com/syssi/esphome-daly-bms/blob/35afc8f/docs/pdus/btsnoop_daly_balancer.log (ATT Handle Value Notification on handle 0x0010 (FFF1), record 209), second frame",
+    "description": "Reply to the 2 register read at 0x00CC: 00 01 01 00, the production date placeholder (YY MM DD 00 = 00-01-01, not set).",
+    "expected": {
+      "address": 210,
+      "function": 3,
+      "byteCount": 4,
+      "registers": [
+        1,
+        256
+      ],
+      "productionDateBytes": "00010100",
+      "productionDateSet": false,
+      "crcValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "bal-rx-block003e",
+    "variant": "DALY_BALANCER_D2",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "D203120000000075300000FFFF0000000000000000476E",
+    "source": "https://github.com/syssi/esphome-daly-bms/blob/35afc8f/docs/pdus/btsnoop_daly_balancer.log (ATT Handle Value Notification on handle 0x0010 (FFF1), record 212), first of three frames; identical bytes in records 218, 226, 236, 244, 255",
+    "description": "Nine registers from 0x003E while idle: balancing bits 0, 0x0040 = 30000 (balance current 0 A with the 30000 offset), 0x0042 = 0xFFFF (no MOSFET temperature), 0x0043 = 0 (no board temperature).",
+    "expected": {
+      "address": 210,
+      "function": 3,
+      "byteCount": 18,
+      "registers": [
+        0,
+        0,
+        30000,
+        0,
+        65535,
+        0,
+        0,
+        0,
+        0
+      ],
+      "balanceBitsRaw": [
+        0,
+        0
+      ],
+      "balanceCurrentRaw": 30000,
+      "balanceCurrent": 0,
+      "register0041": 0,
+      "mosTemperatureRaw": 65535,
+      "mosTemperatureAvailable": false,
+      "boardTemperatureRaw": 0,
+      "crcValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "bal-rx-00df-all-ff",
+    "variant": "DALY_BALANCER_D2",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "D20322FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFDCE0",
+    "source": "https://github.com/syssi/esphome-daly-bms/blob/35afc8f/docs/pdus/btsnoop_daly_balancer.log (ATT Handle Value Notification on handle 0x0010 (FFF1), record 212), second frame; identical bytes in records 222, 230, 240, 259",
+    "description": "Reply to the 17 register read at 0x00DF: 34 bytes of 0xFF.",
+    "expected": {
+      "address": 210,
+      "function": 3,
+      "byteCount": 34,
+      "allFF": true,
+      "crcValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "bal-rx-0057-zero",
+    "variant": "DALY_BALANCER_D2",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "D2031800000000000000000000000000000000000000000000000091DC",
+    "source": "https://github.com/syssi/esphome-daly-bms/blob/35afc8f/docs/pdus/btsnoop_daly_balancer.log (ATT Handle Value Notification on handle 0x0010 (FFF1), record 212), third frame",
+    "description": "Reply to the 12 register read at 0x0057 (GPS block on BMS boards): 24 zero bytes.",
+    "expected": {
+      "address": 210,
+      "function": 3,
+      "byteCount": 24,
+      "allZero": true,
+      "crcValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "bal-rx-damaged-after-pipelining",
+    "variant": "DALY_BALANCER_D2",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "D20318FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFD682",
+    "source": "https://github.com/syssi/esphome-daly-bms/blob/35afc8f/docs/pdus/btsnoop_daly_balancer.log (ATT Handle Value Notification on handle 0x0010 (FFF1), records 82, 273); identical bytes",
+    "description": "Damaged reply after the app sent four reads within 200 ms without waiting: byte count 0x18 with 24 bytes of 0xFF, but the CRC D6 82 belongs to the 56 byte all-0xFF reply of the 0x0063 read. The replies to the other three reads never arrived. A frame assembler must reject it by CRC, and a driver must keep one request in flight.",
+    "expected": {
+      "address": 210,
+      "function": 3,
+      "byteCount": 24,
+      "crcValid": false
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "bal-rx-00d7",
+    "variant": "DALY_BALANCER_D2",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "D2030200003D96",
+    "source": "https://github.com/syssi/esphome-daly-bms/blob/35afc8f/docs/pdus/btsnoop_daly_balancer.log (ATT Handle Value Notification on handle 0x0010 (FFF1), record 214)",
+    "description": "Register 0x00D7 = 0 (meaning unknown). The same 7 bytes would also be a reply \"0x00CF = 0\": replies carry no register address.",
+    "expected": {
+      "address": 210,
+      "function": 3,
+      "byteCount": 2,
+      "registers": [
+        0
+      ],
+      "crcValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "bal-rx-00cc-5-on",
+    "variant": "DALY_BALANCER_D2",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "D2030A0001010000100001000AC2BC",
+    "source": "https://github.com/syssi/esphome-daly-bms/blob/35afc8f/docs/pdus/btsnoop_daly_balancer.log (ATT Handle Value Notification on handle 0x0010 (FFF1), records 220, 228, 257); identical bytes",
+    "description": "Five registers from 0x00CC with the balancer switched on: 0x00CE = 16 (equals the cell count), 0x00CF = 1, 0x00D0 = 10. The meanings of 0x00CE and 0x00D0 are unverified (section 6.5).",
+    "expected": {
+      "address": 210,
+      "function": 3,
+      "byteCount": 10,
+      "registers": [
+        1,
+        256,
+        16,
+        1,
+        10
+      ],
+      "productionDateBytes": "00010100",
+      "productionDateSet": false,
+      "register00CE": 16,
+      "balancerSwitchRaw": 1,
+      "balancerSwitch": true,
+      "register00D0": 10,
+      "crcValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "bal-rx-00cc-5-off",
+    "variant": "DALY_BALANCER_D2",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "D2030A0001010000100000000A937C",
+    "source": "https://github.com/syssi/esphome-daly-bms/blob/35afc8f/docs/pdus/btsnoop_daly_balancer.log (ATT Handle Value Notification on handle 0x0010 (FFF1), records 238, 246); identical bytes",
+    "description": "The same block after the app wrote 0x00CF = 0: only 0x00CF changed.",
+    "expected": {
+      "address": 210,
+      "function": 3,
+      "byteCount": 10,
+      "registers": [
+        1,
+        256,
+        16,
+        0,
+        10
+      ],
+      "productionDateBytes": "00010100",
+      "productionDateSet": false,
+      "register00CE": 16,
+      "balancerSwitchRaw": 0,
+      "balancerSwitch": false,
+      "register00D0": 10,
+      "crcValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "bal-rx-echo-switch-off",
+    "variant": "DALY_BALANCER_D2",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "D20600CF0000AA56",
+    "source": "https://github.com/syssi/esphome-daly-bms/blob/35afc8f/docs/pdus/btsnoop_daly_balancer.log (ATT Handle Value Notification on handle 0x0010 (FFF1), record 232)",
+    "description": "Echo of the switch-off write (identical to the request), 179 ms after it.",
+    "expected": {
+      "address": 210,
+      "function": 6,
+      "register": 207,
+      "value": 0,
+      "crcValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "bal-rx-echo-switch-on",
+    "variant": "DALY_BALANCER_D2",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "D20600CF00016B96",
+    "source": "https://github.com/syssi/esphome-daly-bms/blob/35afc8f/docs/pdus/btsnoop_daly_balancer.log (ATT Handle Value Notification on handle 0x0010 (FFF1), record 251)",
+    "description": "Echo of the repeated switch-on write, 397 ms after it.",
+    "expected": {
+      "address": 210,
+      "function": 6,
+      "register": 207,
+      "value": 1,
+      "crcValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "bal-rx-echo-switch-on-bad-crc",
+    "variant": "DALY_BALANCER_D2",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "D20600CF00011C8A",
+    "source": "https://github.com/syssi/esphome-daly-bms/blob/35afc8f/docs/pdus/btsnoop_daly_balancer.log (ATT Handle Value Notification on handle 0x0010 (FFF1), record 249)",
+    "description": "Echo of the first switch-on write with a wrong CRC (1C 8A instead of 6B 96). Address, function, register and value bytes are right; the app repeated the write (record 250). A driver rejects the frame and verifies the state by reading 0x00CF.",
+    "expected": {
+      "address": 210,
+      "function": 6,
+      "register": 207,
+      "value": 1,
+      "crcValid": false
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "bal-rx-switch-on-syssi",
+    "variant": "DALY_BALANCER_D2",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "D203020001FC56",
+    "source": "https://github.com/syssi/esphome-daly-bms/blob/35afc8f/tests/components/daly_bms_ble/common.h (BALANCER_SWITCH_FRAME_ON)",
+    "description": "Single register reply \"0x00CF = 1\" from the syssi unit tests. The test comment cites the balancer capture, but the capture contains no single register read of 0x00CF: a documented test frame, not a capture.",
+    "expected": {
+      "address": 210,
+      "function": 3,
+      "byteCount": 2,
+      "registers": [
+        1
+      ],
+      "balancerSwitch": true,
+      "crcValid": true
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "bal-rx-switch-off-syssi",
+    "variant": "DALY_BALANCER_D2",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "D2030200003D96",
+    "source": "https://github.com/syssi/esphome-daly-bms/blob/35afc8f/tests/components/daly_bms_ble/common.h (BALANCER_SWITCH_FRAME_OFF); same bytes as the 0x00D7 reply in https://github.com/syssi/esphome-daly-bms/blob/35afc8f/docs/pdus/btsnoop_daly_balancer.log (ATT Handle Value Notification on handle 0x0010 (FFF1), record 214)",
+    "description": "Single register reply \"0x00CF = 0\" from the syssi unit tests; the bytes equal the reply to the 0x00D7 read of the capture.",
+    "expected": {
+      "address": 210,
+      "function": 3,
+      "byteCount": 2,
+      "registers": [
+        0
+      ],
+      "balancerSwitch": false,
+      "crcValid": true
+    },
+    "expectedComputed": false
+  },
+  {
+    "id": "bal-rx-app-probe-81-reply",
+    "variant": "DALY_MODBUS_81",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "51100F05AAAA2193",
+    "source": "https://github.com/syssi/esphome-daly-bms/blob/35afc8f/docs/pdus/btsnoop_daly_balancer.log (ATT Handle Value Notification on handle 0x0010 (FFF1), records 69, 197)",
+    "description": "Answer to the 0x81 write probe: response address 0x51, function 0x10, register 0x0F05, then 0xAAAA where the register count is expected. Meaning unknown; it shows that the balancer firmware also reacts to address 0x81.",
+    "expected": {
+      "address": 81,
+      "function": 16,
+      "register": 3845,
+      "word": 43690,
+      "crcValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "bal-rx-stream-two-replies",
+    "variant": "DALY_BALANCER_D2",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "D20338FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFD682D203040001010048AE",
+    "source": "https://github.com/syssi/esphome-daly-bms/blob/35afc8f/docs/pdus/btsnoop_daly_balancer.log (ATT Handle Value Notification on handle 0x0010 (FFF1), record 209)",
+    "description": "One 70 byte notification carrying two complete replies (0x0063 x 28, then 0x00CC x 2) after the app pipelined requests. The assembler must split it.",
+    "expected": {
+      "notificationLength": 70,
+      "frameCount": 2,
+      "frames": [
+        "D20338FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFD682",
+        "D203040001010048AE"
+      ]
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "bal-rx-stream-three-replies",
+    "variant": "DALY_BALANCER_D2",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "D203120000000075300000FFFF0000000000000000476ED20322FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFDCE0D2031800000000000000000000000000000000000000000000000091DC",
+    "source": "https://github.com/syssi/esphome-daly-bms/blob/35afc8f/docs/pdus/btsnoop_daly_balancer.log (ATT Handle Value Notification on handle 0x0010 (FFF1), record 212)",
+    "description": "One 91 byte notification carrying three complete replies (0x003E x 9, 0x00DF x 17, 0x0057 x 12).",
+    "expected": {
+      "notificationLength": 91,
+      "frameCount": 3,
+      "frames": [
+        "D203120000000075300000FFFF0000000000000000476E",
+        "D20322FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFDCE0",
+        "D2031800000000000000000000000000000000000000000000000091DC"
+      ]
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "ble-rx-text-9600",
+    "variant": "BLE_MODULE_TEXT",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "39363030",
+    "source": "https://github.com/syssi/esphome-daly-bms/blob/35afc8f/docs/pdus/btsnoop_daly_balancer.log (record 62, ATT handle 0x0010 (FFF1))",
+    "description": "ASCII \"9600\", the module answer to AT+BAND=? written to FFF3. It arrives on the Daly data characteristic FFF1 and the frame assembler must skip it.",
+    "expected": {
+      "text": "9600",
+      "isDalyFrame": false
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "ble-rx-text-productinfo",
+    "variant": "BLE_MODULE_TEXT",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "41542B50524F44554354494E464F3D4E6F504944",
+    "source": "https://github.com/syssi/esphome-daly-bms/blob/35afc8f/docs/pdus/btsnoop_daly_balancer.log (record 68, ATT handle 0x0010 (FFF1))",
+    "description": "ASCII AT+PRODUCTINFO=NoPID on FFF1 (answer to AT+PRODUCTINFO=? on FFF3). Must be skipped.",
+    "expected": {
+      "text": "AT+PRODUCTINFO=NoPID",
+      "isDalyFrame": false
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "ble-rx-text-module-version",
+    "variant": "BLE_MODULE_TEXT",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "484C4B2D42343028622E322E30322E31323032333035303431313135290D0A",
+    "source": "https://github.com/syssi/esphome-daly-bms/blob/35afc8f/docs/pdus/btsnoop_daly_balancer.log (record 61, ATT handle 0x0025 (vendor characteristic ...ff04))",
+    "description": "BLE module firmware string HLK-B40(b.2.02.1202305041115) with CR LF, the answer to AT+VER=? on the vendor service.",
+    "expected": {
+      "text": "HLK-B40(b.2.02.1202305041115)",
+      "isDalyFrame": false
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "ble-tx-text-ver",
+    "variant": "BLE_MODULE_TEXT",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "41542B5645523D3F0D0A",
+    "source": "https://github.com/syssi/esphome-daly-bms/blob/35afc8f/docs/pdus/btsnoop_daly_balancer.log (record 59, ATT handle 0x0025 (vendor characteristic ...ff04))",
+    "description": "AT+VER=? with CR LF, written by the app. Module command, not needed by a driver.",
+    "expected": {
+      "text": "AT+VER=?",
+      "isDalyFrame": false
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "ble-tx-text-band",
+    "variant": "BLE_MODULE_TEXT",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "41542B42414E443D3F",
+    "source": "https://github.com/syssi/esphome-daly-bms/blob/35afc8f/docs/pdus/btsnoop_daly_balancer.log (record 60, ATT handle 0x0018 (FFF3))",
+    "description": "AT+BAND=? written by the app to FFF3. Module command, not needed by a driver.",
+    "expected": {
+      "text": "AT+BAND=?",
+      "isDalyFrame": false
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "ble-tx-text-productinfo",
+    "variant": "BLE_MODULE_TEXT",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "41542B50524F44554354494E464F3D3F",
+    "source": "https://github.com/syssi/esphome-daly-bms/blob/35afc8f/docs/pdus/btsnoop_daly_balancer.log (record 65, ATT handle 0x0018 (FFF3))",
+    "description": "AT+PRODUCTINFO=? written by the app to FFF3. Module command, not needed by a driver.",
+    "expected": {
+      "text": "AT+PRODUCTINFO=?",
+      "isDalyFrame": false
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "ble-tx-text-hilink",
+    "variant": "BLE_MODULE_TEXT",
+    "link": "ble",
+    "direction": "tx",
+    "hex": "48694C696E6B",
+    "source": "https://github.com/syssi/esphome-daly-bms/blob/35afc8f/docs/pdus/btsnoop_daly_balancer.log (record 55, ATT handle 0x0028 (vendor characteristic ...ff05))",
+    "description": "ASCII HiLink written by the app before the first Daly request; reading the characteristic back returned 01 00. Purpose unknown, not needed by any open source implementation; ubms does not send it.",
+    "expected": {
+      "text": "HiLink",
+      "isDalyFrame": false
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "bms-rx-status62-aiobmsble",
+    "variant": "DALY_BMS_D2",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "D2037C101F10291033103D0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003C003D003E003F0000000000000000008C754E0384103D101F0000000000000D80000400040039000100000001102E0141002A0000000000000000A0DF",
+    "source": "https://github.com/patman15/aiobmsble/blob/95a6421/tests/bms/test_daly_bms.py (_PROTO_DEFS[0xD2], _RESULT_DEFS[0xD2]); also packages/bms-drivers/test/vectors/daly.json id d2-rx-status62-aiobmsble",
+    "description": "Daly smart BMS status block (not a balancer). Current raw 30030, SOC 90.0 %, 57 cycles, discharge MOSFET on: rejected by the status signature.",
+    "expected": {
+      "address": 210,
+      "function": 3,
+      "byteCount": 124,
+      "cellCount": 4,
+      "totalVoltage": 14,
+      "currentRaw": 30030,
+      "socRaw": 900,
+      "remainingCapacityRaw": 3456,
+      "cycles": 57,
+      "chargeDischargeState": 0,
+      "chargeMosRaw": 0,
+      "dischargeMosRaw": 1,
+      "temperatureSensorCount": 4,
+      "balancerSignature": false,
+      "crcValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "bms-rx-status62-8s-idle",
+    "variant": "DALY_BMS_D2",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "D2037C0D6E0D690D590DD70D0B0D0B0D0C0D0B000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003D0028002800000000000000000000010F753003E80DD70D0B003D003D000000FA0008000100000000000100010D4600CC000000000000000000000EE1",
+    "source": "https://github.com/syssi/esphome-daly-bms/blob/35afc8f/tests/components/daly_bms_ble/common.h (STATUS_FRAME_62_REG_NO_ALARMS); expectations in https://github.com/syssi/esphome-daly-bms/blob/35afc8f/tests/components/daly_bms_ble/daly_bms_ble_test.cpp (DalyBmsBleStatus62RegTest); also packages/bms-drivers/test/vectors/daly.json id d2-rx-status62-8s",
+    "description": "Daly smart BMS status block (not a balancer). Idle (current raw 30000, 0 cycles) but SOC 100.0 % and both MOSFETs on: rejected by the status signature.",
+    "expected": {
+      "address": 210,
+      "function": 3,
+      "byteCount": 124,
+      "cellCount": 8,
+      "totalVoltage": 27.1,
+      "currentRaw": 30000,
+      "socRaw": 1000,
+      "remainingCapacityRaw": 250,
+      "cycles": 0,
+      "chargeDischargeState": 0,
+      "chargeMosRaw": 1,
+      "dischargeMosRaw": 1,
+      "temperatureSensorCount": 1,
+      "balancerSignature": false,
+      "crcValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "bms-rx-status62-24s",
+    "variant": "DALY_BMS_D2",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "D2037C0CDC0CDB0CDC0CDC0CDC0CDC0CDE0CDC0CDC0CDC0CDC0CDC0CDC0CDC0CDE0CDC0CDC0CDC0CDC0CDC0CDC0CDE0CDC0CDC000000000000000000000000000000000038003600380038000000000000000003167530014D0CDE0CDB00380036000004150018000400000000000100010CDC0003000000000000000000004967",
+    "source": "https://github.com/syssi/esphome-daly-bms/blob/35afc8f/docs/pdus/daly_bms_24cells.txt (from syssi/esphome-daly-bms issue #60); also packages/bms-drivers/test/vectors/daly.json id d2-rx-status62-24s",
+    "description": "Daly smart BMS status block (not a balancer). 24 cells like the largest balancer, idle with 0 cycles, but SOC 33.3 % and both MOSFETs on: rejected.",
+    "expected": {
+      "address": 210,
+      "function": 3,
+      "byteCount": 124,
+      "cellCount": 24,
+      "totalVoltage": 79,
+      "currentRaw": 30000,
+      "socRaw": 333,
+      "remainingCapacityRaw": 1045,
+      "cycles": 0,
+      "chargeDischargeState": 0,
+      "chargeMosRaw": 1,
+      "dischargeMosRaw": 1,
+      "temperatureSensorCount": 4,
+      "balancerSignature": false,
+      "crcValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "bms-rx-status62-4s-idle-uart",
+    "variant": "DALY_BMS_D2",
+    "link": "uart",
+    "direction": "rx",
+    "hex": "D2037C0D060D090D090D070000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003C00280000000000000000000000000085753002A80D090D06003C003C000002CA0004000100000000000100010D07000300000000000000000000E044",
+    "source": "https://diysolarforum.com/threads/decoding-the-daly-smartbms-protocol.21898/page-3 (post quoting a UART monitor of the Daly Bluetooth module); also packages/bms-drivers/test/vectors/daly.json id d2-rx-status62-4s-idle-uart",
+    "description": "Daly smart BMS status block (not a balancer). Captured on the UART line between a BMS and its Bluetooth module; idle with 0 cycles, SOC 68.0 %, MOSFETs on: rejected.",
+    "expected": {
+      "address": 210,
+      "function": 3,
+      "byteCount": 124,
+      "cellCount": 4,
+      "totalVoltage": 13.3,
+      "currentRaw": 30000,
+      "socRaw": 680,
+      "remainingCapacityRaw": 714,
+      "cycles": 0,
+      "chargeDischargeState": 0,
+      "chargeMosRaw": 1,
+      "dischargeMosRaw": 1,
+      "temperatureSensorCount": 1,
+      "balancerSignature": false,
+      "crcValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "bms-rx-status80-blue-series",
+    "variant": "DALY_BMS_D2",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "D203A00CD10CD20CD30CD30CD30CD20CD30CD30CD30CD30CD30CD30CD30CD30CD30CD3000000000000000000000000000000000000000000000000000000000000000000350035003500350000000000000000020D751702310CD30CD1003500350002049A00100004003C0000000100010CD20002008300000000000000000000000075300000003700000000000000000000000000000000000000000000000000005455",
+    "source": "https://github.com/syssi/esphome-daly-bms/blob/35afc8f/docs/pdus/daly_bms_blue_series_80_registers.txt (from syssi/esphome-daly-bms issue #55); also packages/bms-drivers/test/vectors/daly.json id d2-rx-status80-blue-series-capture1",
+    "description": "Daly smart BMS status block (not a balancer). 80 register read of a discharging BMS (state 2, current below 30000): rejected.",
+    "expected": {
+      "address": 210,
+      "function": 3,
+      "byteCount": 160,
+      "cellCount": 16,
+      "totalVoltage": 52.5,
+      "currentRaw": 29975,
+      "socRaw": 561,
+      "remainingCapacityRaw": 1178,
+      "cycles": 60,
+      "chargeDischargeState": 2,
+      "chargeMosRaw": 1,
+      "dischargeMosRaw": 1,
+      "temperatureSensorCount": 4,
+      "balancerSignature": false,
+      "crcValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "bms-rx-settings-4s",
+    "variant": "DALY_BMS_D2",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "D20352041A0C80000100040000000000010000000000001C200DAC0DAC0A280A28008C008C0068006874CC74CC749075D00055005500280028006E006E0027002700FF00FF00FF00FF0C8000140001000102A800577F8B",
+    "source": "https://github.com/syssi/esphome-daly-bms/blob/35afc8f/tests/components/daly_bms_ble/common.h (SETTINGS_FRAME_1); expectations in https://github.com/syssi/esphome-daly-bms/blob/35afc8f/tests/components/daly_bms_ble/daly_bms_ble_test.cpp (DalyBmsBleSettingsTest); also packages/bms-drivers/test/vectors/daly.json id d2-rx-settings-4s",
+    "description": "Daly smart BMS settings block (4S). Current limits are real thresholds (raw 29900, 29900, 29840, 30160), so the settings signature of section 11.3 fails. The balancing registers 0x00A3 / 0x00A4 (3200 mV, 20 mV) have the same meaning as on the balancer.",
+    "expected": {
+      "address": 210,
+      "function": 3,
+      "byteCount": 82,
+      "currentLimitsRaw": [
+        29900,
+        29900,
+        29840,
+        30160
+      ],
+      "balanceStartVoltage": 3.2,
+      "balanceTriggerDelta": 0.02,
+      "balancerSignature": false,
+      "crcValid": true
+    },
+    "expectedComputed": true
+  },
+  {
+    "id": "bms-rx-version-aiobmsble",
+    "variant": "DALY_BMS_D2",
+    "link": "ble",
+    "direction": "rx",
+    "hex": "D203405430304B5F3332313034325F3131000048322E305F313033525F33303946394632303234303232390000000000000000000000000000000000000000000000005541",
+    "source": "https://github.com/patman15/aiobmsble/blob/95a6421/tests/bms/test_daly_bms.py (_DEV_DEFS[0xD2]); also packages/bms-drivers/test/vectors/daly.json id d2-rx-version-aiobmsble",
+    "description": "Version block of a Daly smart BMS, for comparison with the balancer strings (section 10).",
+    "expected": {
+      "address": 210,
+      "function": 3,
+      "byteCount": 64,
+      "softwareVersion": "T00K_321042_11",
+      "hardwareVersion": "H2.0_103R_309F9F",
+      "machineCode": "20240229",
+      "crcValid": true
+    },
+    "expectedComputed": true
+  }
+]
