@@ -10,10 +10,10 @@
 ```
 npm install          # install dependencies and link the workspace packages
 npm run dev          # Vite dev server on http://localhost:5173 (secure context for device APIs)
-npm run build        # single-file production build: dist/ubms.html
+npm run build        # single-file production build: dist/index.html, also as dist/ubms.html
 npm run preview      # serve the production build
 npm test             # unit tests (node:test) for all packages, style checks
-npm run smoke        # headless browser smoke test of dist/ubms.html, screenshots in .smoke/
+npm run smoke        # headless browser smoke test of dist/index.html, screenshots in .smoke/
 npm run i18n:check   # translation coverage and consistency
 ```
 

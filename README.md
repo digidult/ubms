@@ -94,7 +94,7 @@ Every push builds the same files as artifacts of the workflow "Desktop"; see
 npm install
 npm run dev        # http://localhost:5173
 npm test           # unit tests
-npm run build      # dist/ubms.html, single file
+npm run build      # dist/index.html (also as dist/ubms.html), single file
 npm run smoke      # headless smoke test with screenshots
 ```
 

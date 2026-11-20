@@ -1,6 +1,6 @@
 import { defineConfig } from 'vite';
 import { viteSingleFile } from 'vite-plugin-singlefile';
-import { readFileSync } from 'node:fs';
+import { copyFileSync, existsSync, readFileSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
@@ -29,33 +29,30 @@ function buildCommit() {
 
 const repoUrl = String(pkg.repository?.url ?? '').replace(/^git\+/, '').replace(/\.git$/, '');
 
-/** The app is ubms.html: open it for "/" in the dev and preview servers. */
-const rootToApp = {
-  name: 'ubms-root-to-app',
-  /** @param {any} server */
-  configureServer(server) {
-    server.middlewares.use((/** @type {any} */ req, /** @type {any} */ _res, /** @type {any} */ next) => {
-      if (req.url === '/' || req.url?.startsWith('/?')) req.url = `/ubms.html${req.url.slice(1)}`;
-      next();
-    });
-  },
-  /** @param {any} server */
-  configurePreviewServer(server) {
-    this.configureServer(server);
+/**
+ * Next to dist/index.html (what static hosts such as Vercel and the desktop app serve) the build
+ * writes the same file as dist/ubms.html, the name used for downloads and releases.
+ */
+const appFileCopy = {
+  name: 'ubms-app-file-copy',
+  apply: /** @type {'build'} */ ('build'),
+  enforce: /** @type {'post'} */ ('post'),
+  closeBundle() {
+    const dist = fileURLToPath(new URL('../../dist/', import.meta.url));
+    if (existsSync(`${dist}index.html`)) copyFileSync(`${dist}index.html`, `${dist}ubms.html`);
   },
 };
 
 /**
- * The production build is ONE self-contained HTML file, dist/ubms.html (scripts, styles, icons
- * and translations inlined), that works offline from disk, from any static host and inside the
- * Tauri webview. Set UBMS_MULTIFILE=1 to get a regular multi-file build (useful for debugging
+ * The production build is ONE self-contained HTML file, dist/index.html, copied to
+ * dist/ubms.html (scripts, styles, icons and translations inlined), that works offline from disk,
+ * from any static host and inside the Tauri webview. Set UBMS_MULTIFILE=1 to get a regular multi-file build (useful for debugging
  * bundle size).
  */
 export default defineConfig(({ command }) => {
   const commit = command === 'build' ? buildCommit() : { full: '', short: 'dev' };
   return {
     base: './',
-    appType: 'mpa',
     define: {
       __APP_VERSION__: JSON.stringify(pkg.version),
       __APP_REVISION__: JSON.stringify(commit.short),
@@ -63,7 +60,7 @@ export default defineConfig(({ command }) => {
       __APP_REPOSITORY__: JSON.stringify(repoUrl),
       __BUILD_DATE__: JSON.stringify(new Date().toISOString().slice(0, 10)),
     },
-    plugins: [rootToApp, ...(process.env.UBMS_MULTIFILE ? [] : [viteSingleFile({ removeViteModuleLoader: true })])],
+    plugins: [...(process.env.UBMS_MULTIFILE ? [] : [viteSingleFile({ removeViteModuleLoader: true })]), appFileCopy],
     build: {
       target: 'es2022',
       outDir: '../../dist',
@@ -71,7 +68,6 @@ export default defineConfig(({ command }) => {
       assetsInlineLimit: 100_000_000,
       cssCodeSplit: false,
       reportCompressedSize: false,
-      rollupOptions: { input: fileURLToPath(new URL('./ubms.html', import.meta.url)) },
     },
     server: {
       host: 'localhost',

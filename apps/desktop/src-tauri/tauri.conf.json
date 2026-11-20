@@ -16,8 +16,7 @@
         "width": 1200,
         "height": 820,
         "minWidth": 360,
-        "minHeight": 560,
-        "url": "ubms.html"
+        "minHeight": 560
       }
     ],
     "security": {

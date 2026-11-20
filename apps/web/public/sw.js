@@ -1,11 +1,11 @@
 /*
  * Offline support when ubms is served over https (for example GitHub Pages) and installed as an
- * app. The whole app is ubms.html, so the cache holds just a few files. Strategy: serve from the
+ * app. The whole app is index.html, so the cache holds just a few files. Strategy: serve from the
  * cache immediately, refresh the cache in the background (stale while revalidate).
  * The single-file build opened from disk does not use this worker.
  */
 const CACHE = 'ubms-v1';
-const FILES = ['./ubms.html', './manifest.webmanifest', './icon.svg', './icon-maskable.svg'];
+const FILES = ['./', './index.html', './manifest.webmanifest', './icon.svg', './icon-maskable.svg'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((c) => c.addAll(FILES)).then(() => self.skipWaiting()));

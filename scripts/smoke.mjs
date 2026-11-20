@@ -3,7 +3,7 @@
  * Headless smoke test of the built single-file app.
  *
  * Starts a Chromium-based browser in headless mode (no window, separate temporary profile),
- * opens dist/ubms.html from disk, runs scenarios (connect screen, demo sessions of every driver,
+ * opens dist/index.html from disk, runs scenarios (connect screen, demo sessions of every driver,
  * all main views, mobile and desktop sizes), collects console errors and uncaught exceptions, and
  * saves screenshots.
  *
@@ -24,9 +24,9 @@ const arg = (name, def) => {
 };
 const outDir = path.resolve(root, arg('--out', '.smoke'));
 const only = arg('--only', '');
-const page = path.join(root, 'dist', 'ubms.html');
+const page = path.join(root, 'dist', 'index.html');
 if (!existsSync(page)) {
-  console.error('dist/ubms.html not found, run "npm run build" first');
+  console.error('dist/index.html not found, run "npm run build" first');
   process.exit(2);
 }
 

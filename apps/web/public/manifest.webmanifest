@@ -2,7 +2,7 @@
   "name": "ubms: BMS viewer and configurator",
   "short_name": "ubms",
   "description": "Monitor and configure battery management systems, active balancers and meters over Bluetooth or serial.",
-  "start_url": "./ubms.html",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "any",
