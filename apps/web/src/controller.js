@@ -779,6 +779,7 @@ export class AppController {
         app: 'ubms',
         version: __APP_VERSION__,
         revision: __APP_REVISION__,
+        commit: __APP_COMMIT__,
         userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : '',
         device,
         info,

@@ -37,7 +37,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ubms-html
-          path: dist/index.html
+          path: dist/ubms.html
           if-no-files-found: error
 
       - name: Upload screenshots

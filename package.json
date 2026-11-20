@@ -4,6 +4,11 @@
   "private": true,
   "description": "Universal BMS viewer and configurator: JK, ANT, Daly and more over Web Bluetooth and Web Serial.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/supakov/ubms.git"
+  },
+  "homepage": "https://github.com/supakov/ubms",
   "type": "module",
   "workspaces": [
     "packages/*",

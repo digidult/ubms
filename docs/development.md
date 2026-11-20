@@ -10,10 +10,10 @@
 ```
 npm install          # install dependencies and link the workspace packages
 npm run dev          # Vite dev server on http://localhost:5173 (secure context for device APIs)
-npm run build        # single-file production build: dist/index.html
+npm run build        # single-file production build: dist/ubms.html
 npm run preview      # serve the production build
 npm test             # unit tests (node:test) for all packages, style checks
-npm run smoke        # headless browser smoke test of dist/index.html, screenshots in .smoke/
+npm run smoke        # headless browser smoke test of dist/ubms.html, screenshots in .smoke/
 npm run i18n:check   # translation coverage and consistency
 ```
 
@@ -61,6 +61,26 @@ scripts/                  smoke test, i18n checker, repository checks
 - Indices in the model are zero based; the UI shows cells and sensors starting from 1.
 - Probes must not change device state. Writes go through the settings schema so they are
   validated, confirmed by the user, logged and verified.
+
+## Versions and releases
+
+- Versions are numbered 0.1.x; x grows by one for every release. The version is written in every
+  package.json, package-lock.json, the Tauri config and Cargo.toml; `node scripts/set-version.mjs`
+  prints them, `node scripts/set-version.mjs 0.1.1` sets them all, and
+  `scripts/test/version.test.js` fails when they differ.
+- Every build shows its version, commit and date under More, About (the commit links to GitHub;
+  a build from uncommitted changes shows the short hash with `-dirty`). Protocol log exports carry
+  the same data.
+- Releases and tags are made only on request. Steps:
+  1. `node scripts/set-version.mjs 0.1.N`, commit "Release 0.1.N", push to main and wait for green
+     CI and Desktop runs.
+  2. `git tag v0.1.N && git push origin v0.1.N`.
+  3. The workflow "Release" checks that the tag matches the version, runs the tests and the smoke
+     test, builds `ubms.html` and the installers (Windows NSIS, MSI and portable exe; Linux deb, rpm
+     and AppImage; macOS dmg only when started by hand with the macOS option) and publishes the
+     GitHub release with generated notes. It can rebuild an existing tag from the Actions tab.
+- Without a release, the workflows "CI" (ubms.html) and "Desktop" (installers) keep the files of
+  every push to main as artifacts for 90 days.
 
 ## Testing with hardware
 

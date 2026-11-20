@@ -46,7 +46,8 @@ Every driver ships a simulator, so the demo mode shows each protocol without har
 
 ## Use
 
-1. Get `ubms.html` (or build it: `npm install && npm run build`, file `dist/index.html`).
+1. Get `ubms.html` from the [releases](https://github.com/supakov/ubms/releases) (or build it:
+   `npm install && npm run build`, file `dist/ubms.html`).
 2. Open it in Chrome, Edge or another Chromium browser on a computer or an Android phone.
    On iPhone and iPad use a browser with Web Bluetooth support such as Bluefy.
 3. Choose Bluetooth or Serial, optionally the BMS type, and connect.
@@ -67,9 +68,24 @@ Device access needs a secure context: `https://`, `http://localhost` or a local 
 
 ## Desktop app
 
-`apps/desktop` wraps the same app in Tauri 2 with native Bluetooth (btleplug) and serial ports
-(serialport): devices are found by an in-app scan and a port list, no browser needed. Binaries
-for Windows, Linux and macOS are built by GitHub Actions (workflow "Desktop"); see
+`apps/desktop` wraps the same app in Tauri 2 with native Bluetooth (bluest) and serial ports
+(serialport): devices are found by an in-app scan and a port list, no browser needed.
+
+Downloads on the [releases](https://github.com/supakov/ubms/releases) page:
+
+| File | System |
+| --- | --- |
+| `ubms_<version>_x64-setup.exe` | Windows installer (per user) |
+| `ubms_<version>_x64_en-US.msi` | Windows installer (MSI, per machine) |
+| `ubms_<version>_x64_portable.exe` | Windows, no installation: keeps its data in `ubms-data` next to the exe |
+| `ubms_<version>_amd64.deb`, `ubms-<version>-1.x86_64.rpm` | Linux packages |
+| `ubms_<version>_amd64.AppImage` | Linux, no installation |
+| `ubms.html` | any Chromium browser, see Use |
+
+The builds are not code signed, so Windows SmartScreen asks for confirmation on the first start.
+The installed app keeps the chart history in the user profile, the portable one next to itself
+(see [docs/decisions/0011-history-and-charts.md](docs/decisions/0011-history-and-charts.md)).
+Every push builds the same files as artifacts of the workflow "Desktop"; see
 [docs/tauri.md](docs/tauri.md) to build locally.
 
 ## Develop
@@ -78,7 +94,7 @@ for Windows, Linux and macOS are built by GitHub Actions (workflow "Desktop"); s
 npm install
 npm run dev        # http://localhost:5173
 npm test           # unit tests
-npm run build      # dist/index.html, single file
+npm run build      # dist/ubms.html, single file
 npm run smoke      # headless smoke test with screenshots
 ```
 

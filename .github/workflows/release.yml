@@ -1,0 +1,100 @@
+name: Release
+
+# Publishes a GitHub release for a version tag (v0.1.x): ubms.html and the desktop installers.
+# Releases and tags are made only on request: set the version (node scripts/set-version.mjs),
+# commit, then push the tag (docs/development.md, "Releases"). The workflow can also rebuild an
+# existing tag by hand.
+
+on:
+  push:
+    tags: ['v*.*.*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing version tag to build and publish, for example v0.1.1
+        type: string
+        required: true
+      macos:
+        description: Also build the macOS dmg
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: The tag matches the version of the code
+        id: version
+        shell: bash
+        env:
+          TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          if [ "$TAG" != "v$version" ]; then
+            echo "::error::Tag $TAG does not match the version $version in package.json"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - run: npm ci
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Translation check
+        run: npm run i18n:check
+
+      - name: Build ubms.html
+        run: npm run build
+
+      - name: Headless smoke test
+        run: npm run smoke -- --browser "$(command -v google-chrome || command -v chromium)"
+
+      - name: Upload ubms.html
+        uses: actions/upload-artifact@v4
+        with:
+          name: ubms-html
+          path: dist/ubms.html
+          if-no-files-found: error
+
+  desktop:
+    uses: ./.github/workflows/desktop.yml
+    with:
+      ref: ${{ inputs.tag || github.ref }}
+      macos: ${{ inputs.macos == true }}
+
+  publish:
+    needs: [web, desktop]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: ubms-*
+          merge-multiple: true
+          path: files
+
+      - name: Create the release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag || github.ref_name }}
+          VERSION: ${{ needs.web.outputs.version }}
+        run: |
+          ls -la files
+          gh release create "$TAG" files/* --repo "$GITHUB_REPOSITORY" --verify-tag --title "ubms $VERSION" --generate-notes

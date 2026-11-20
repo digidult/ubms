@@ -749,7 +749,6 @@
   "Stop scanning": "Suche beenden",
   "Storage": "Speicher",
   "Stored by the manufacturer, shown only.": "Vom Hersteller gespeichert, nur zur Anzeige.",
-  "Supported now: JK BMS, ANT BMS and Daly BMS over Bluetooth and serial (UART, RS485).": "Derzeit unterstützt: JK BMS, ANT BMS und Daly BMS über Bluetooth und seriell (UART, RS485).",
   "Switch Bluetooth off": "Bluetooth ausschalten",
   "Switch Bluetooth on": "Bluetooth einschalten",
   "Switch BMS off": "BMS ausschalten",
@@ -1561,5 +1560,8 @@
   "{count} records stored": "{count} Datensätze gespeichert",
   "{size} stored": "{size} gespeichert",
   "The device returned no values for its settings.": "Das Gerät hat keine Werte für seine Einstellungen geliefert.",
-  "The BMS answered with empty parameter pages: it did not grant read access. Check the BMS password in these settings and read them again.": "Das BMS hat mit leeren Parameterseiten geantwortet: Es hat keinen Lesezugriff gewährt. Prüfen Sie das BMS-Passwort in diesen Einstellungen und lesen Sie sie erneut."
+  "The BMS answered with empty parameter pages: it did not grant read access. Check the BMS password in these settings and read them again.": "Das BMS hat mit leeren Parameterseiten geantwortet: Es hat keinen Lesezugriff gewährt. Prüfen Sie das BMS-Passwort in diesen Einstellungen und lesen Sie sie erneut.",
+  "Version {version}": "Version {version}",
+  "Build": "Build",
+  "Supported devices: {list}.": "Unterstützte Geräte: {list}."
 }

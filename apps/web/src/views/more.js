@@ -31,6 +31,20 @@ export class ViewMore extends UiElement {
         font-size: 0.82rem;
         color: var(--ui-text-faint);
       }
+      .build {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px 10px;
+        font-size: 0.82rem;
+        color: var(--ui-text-faint);
+      }
+      .build code {
+        font-family: var(--ui-mono);
+        user-select: all;
+      }
+      .build a {
+        color: var(--ui-primary);
+      }
       .danger-row {
         padding: 10px;
       }
@@ -70,9 +84,18 @@ export class ViewMore extends UiElement {
         : nothing}
       <div class="section-title">${t('About')}</div>
       <div class="card about">
-        <div class="row"><b>ubms</b><span class="ver">${__APP_VERSION__} (${__APP_REVISION__}, ${__BUILD_DATE__})</span></div>
+        <div class="row"><b>ubms</b><span class="ver">${t('Version {version}', { version: __APP_VERSION__ })}</span></div>
+        <div class="build">
+          <span
+            >${t('Build')}:
+            ${__APP_COMMIT__ && __APP_REPOSITORY__
+              ? html`<a href=${`${__APP_REPOSITORY__}/commit/${__APP_COMMIT__}`} target="_blank" rel="noopener" title=${__APP_COMMIT__}><code>${__APP_REVISION__}</code></a>`
+              : html`<code title=${__APP_COMMIT__ || __APP_REVISION__}>${__APP_REVISION__}</code>`}</span
+          >
+          <span>${__BUILD_DATE__}</span>
+        </div>
         <p>${t('Open source viewer and configurator for battery management systems. Works offline: the whole app is a single HTML file and talks to the device directly from the browser.')}</p>
-        <p>${t('Supported now: JK BMS, ANT BMS and Daly BMS over Bluetooth and serial (UART, RS485).')}</p>
+        <p>${t('Supported devices: {list}.', { list: this.ctrl.registry.families().map((f) => f.vendor).join(', ') })}</p>
         <p>${t('Changing BMS settings is at your own risk. Wrong values can damage cells, the BMS or connected equipment.')}</p>
         <p class="faint" style="font-size:.8rem">MIT License · © 2026 ubms contributors</p>
         <p class="faint" style="font-size:.8rem">

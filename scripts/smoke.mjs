@@ -3,7 +3,7 @@
  * Headless smoke test of the built single-file app.
  *
  * Starts a Chromium-based browser in headless mode (no window, separate temporary profile),
- * opens dist/index.html from disk, runs scenarios (connect screen, demo sessions of every driver,
+ * opens dist/ubms.html from disk, runs scenarios (connect screen, demo sessions of every driver,
  * all main views, mobile and desktop sizes), collects console errors and uncaught exceptions, and
  * saves screenshots.
  *
@@ -24,9 +24,9 @@ const arg = (name, def) => {
 };
 const outDir = path.resolve(root, arg('--out', '.smoke'));
 const only = arg('--only', '');
-const page = path.join(root, 'dist', 'index.html');
+const page = path.join(root, 'dist', 'ubms.html');
 if (!existsSync(page)) {
-  console.error('dist/index.html not found, run "npm run build" first');
+  console.error('dist/ubms.html not found, run "npm run build" first');
   process.exit(2);
 }
 
@@ -472,6 +472,28 @@ const scenarios = [
         { eval: chartsCsv(3) },
         { eval: `(window.ubms.setPref('theme', 'dark'), true)`, wait: 900, shot: 'charts-demo-desktop-dark' },
         { eval: `(window.ubms.setPref('theme', 'auto'), window.ubms.setPref('historyIntervalMs', 2000), window.ubms.setPref('chartRange', '15m'), true)` },
+      ],
+    },
+  ],
+  [
+    'charts-atorch-phone',
+    {
+      ...phone,
+      hash: '/connect',
+      steps: [
+        {
+          eval: `(window.ubms.setPref('historyIntervalMs', 1000), window.ubms.setPref('chartRange', '5m'), window.ubms.connectDemo('atorch').then(() => window.ubms.state.state === 'connected'))`,
+          wait: 6500,
+        },
+        // A meter: driver extra values (energy, capacity, duration) get their own charts.
+        { hash: '/charts', wait: 1500 },
+        { eval: hasText('Energy') },
+        { eval: hasText('Duration') },
+        { eval: `(${chartsView}.shadowRoot.querySelector('.chips button:last-child').scrollIntoView(), true)`, wait: 300 },
+        { eval: `(() => { const v = ${chartsView}; const c = [...v.shadowRoot.querySelectorAll('ui-chart')].at(-1); c.scrollIntoView(); return true; })()`, wait: 600, shot: 'charts-atorch-phone' },
+        { eval: chartsDrawn(5) },
+        { eval: `(() => { const h = ${chartsView}.buildCsv().split(String.fromCharCode(13, 10))[0]; return h.includes('Energy (Wh)') && h.includes('Duration (min)'); })()` },
+        { eval: `(window.ubms.setPref('historyIntervalMs', 2000), window.ubms.setPref('chartRange', '15m'), true)` },
       ],
     },
   ],

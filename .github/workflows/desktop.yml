@@ -1,5 +1,9 @@
 name: Desktop
 
+# Builds the desktop app with its installers on every relevant push, and is reused by the release
+# workflow (release.yml) for a tag. Windows: NSIS setup, MSI and a portable exe. Linux: deb, rpm
+# and AppImage. macOS (on demand): dmg. The builds are not code signed.
+
 on:
   push:
     branches: [main, 'desktop/**']
@@ -8,6 +12,7 @@ on:
       - 'apps/web/**'
       - 'packages/**'
       - 'scripts/make-icons.mjs'
+      - 'scripts/collect-desktop.mjs'
       - '.github/workflows/desktop.yml'
   pull_request:
     paths:
@@ -17,28 +22,51 @@ on:
   workflow_dispatch:
     inputs:
       macos:
-        description: Also build on macOS (macOS runners may be unavailable or costly for private repositories)
+        description: Also build on macOS
         type: boolean
+        default: false
+  workflow_call:
+    inputs:
+      ref:
+        description: Git ref to build (a release tag)
+        type: string
+        required: false
+        default: ''
+      macos:
+        description: Also build on macOS
+        type: boolean
+        required: false
         default: false
 
 permissions:
   contents: read
 
 jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - name: Platforms (macOS only on demand)
+        id: matrix
+        shell: bash
+        env:
+          MACOS: ${{ inputs.macos == true }}
+        run: |
+          list='{"os":"windows-latest","artifact":"ubms-desktop-windows"},{"os":"ubuntu-22.04","artifact":"ubms-desktop-linux"}'
+          if [ "$MACOS" = "true" ]; then list="$list"',{"os":"macos-latest","artifact":"ubms-desktop-macos"}'; fi
+          echo "matrix={\"include\":[$list]}" >> "$GITHUB_OUTPUT"
+
   build:
+    needs: plan
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - os: windows-latest
-            artifact: ubms-desktop-windows
-            binary: apps/desktop/src-tauri/target/release/ubms-desktop.exe
-          - os: ubuntu-22.04
-            artifact: ubms-desktop-linux
-            binary: apps/desktop/src-tauri/target/release/ubms-desktop
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -51,11 +79,11 @@ jobs:
         with:
           workspaces: apps/desktop/src-tauri
 
-      - name: Linux system libraries (WebKitGTK, D-Bus for BlueZ, udev for serial ports)
+      - name: Linux system libraries (WebKitGTK, D-Bus for BlueZ, udev for serial ports, AppImage and rpm tools)
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libdbus-1-dev libudev-dev pkg-config
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libdbus-1-dev libudev-dev pkg-config xdg-utils libfuse2 rpm
 
       - run: npm ci
 
@@ -65,55 +93,15 @@ jobs:
       - name: Rust unit tests
         run: cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml
 
-      - name: Build the desktop app
-        run: npm run tauri -w @ubms/desktop -- build --no-bundle
+      - name: Build the desktop app and its installers
+        run: npm run tauri -w @ubms/desktop -- build
 
-      - name: Upload the binary
+      - name: Collect the installers
+        run: node scripts/collect-desktop.mjs desktop-out
+
+      - name: Upload the installers
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
-          path: ${{ matrix.binary }}
-          if-no-files-found: error
-
-  build-macos:
-    if: github.event_name == 'workflow_dispatch' && inputs.macos
-    runs-on: macos-latest
-    env:
-      ARTIFACT: ubms-desktop-macos
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: npm
-
-      - uses: dtolnay/rust-toolchain@stable
-
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: apps/desktop/src-tauri
-
-      - name: Linux system libraries (WebKitGTK, D-Bus for BlueZ, udev for serial ports)
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libdbus-1-dev libudev-dev pkg-config
-
-      - run: npm ci
-
-      - name: Build the web app (embedded into the desktop binary)
-        run: npm run build
-
-      - name: Rust unit tests
-        run: cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml
-
-      - name: Build the desktop app
-        run: npm run tauri -w @ubms/desktop -- build --no-bundle
-
-      - name: Upload the binary
-        uses: actions/upload-artifact@v4
-        with:
-          name: ubms-desktop-macos
-          path: apps/desktop/src-tauri/target/release/ubms-desktop
+          path: desktop-out/*
           if-no-files-found: error

@@ -759,7 +759,6 @@
   "Stop scanning": "Остановить поиск",
   "Storage": "Хранилище",
   "Stored by the manufacturer, shown only.": "Записывается производителем, здесь только отображается.",
-  "Supported now: JK BMS, ANT BMS and Daly BMS over Bluetooth and serial (UART, RS485).": "Сейчас поддерживаются JK BMS, ANT BMS и Daly BMS через Bluetooth и COM-порт (UART, RS485).",
   "Switch Bluetooth off": "Выключить Bluetooth",
   "Switch Bluetooth on": "Включить Bluetooth",
   "Switch BMS off": "Выключить BMS",
@@ -1573,5 +1572,8 @@
   "{count} records stored": "Записей сохранено: {count}",
   "{size} stored": "Занято: {size}",
   "The device returned no values for its settings.": "Устройство не вернуло ни одного значения настроек.",
-  "The BMS answered with empty parameter pages: it did not grant read access. Check the BMS password in these settings and read them again.": "BMS ответила пустыми страницами параметров: доступ на чтение не предоставлен. Проверьте пароль BMS в этих настройках и прочитайте их снова."
+  "The BMS answered with empty parameter pages: it did not grant read access. Check the BMS password in these settings and read them again.": "BMS ответила пустыми страницами параметров: доступ на чтение не предоставлен. Проверьте пароль BMS в этих настройках и прочитайте их снова.",
+  "Version {version}": "Версия {version}",
+  "Build": "Сборка",
+  "Supported devices: {list}.": "Поддерживаемые устройства: {list}."
 }
