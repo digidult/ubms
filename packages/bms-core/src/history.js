@@ -84,6 +84,8 @@ export class HistoryBuffer {
  * @property {Array<number|null>} [tc] temperatures in snapshot order, degrees Celsius (1 decimal)
  * @property {number} [bi] balance current, A (3 decimals)
  * @property {number} [cap] remaining capacity, Ah (2 decimals)
+ * @property {Record<string, number>} [x] driver extra values marked with `chart` (model.js
+ *   ExtraValue), by extra id, rounded to their decimals
  */
 
 /**
@@ -125,11 +127,42 @@ export function historyRecord(s) {
   if (Array.isArray(s.temperatures) && s.temperatures.length) r.tc = s.temperatures.map((x) => num(x?.value, 1) ?? null);
   put('bi', num(s.balanceCurrent, 3));
   put('cap', num(s.capacityRemaining, 2));
+  /** @type {Record<string, number>} */
+  const x = {};
+  for (const [id, chart] of chartedExtras(s.extra)) {
+    const v = num(chart.value, chart.decimals);
+    if (v !== undefined) x[id] = v;
+  }
+  if (Object.keys(x).length) r.x = x;
   return /** @type {HistoryRecord} */ (r);
 }
 
+/** Decimals of a charted extra value when the driver gives none. */
+const EXTRA_DECIMALS = 3;
+
 /**
- * @typedef {'voltage'|'current'|'power'|'soc'|'cells'|'cellDelta'|'temperature'|'balance'|'capacity'} HistoryGroupId
+ * The extra values of a snapshot that are marked for charts, as [id, { value, unit, decimals,
+ * label }] with a numeric value.
+ * @param {Record<string, import('./model.js').ExtraValue> | undefined} extra
+ * @returns {Array<[string, { value: number, unit: string, decimals: number, label: string }]>}
+ */
+export function chartedExtras(extra) {
+  /** @type {Array<[string, { value: number, unit: string, decimals: number, label: string }]>} */
+  const out = [];
+  for (const [id, e] of Object.entries(extra ?? {})) {
+    if (!e?.chart) continue;
+    const c = e.chart === true ? { value: e.value, unit: e.unit, decimals: e.decimals } : e.chart;
+    if (typeof c.value !== 'number' || !Number.isFinite(c.value)) continue;
+    const decimals = Number.isInteger(c.decimals) ? Number(c.decimals) : EXTRA_DECIMALS;
+    out.push([id, { value: c.value, unit: c.unit ?? '', decimals, label: e.label }]);
+  }
+  return out;
+}
+
+/**
+ * @typedef {string} HistoryGroupId 'voltage', 'current', 'power', 'soc', 'cells', 'cellDelta',
+ *   'temperature', 'balance', 'capacity', or 'x:<extra id>' for the chart of one driver extra
+ *   value (see extraSeries())
  *
  * @typedef {Object} HistoryGroup one chart card per group
  * @property {HistoryGroupId} id
@@ -146,6 +179,7 @@ export function historyRecord(s) {
  * @property {(r: HistoryRecord) => number | undefined} pick value of a record, undefined when absent
  * @property {number} [cell] zero based cell index (per-cell series)
  * @property {number} [sensor] zero based temperature index (temperature series)
+ * @property {string} [extra] extra value id (driver extra series)
  */
 
 /** Chart groups in display order. */
@@ -234,10 +268,53 @@ export function temperatureSeries(index, label) {
 }
 
 /**
+ * @typedef {Object} ExtraSeriesMeta label, unit and decimals of a charted driver extra value
+ * @property {string} id extra id
+ * @property {string} label English label (translated by the UI)
+ * @property {string} unit
+ * @property {number} decimals
+ */
+
+/**
+ * Series of one driver extra value (its own group and chart card, 'x:<id>').
+ * @param {string} id extra id
+ * @param {Partial<ExtraSeriesMeta>} [def] label, unit and decimals from the device meta
+ * @returns {HistorySeries}
+ */
+export function extraSeries(id, def = {}) {
+  return {
+    id: `x.${id}`,
+    label: typeof def.label === 'string' && def.label ? def.label : id,
+    unit: typeof def.unit === 'string' ? def.unit : '',
+    decimals: Number.isInteger(def.decimals) ? Number(def.decimals) : EXTRA_DECIMALS,
+    group: `x:${id}`,
+    extra: id,
+    pick: (r) => finite(r.x?.[id]),
+  };
+}
+
+/**
+ * Chart groups of a series list in display order: the fixed groups that have a series, then one
+ * group per driver extra value.
+ * @param {HistorySeries[]} series
+ * @returns {HistoryGroup[]}
+ */
+export function historyGroups(series) {
+  const present = new Set(series.map((s) => s.group));
+  /** @type {HistoryGroup[]} */
+  const out = HISTORY_GROUPS.filter((g) => present.has(g.id));
+  for (const s of series) {
+    if (s.extra !== undefined && !out.some((g) => g.id === s.group)) out.push({ id: s.group, label: s.label, unit: s.unit });
+  }
+  return out;
+}
+
+/**
  * Every series that has at least one value in `records`, in display order: the fixed series,
- * then each cell, then each temperature sensor. `meta.tempLabels` names the sensors.
+ * then each cell, then each temperature sensor, then the charted driver extra values.
+ * `meta.tempLabels` names the sensors, `meta.extraSeries` the extra values.
  * @param {HistoryRecord[]} records
- * @param {{ cellCount?: number, tempLabels?: string[] }} [meta]
+ * @param {{ cellCount?: number, tempLabels?: string[], extraSeries?: ExtraSeriesMeta[] }} [meta]
  * @returns {HistorySeries[]}
  */
 export function availableSeries(records, meta = {}) {
@@ -247,6 +324,8 @@ export function availableSeries(records, meta = {}) {
   const cells = [];
   /** @type {boolean[]} */
   const temps = [];
+  /** @type {Set<string>} */
+  const extras = new Set();
   const pending = new Set(HISTORY_SERIES.map((s) => s.id));
   for (const r of records) {
     if (pending.size) {
@@ -259,11 +338,16 @@ export function availableSeries(records, meta = {}) {
     }
     if (r.c) for (let i = 0; i < r.c.length; i++) if (!cells[i] && finite(r.c[i]) !== undefined) cells[i] = true;
     if (r.tc) for (let i = 0; i < r.tc.length; i++) if (!temps[i] && finite(r.tc[i]) !== undefined) temps[i] = true;
+    if (r.x) for (const id in r.x) if (finite(r.x[id]) !== undefined) extras.add(id);
   }
   const out = HISTORY_SERIES.filter((s) => fixed.has(s.id));
   for (let i = 0; i < cells.length; i++) if (cells[i]) out.push(cellSeries(i));
   const labels = meta.tempLabels ?? [];
   for (let i = 0; i < temps.length; i++) if (temps[i]) out.push(temperatureSeries(i, labels[i]));
+  // Extra values in the order of the meta (the driver's order), unknown ones after them.
+  const defs = Array.isArray(meta.extraSeries) ? meta.extraSeries : [];
+  for (const d of defs) if (extras.delete(d.id)) out.push(extraSeries(d.id, d));
+  for (const id of extras) out.push(extraSeries(id));
   return out;
 }
 
@@ -280,6 +364,7 @@ export function availableSeries(records, meta = {}) {
  * @property {number} [address] bus address the device was read at (RS485 address or board
  *   number), when one was set
  * @property {string[]} tempLabels English temperature labels in snapshot order
+ * @property {ExtraSeriesMeta[]} [extraSeries] charted driver extra values (labels and units)
  */
 
 /**
@@ -335,6 +420,8 @@ export function historyDeviceMeta({ definition, info, snapshot, deviceName, addr
   const bus = busAddress(address);
   if (bus !== undefined) m.address = bus;
   m.tempLabels = Array.isArray(snapshot?.temperatures) ? snapshot.temperatures.map((x) => text(x?.label)) : [];
+  const charted = chartedExtras(snapshot?.extra);
+  if (charted.length) m.extraSeries = charted.map(([id, c]) => ({ id, label: text(c.label) || id, unit: c.unit, decimals: c.decimals }));
   return /** @type {HistoryDeviceMeta} */ (m);
 }
 

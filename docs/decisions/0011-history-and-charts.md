@@ -41,6 +41,12 @@ Values are rounded to their display precision (V 3 decimals, A 3, W 1, % 1, cell
 °C 1, Ah 2). Absent values are omitted. In the cell (`c`) and temperature (`tc`) arrays a missing
 value is `null`, so positions stay correct. About 250 bytes per record for 16 cells.
 
+Driver specific values join the history when the driver marks the extra value with `chart`
+(model.js `ExtraValue`): they are stored under `x` by extra id (`"x":{"energy":820,"capacity":12.4,
+"duration":0.19}`), the device meta keeps their labels and units (`extraSeries`), and the Charts
+view gives each one its own card. A value shown as text gives the number to chart in `chart`
+(the Atorch duration is shown as 1:02:03 and charted in minutes).
+
 ### Device key
 
 - `sn:<family>:<serial number>` when the device reports a usable serial number (not empty, not

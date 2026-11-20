@@ -1,7 +1,7 @@
 import { html, css, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { UiElement, define, sharedStyles, StoreController, icon, t, i18n, toast, confirmDialog, downloadFile, toCsv, estimateInterval } from '@ubms/ui';
-import { HISTORY_GROUPS, UNNAMED_DEVICE, availableSeries } from '@ubms/bms-core';
+import { UNNAMED_DEVICE, availableSeries, historyGroups } from '@ubms/bms-core';
 import { LIVE_WINDOW_MS, mergeRecords } from '../history/recorder.js';
 import { num } from '../format.js';
 
@@ -784,7 +784,7 @@ export class ViewCharts extends UiElement {
     if (this.cardCache?.key === key) return this.cardCache.cards;
     const off = new Set(hidden ?? []);
     const cards = [];
-    for (const g of HISTORY_GROUPS) {
+    for (const g of historyGroups(d.series)) {
       if (off.has(g.id)) continue;
       let list = d.series.filter((s) => s.group === g.id);
       if (g.id === 'cells') {
@@ -850,7 +850,7 @@ export class ViewCharts extends UiElement {
       </div>
       ${groups.size
         ? html`<div class="chips" role="group" aria-label=${t('Values')}>
-            ${HISTORY_GROUPS.filter((g) => groups.has(g.id)).map(
+            ${historyGroups(d?.series ?? []).map(
               (g) => html`<button aria-pressed=${hidden.has(g.id) ? 'false' : 'true'} @click=${() => this.#toggleGroup(g.id)}>${t(g.label)}</button>`,
             )}
           </div>`

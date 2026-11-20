@@ -11,10 +11,13 @@ export {
   HISTORY_SERIES,
   cellSeries,
   temperatureSeries,
+  extraSeries,
+  chartedExtras,
+  historyGroups,
   availableSeries,
   historyDeviceMeta,
   UNNAMED_DEVICE,
   deviceHistoryKey,
   usableSerial,
 } from './history.js';
-export { BmsSession, SessionError } from './session.js';
+export { BmsSession, SessionError, noDeviceValues } from './session.js';

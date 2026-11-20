@@ -40,7 +40,9 @@ after disconnecting it returns to Connect (Charts and Log stay open).
   device's range ends at its last record; All shows everything stored plus the readings of the
   current connection that are not written yet.
 - **Values**: chips for the groups that have data (voltage, current, power, state of charge, cell
-  voltages, cell difference, temperatures, balance current, remaining capacity); power and
+  voltages, cell difference, temperatures, balance current, remaining capacity, and the extra
+  values a driver marks with `chart`, such as energy, capacity and duration of Atorch meters,
+  each with its own chart); power and
   remaining capacity are off by default. The choice is remembered. The cell chart switches
   between "Min, max, average" and "Every cell" in its own header.
 - **Charts**: one card per group, stacked, all with the same time window and the same width for

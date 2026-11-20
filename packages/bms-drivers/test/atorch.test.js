@@ -898,3 +898,26 @@ test('session: command echoes on the notify path are not taken for replies', asy
     await device.close();
   }
 });
+
+test('energy, capacity and duration are offered as charts', async () => {
+  const { historyRecord, historyDeviceMeta, deriveSnapshot } = await import('@ubms/bms-core');
+  const dc = reportSnapshot(P.parseReport(bytesOf('dc-dl24-report-syssi-1')), { load: true });
+  const extra = /** @type {Record<string, any>} */ (dc.extra);
+  assert.equal(extra.energy.chart, true);
+  assert.equal(extra.capacity.chart, true);
+  assert.equal(typeof extra.duration.value, 'string', 'shown as text');
+  assert.equal(extra.duration.chart.unit, 'min');
+  const snap = deriveSnapshot({ ...dc, timestamp: 1700000000000 });
+  const rec = historyRecord(snap);
+  assert.deepEqual(Object.keys(rec.x ?? {}), ['energy', 'capacity', 'duration']);
+  assert.ok(Math.abs(rec.x.duration * 60 - P.parseReport(bytesOf('dc-dl24-report-syssi-1')).runtime) < 1);
+  assert.deepEqual(
+    historyDeviceMeta({ snapshot: snap }).extraSeries?.map((s) => [s.id, s.unit]),
+    [
+      ['energy', 'Wh'],
+      ['capacity', 'Ah'],
+      ['duration', 'min'],
+    ],
+  );
+});
+

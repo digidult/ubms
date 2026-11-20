@@ -19,6 +19,14 @@
  * @property {number|string|boolean} value
  * @property {string} [unit]
  * @property {number} [decimals]
+ * @property {true | ExtraChart} [chart] record this value in the history and offer it as a chart
+ *   (one card per value): `true` uses value, unit and decimals (value must be a number); an
+ *   object gives the numeric value to chart when the shown value is text (a duration, say)
+ *
+ * @typedef {Object} ExtraChart
+ * @property {number} value
+ * @property {string} [unit]
+ * @property {number} [decimals]
  *
  * @typedef {Object} SwitchStates actual MOSFET / feature states reported by the device
  * @property {boolean} [charge]

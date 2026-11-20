@@ -1,4 +1,4 @@
-import { historyRecord, historyDeviceMeta, deviceHistoryKey, usableSerial } from '@ubms/bms-core';
+import { historyRecord, historyDeviceMeta, deviceHistoryKey, usableSerial, chartedExtras } from '@ubms/bms-core';
 
 /**
  * Records the readings of the connected device for the Charts view.
@@ -338,9 +338,11 @@ export class HistoryRecorder {
       // Recording switched on during the connection: the meta is written with the first record.
       if (!this.metaJson) this.#writeMeta();
     }
-    const shape = `${snapshot.cells?.length ?? 0}|${(snapshot.temperatures ?? []).map((/** @type {any} */ x) => x?.label ?? '').join(',')}`;
+    const shape = `${snapshot.cells?.length ?? 0}|${(snapshot.temperatures ?? []).map((/** @type {any} */ x) => x?.label ?? '').join(',')}|${chartedExtras(snapshot.extra)
+      .map(([id]) => id)
+      .join(',')}`;
     // A meta computed before the first snapshot (or before the cell count changed) lacks the cell
-    // count and the temperature labels.
+    // count, the temperature labels and the charted extra values.
     if (shape !== this.shape) {
       this.shape = shape;
       if (live.key) this.#refreshMeta();

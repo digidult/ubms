@@ -143,10 +143,15 @@ export function reportSnapshot(r, { load = false, showTemperature = true, checks
   const usb = r.deviceType === DEVICE.USB;
   /** @type {Record<string, ExtraValue>} */
   const extra = {
-    energy: { label: msg('Energy'), value: r.energy, unit: 'Wh', decimals: usb ? 2 : 0 },
+    energy: { label: msg('Energy'), value: r.energy, unit: 'Wh', decimals: usb ? 2 : 0, chart: true },
   };
-  if (r.capacity !== undefined) extra.capacity = { label: msg('Capacity'), value: r.capacity, unit: 'Ah', decimals: usb ? 3 : 2 };
-  extra.duration = { label: msg('Duration'), value: formatDuration(r.runtime) };
+  if (r.capacity !== undefined) extra.capacity = { label: msg('Capacity'), value: r.capacity, unit: 'Ah', decimals: usb ? 3 : 2, chart: true };
+  // Shown as text (1:02:03), charted in minutes.
+  extra.duration = {
+    label: msg('Duration'),
+    value: formatDuration(r.runtime),
+    ...(Number.isFinite(r.runtime) ? { chart: { value: r.runtime / 60, unit: 'min', decimals: 2 } } : {}),
+  };
   if (r.price !== undefined) extra.price = { label: msg('Price per kWh'), value: r.price, decimals: 2 };
   if (r.frequency !== undefined) extra.frequency = { label: msg('Frequency'), value: r.frequency, unit: 'Hz', decimals: 1 };
   if (r.powerFactor !== undefined) extra.powerFactor = { label: msg('Power factor'), value: r.powerFactor, decimals: 3 };

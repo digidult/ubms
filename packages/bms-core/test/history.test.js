@@ -13,6 +13,9 @@ import {
   deviceHistoryKey,
   usableSerial,
   deriveSnapshot,
+  chartedExtras,
+  extraSeries,
+  historyGroups,
 } from '../src/index.js';
 
 const snapshot = () =>
@@ -191,3 +194,51 @@ test('HistoryBuffer still keeps short trends', () => {
     { t: 3, v: 3 },
   ]);
 });
+
+test('charted extra values: recorded under x, own series and group, labels from the meta', () => {
+  const extra = {
+    energy: { label: 'Energy', value: 1234.5678, unit: 'Wh', decimals: 1, chart: true },
+    duration: { label: 'Duration', value: '1:30:00', chart: { value: 1.5, unit: 'h', decimals: 4 } },
+    note: { label: 'Note', value: 'text', chart: true },
+    plain: { label: 'Plain', value: 7 },
+  };
+  assert.deepEqual(
+    chartedExtras(extra).map(([id, c]) => [id, c.value, c.unit, c.decimals]),
+    [
+      ['energy', 1234.5678, 'Wh', 1],
+      ['duration', 1.5, 'h', 4],
+    ],
+    'text values without a numeric chart value and unmarked values are skipped',
+  );
+  const snap = deriveSnapshot({ timestamp: 1700000000000, voltage: 12, current: 1, extra });
+  const rec = historyRecord(snap);
+  assert.deepEqual(rec.x, { energy: 1234.6, duration: 1.5 });
+  assert.equal(Object.keys(rec)[0], 't');
+  assert.equal(historyRecord(deriveSnapshot({ timestamp: 1, voltage: 1 })).x, undefined);
+
+  const meta = historyDeviceMeta({ snapshot: snap, deviceName: 'DL24-BLE' });
+  assert.deepEqual(meta.extraSeries, [
+    { id: 'energy', label: 'Energy', unit: 'Wh', decimals: 1 },
+    { id: 'duration', label: 'Duration', unit: 'h', decimals: 4 },
+  ]);
+  const series = availableSeries([rec, { t: rec.t + 1000, x: { other: 2 } }], meta);
+  const extras = series.filter((s) => s.extra !== undefined);
+  assert.deepEqual(
+    extras.map((s) => [s.id, s.group, s.label, s.unit]),
+    [
+      ['x.energy', 'x:energy', 'Energy', 'Wh'],
+      ['x.duration', 'x:duration', 'Duration', 'h'],
+      ['x.other', 'x:other', 'other', ''],
+    ],
+  );
+  assert.equal(extras[0].pick(rec), 1234.6);
+  assert.equal(extraSeries('energy').pick({ t: 0 }), undefined);
+  const groups = historyGroups(series);
+  assert.deepEqual(
+    groups.map((g) => g.id),
+    ['voltage', 'current', 'power', 'x:energy', 'x:duration', 'x:other'],
+    'fixed groups first, then one group per extra value',
+  );
+  assert.deepEqual(groups.find((g) => g.id === 'x:energy'), { id: 'x:energy', label: 'Energy', unit: 'Wh' });
+});
+
