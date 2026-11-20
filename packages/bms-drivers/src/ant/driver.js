@@ -10,6 +10,7 @@ import {
   CHARGE_MOS_STATES,
   CONTROL,
   CONTROL_NAMES,
+  DEFAULT_PASSWORD_L1,
   DISCHARGE_MOS_STATES,
   OLD_BALANCE_STATES,
   OLD_CHARGE_MOS_STATES,
@@ -374,6 +375,16 @@ function checkPassword(value, generation) {
 /** Read failures after which a settings block is skipped for the rest of the connection. */
 const BLOCK_FAILURE_LIMIT = 2;
 
+/**
+ * True when a parameter page is all 0xFF. One such page is a page that is not configured; when
+ * every page is like that, the BMS did not grant read access (field log of an ANT-BLE20PHUB at
+ * permission level 0, 2026-11-20).
+ * @param {Uint8Array} data
+ */
+export function isBlankPage(data) {
+  return data.length > 0 && data.every((b) => b === 0xff);
+}
+
 export class AntDriver extends BaseDriver {
   /**
    * @param {DriverDefinition} definition
@@ -447,6 +458,8 @@ export class AntDriver extends BaseDriver {
     const info = await this.channel.exclusive(async () => {
       /** @type {DeviceInfo} */
       const out = { vendor: ANT_VENDOR, protocol: this.definition.protocol };
+      // Without read access the version page comes back as 0xFF bytes (spec 4.3).
+      await this.#ensureReadAccess(this.status);
       try {
         const f = await this.#request(newDeviceInfoRequest(), (fr) => fr[2] === RSP.READ && u16le(fr, 3) === ADDR.DEVICE_INFO, { retries: 2 });
         const d = parseDeviceInfo(f);
@@ -489,24 +502,22 @@ export class AntDriver extends BaseDriver {
       } catch (err) {
         this.log?.warn(`ANT status for settings: ${errorText(err)}`);
       }
-      const image = createRegisterImage();
-      let answered = 0;
-      for (const block of NEW_SETTING_BLOCKS) {
-        if ((this.blockFailures.get(block.address) ?? 0) >= BLOCK_FAILURE_LIMIT) continue;
-        try {
-          const f = await this.#request(newReadRequest(block.address, block.length), (fr) => fr[2] === RSP.READ && u16le(fr, 3) === block.address, {
-            timeout: 1000,
-            retries: 2,
-          });
-          storeBlock(image, block.address, parseReadResponse(f).data);
-          this.blockFailures.delete(block.address);
-          answered++;
-        } catch (err) {
-          this.blockFailures.set(block.address, (this.blockFailures.get(block.address) ?? 0) + 1);
-          this.log?.warn(`ANT settings block ${block.name} (${block.address}): ${errorText(err)}`);
-        }
+      // A board at permission level 0 answers every parameter read with 0xFF bytes (field log of an
+      // ANT-BLE20PHUB, 2026-11-20): log in first, as the vendor app does (spec 4.3).
+      const hadAccess = await this.#ensureReadAccess(status ?? this.status);
+      let pages = await this.#readSettingBlocks();
+      if (pages.answered && pages.blank === pages.answered && hadAccess) {
+        // Every page empty although the status claimed access: log in and read once more.
+        this.log?.warn('ANT settings: every parameter page was empty, logging in and reading again');
+        if (await this.#ensureReadAccess(null)) pages = await this.#readSettingBlocks();
       }
+      const { image, answered, blank } = pages;
       if (!answered && !status) throw new Error(msg('The BMS did not answer the settings requests'));
+      if (answered && blank === answered) {
+        this.settingsNotice = msg(
+          'The BMS answered with empty parameter pages: it did not grant read access. Check the BMS password in these settings and read them again.',
+        );
+      }
       const st = status ?? this.status;
       const values = decodeSettings(this.schema, image, { capacityUnit: capacityUnit(image, st?.capacityAh) });
       if (st) Object.assign(values, newSwitchValues(st));
@@ -517,13 +528,62 @@ export class AntDriver extends BaseDriver {
   }
 
   /**
-   * Level 5 password before every write and control (spec 4.3). The granted level is reported
-   * inconsistently by the boards, and some writes work without it, so a missing or low answer
-   * is only logged; the write and its read-back tell whether the BMS accepted the change.
+   * Read every settings block; a block whose data is all 0xFF counts as blank (no read access, or
+   * a page that is not configured at all). Only call inside `this.channel.exclusive()`.
    */
-  async #authenticate() {
+  async #readSettingBlocks() {
+    const image = createRegisterImage();
+    let answered = 0;
+    let blank = 0;
+    for (const block of NEW_SETTING_BLOCKS) {
+      if ((this.blockFailures.get(block.address) ?? 0) >= BLOCK_FAILURE_LIMIT) continue;
+      try {
+        const f = await this.#request(newReadRequest(block.address, block.length), (fr) => fr[2] === RSP.READ && u16le(fr, 3) === block.address, {
+          timeout: 1000,
+          retries: 2,
+        });
+        const data = parseReadResponse(f).data;
+        storeBlock(image, block.address, data);
+        this.blockFailures.delete(block.address);
+        answered++;
+        if (isBlankPage(data)) blank++;
+      } catch (err) {
+        this.blockFailures.set(block.address, (this.blockFailures.get(block.address) ?? 0) + 1);
+        this.log?.warn(`ANT settings block ${block.name} (${block.address}): ${errorText(err)}`);
+      }
+    }
+    return { image, answered, blank };
+  }
+
+  /**
+   * Make sure the BMS lets us read the parameter pages (spec 4.3). Nothing is sent when the last
+   * status frame reports permission level 1 or higher. Otherwise the default level 1 password is
+   * sent, as the vendor app does after connecting, and when that grants nothing, the level 5
+   * password of these settings. Pass `null` to log in regardless of the status.
+   * Only call inside `this.channel.exclusive()`.
+   * @param {AntStatus | null} status
+   * @returns {Promise<boolean>} true when read access was already granted, false when a login was needed
+   */
+  async #ensureReadAccess(status) {
+    if (status && status.permission >= 1) return true;
+    let level = await this.#authenticate(DEFAULT_PASSWORD_L1, ADDR.PASSWORD_L1);
+    if (!(Number(level) >= 1)) level = await this.#authenticate();
+    this.log?.event(Number(level) >= 1 ? `ANT read access: level ${level}` : 'ANT read access: not granted by the BMS');
+    return false;
+  }
+
+  /**
+   * Password frame (0x23), by default the level 5 password before every write and control (spec
+   * 4.3). The granted level is reported inconsistently by the boards, and some writes work without
+   * it, so a missing or low answer is only logged; the write and its read-back tell whether the BMS
+   * accepted the change.
+   * @param {string} [password]
+   * @param {number} [address]
+   * @returns {Promise<number | undefined>} the granted level from the 0x43 answer
+   */
+  async #authenticate(password = this.password, address = ADDR.PASSWORD_L5) {
     try {
-      const f = await this.#request(newAuthRequest(this.password, ADDR.PASSWORD_L5), (fr) => fr[2] === RSP.AUTH, { timeout: 1000, retries: 1 });
+      const f = await this.#request(newAuthRequest(password, address), (fr) => fr[2] === RSP.AUTH, { timeout: 1000, retries: 1 });
       return parseAuthResponse(f).permissionLevel;
     } catch (err) {
       this.log?.warn(`ANT password: ${errorText(err)}`);

@@ -299,7 +299,15 @@ between requests; the GPRS tab polls 0x06 every 1 s (ESPHome issue #20).
 
 ### 4.3 Authentication, settings and controls (ANT_NEW)
 
-* Permission byte: offset 6 of every status frame (`sysOperatingAut`, app name). Values 1 and 5 seen.
+* Permission byte: offset 6 of every status frame (`sysOperatingAut`, app name). Values 0, 1 and 5 seen.
+* At permission level 0 an ANT-BLE20PHUB answered every parameter read (0x02 at 0, 56, 104, 140, 152, 262, 378 and the
+  version page at 620) with a valid 0x12 frame whose data bytes were all 0xFF, extra section status 1, so the reads looked
+  successful but every register read as "not configured" (ubms field log `ubms-log-2026-11-20T10-26-50.json`, status
+  `...0008...` with byte 6 = 0). This matches the vendor app, which sends the level 1 password before the version read
+  when the permission byte is below 1 (below). ubms therefore logs in before reading when the status reports level 0:
+  first the default level 1 password, then the level 5 password of the settings. When every page still comes back as
+  0xFF bytes, it tells the user that read access was not granted instead of showing empty fields. A single 0xFF page is
+  normal (a page that is not configured).
 * Level 1 password (default `12345678`): function 0x23 at address 0x014A (330), 8 ASCII bytes. Per the 2024 app it only
   unlocks reading the parameter pages (yosle). A user reported that `12345678` was enough to switch MOSFETs and balancing
   from the app, while changing parameters needed `123456789abc` (ESPHome issue #5, lucasimons).

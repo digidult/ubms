@@ -31,8 +31,11 @@ import {
  * old status request read only (power field 9999). The ANT_OLD simulator answers the 140 byte
  * status, parameter reads and the password protected control commands.
  *
- * Simplifications (not device facts): control actions only take effect after a password frame was
- * accepted (models batmon-ha's observation that unauthenticated switching reverts, spec 4.3);
+ * Like the ANT-BLE20PHUB of a field log (2026-11-20), parameter pages read as 0xFF bytes until a
+ * password granted level 1 or higher (opts.readNeedsAuth).
+ *
+ * Simplifications (not device facts): control actions only take effect after the level 5 password
+ * was accepted (models batmon-ha's observation that switching without it reverts, spec 4.3);
  * parameter writes are stored immediately (bchiu saw writes accepted without authentication);
  * the u32 capacity registers use micro Ah like the status frame (2024 app map, spec 7.3).
  */
@@ -275,6 +278,9 @@ function send(device, bytes) {
  * @param {number} [opts.tickMs] battery model step period, 0 disables the timer (tests)
  * @param {boolean} [opts.answerOldStatus] answer DBDB00000000 / 5A5A00000101 like 2021 boards
  * @param {string} [opts.password] level 5 password
+ * @param {string | null} [opts.level1Password] level 1 password (default '12345678'; null: none accepted)
+ * @param {boolean} [opts.readNeedsAuth] answer parameter reads with 0xFF bytes until a password
+ *   granted level 1 or higher, like the ANT-BLE20PHUB of a field log (2026-11-20); default true
  * @param {string} [opts.hardwareVersion]
  * @param {string} [opts.softwareVersion]
  * @param {string} [opts.packId]
@@ -283,6 +289,8 @@ export function createAntSimulator(device, opts = {}) {
   const battery = opts.battery ?? new SimBattery({ cells: 16, capacityAh: 280, chemistry: 'lfp', soc: 72, tempSensors: 3, seed: 11, maxCurrent: 60 });
   const chemistry = battery.chemistry === 'nmc' ? 'nmc' : 'lfp';
   const password = opts.password ?? DEFAULT_PASSWORD_L5;
+  const level1Password = opts.level1Password === undefined ? DEFAULT_PASSWORD_L1 : opts.level1Password;
+  const readNeedsAuth = opts.readNeedsAuth ?? true;
   const settings = {
     chemistry: /** @type {'lfp'|'nmc'|'lto'} */ (chemistry),
     cells: battery.cellCount,
@@ -312,7 +320,9 @@ export function createAntSimulator(device, opts = {}) {
 
   /** @param {number} action @returns {number} acknowledgement result */
   const control = (action) => {
-    const allowed = state.permission >= 1;
+    // Level 5 (batmon-ha: a 20PHUB reverted a charge off sent without the level 5 password);
+    // level 1 only unlocks reading.
+    const allowed = state.permission >= 5;
     switch (action) {
       case CONTROL.CHARGE_ON:
       case CONTROL.CHARGE_OFF:
@@ -409,7 +419,10 @@ export function createAntSimulator(device, opts = {}) {
       case FN.READ: {
         refreshDynamicRegisters();
         const end = Math.min(regs.length, address + len);
-        send(device, encodeNewResponse(RSP.READ, address, regs.slice(Math.min(address, end), end), { status: EXTRA.READ }));
+        const data = regs.slice(Math.min(address, end), end);
+        // Without read access the board sends the page as 0xFF bytes (field log, see opts).
+        if (readNeedsAuth && state.permission < 1) data.fill(0xff);
+        send(device, encodeNewResponse(RSP.READ, address, data, { status: EXTRA.READ }));
         break;
       }
       case FN.CHIP_ID:
@@ -420,7 +433,7 @@ export function createAntSimulator(device, opts = {}) {
         break;
       case FN.AUTH: {
         const text = String.fromCharCode(...frame.subarray(6, 6 + len));
-        const level = address === ADDR.PASSWORD_L5 && text === password ? 5 : address === ADDR.PASSWORD_L1 && text === DEFAULT_PASSWORD_L1 ? 1 : 0;
+        const level = address === ADDR.PASSWORD_L5 && text === password ? 5 : address === ADDR.PASSWORD_L1 && level1Password !== null && text === level1Password ? 1 : 0;
         if (level) state.permission = Math.max(state.permission, level);
         const data = new Uint8Array(2);
         setU16le(data, 0, level);

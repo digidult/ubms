@@ -85,6 +85,13 @@ export class BaseDriver extends Emitter {
     this.lastSnapshot = null;
     /** @type {import('./model.js').DeviceInfo | null} */
     this.lastInfo = null;
+    /**
+     * Set by readSettings() when values are missing for a known reason (English, msg() literal),
+     * for example a device that answered every parameter read with empty pages. The session
+     * clears it before each read and shows it with the values.
+     * @type {string | null}
+     */
+    this.settingsNotice = null;
   }
 
   /** @returns {DriverCapabilities} */

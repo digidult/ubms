@@ -257,3 +257,20 @@ test('DriverRegistry: a serial definition with autoDetect false is tried only wh
   assert.deepEqual(ids('family:x'), ['x-rs485']);
   assert.deepEqual(ids('x-can'), ['x-can']);
 });
+
+test('noDeviceValues: a schema whose device fields all came back empty', async () => {
+  const { noDeviceValues } = await import('../src/session.js');
+  const { buildSchema, field } = await import('../src/settings.js');
+  const schema = buildSchema([
+    field('cell.ovp'),
+    field('x.password', { type: 'text', meta: { kind: 'local' } }),
+    field('x.restart', { type: 'action' }),
+  ]);
+  assert.equal(noDeviceValues(schema, {}), true);
+  assert.equal(noDeviceValues(schema, { 'cell.ovp': null, 'x.password': 'secret' }), true, 'app kept values do not count');
+  assert.equal(noDeviceValues(schema, { 'cell.ovp': 3.65 }), false);
+  assert.equal(noDeviceValues(schema, { 'cell.ovp': 0 }), false, 'zero is a value');
+  assert.equal(noDeviceValues(buildSchema([field('x.password', { type: 'text', meta: { kind: 'local' } })]), {}), false, 'nothing read from the device');
+  assert.equal(noDeviceValues(null, {}), false);
+});
+

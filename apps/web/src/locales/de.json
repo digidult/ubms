@@ -1559,5 +1559,7 @@
   "{count} days": "{count} Tage",
   "{count} records in view": "{count} Datensätze in der Ansicht",
   "{count} records stored": "{count} Datensätze gespeichert",
-  "{size} stored": "{size} gespeichert"
+  "{size} stored": "{size} gespeichert",
+  "The device returned no values for its settings.": "Das Gerät hat keine Werte für seine Einstellungen geliefert.",
+  "The BMS answered with empty parameter pages: it did not grant read access. Check the BMS password in these settings and read them again.": "Das BMS hat mit leeren Parameterseiten geantwortet: Es hat keinen Lesezugriff gewährt. Prüfen Sie das BMS-Passwort in diesen Einstellungen und lesen Sie sie erneut."
 }

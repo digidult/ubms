@@ -1565,5 +1565,7 @@
   "{count} days": "{count} j",
   "{count} records in view": "{count} enregistrements affichés",
   "{count} records stored": "{count} enregistrements stockés",
-  "{size} stored": "{size} stockés"
+  "{size} stored": "{size} stockés",
+  "The device returned no values for its settings.": "L'appareil n'a renvoyé aucune valeur pour ses réglages.",
+  "The BMS answered with empty parameter pages: it did not grant read access. Check the BMS password in these settings and read them again.": "Le BMS a répondu avec des pages de paramètres vides : il n'a pas accordé l'accès en lecture. Vérifiez le mot de passe du BMS dans ces réglages et relisez-les."
 }

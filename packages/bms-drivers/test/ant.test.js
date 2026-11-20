@@ -16,7 +16,7 @@ import {
   storeBlock,
   valueToRaw,
 } from '../src/ant/settings.js';
-import { antDrivers, createAntSimulator, createAntLegacySimulator, newStatusSnapshot, oldStatusSnapshot } from '../src/ant/index.js';
+import { antDrivers, createAntSimulator, createAntLegacySimulator, isBlankPage, newStatusSnapshot, oldStatusSnapshot } from '../src/ant/index.js';
 
 const vectors = JSON.parse(readFileSync(new URL('./vectors/ant.json', import.meta.url), 'utf8'));
 /** @param {string} id */
@@ -594,6 +594,12 @@ test('simulator round trip over a fragmented link', async () => {
   assert.equal(st.temperatures.at(-1), P.ABSENT_TEMPERATURE);
   assert.ok(Math.abs(st.packVoltage - st.cellVoltages.reduce((a, b) => a + b, 0)) < 0.011);
 
+  // Permission level 0: pages read as 0xFF bytes until a password grants read access.
+  assert.equal(st.permission, 0);
+  const locked = P.parseDeviceInfo(await req(P.newDeviceInfoRequest(), P.RSP.READ));
+  assert.deepEqual([locked.hardwareVersion, locked.softwareVersion], ['', '']);
+  const auth = P.parseAuthResponse(await req(P.newAuthRequest(P.DEFAULT_PASSWORD_L1, P.ADDR.PASSWORD_L1), P.RSP.AUTH));
+  assert.equal(auth.permissionLevel, 1);
   const info = P.parseDeviceInfo(await req(P.newDeviceInfoRequest(), P.RSP.READ));
   assert.deepEqual([info.hardwareVersion, info.softwareVersion, info.extraStatus], ['16ZMB0TB120A', '16ZMUB00-220501A', P.EXTRA.READ]);
 
@@ -984,3 +990,78 @@ test('settings switches stay On while the BMS holds a MOSFET off, and Off after 
     [{ chargeMosState: 0 }, { 'switch.charge': false }],
   ]);
 });
+
+// ---------------------------------------------------------------------------------------------
+// Read access (field log of an ANT-BLE20PHUB, ubms-log-2026-11-20T10-26-50.json)
+// ---------------------------------------------------------------------------------------------
+
+/** Frames of the field log: status at permission level 0, then parameter and version pages of 0xFF bytes. */
+const FIELD = {
+  status:
+    '7EA11100007E0002020800000000000000000000C401000000000000000000000000000D020D010D010D010D010D000D000D0F000F0011001200680AE9FF630064000101000000B10819D3465C18ACE68B03C3FFFFFF1916EF0500000000020D0200000D01000200000D000080007C00B202F2FA1CAA86033C23910322630202AA4C4B0126F0AA55',
+  packIdPage: `7EA112060120${'FF'.repeat(32)}B94EFF01000424090400363DAA55`,
+  versionPage: `7EA1126C0220${'FF'.repeat(32)}6B36FF0100048A1409008243AA55`,
+};
+
+test('field log: permission level 0 and parameter pages of 0xFF bytes', () => {
+  const st = P.parseStatus(fromHex(FIELD.status));
+  assert.deepEqual([st.permission, st.cellCount, st.packVoltage], [0, 8, 26.64]);
+  const page = P.parseReadResponse(fromHex(FIELD.packIdPage));
+  assert.deepEqual([page.address, page.data.length, isBlankPage(page.data)], [262, 32, true]);
+  const version = P.parseDeviceInfo(fromHex(FIELD.versionPage));
+  assert.deepEqual([version.hardwareVersion, version.softwareVersion], ['', '']);
+  assert.equal(isBlankPage(Uint8Array.of(0xff, 0x00)), false);
+  assert.equal(isBlankPage(new Uint8Array(0)), false);
+});
+
+test('session: logs in before reading when the status reports permission level 0', async () => {
+  /** @type {ReturnType<typeof createAntSimulator>} */
+  let sim = /** @type {any} */ (null);
+  const s = await startSession((device) => (sim = createAntSimulator(device, { tickMs: 0 })));
+  const { session } = s;
+  try {
+    await session.connect({ kind: 'link', link: s.host, selection: 'ant' });
+    const info = await until(() => (session.info?.softwareVersion ? session.info : null));
+    assert.equal(info.hardwareVersion, '16ZMB0TB120A');
+    const settings = await session.loadSettings();
+    assert.equal(settings.error, null);
+    assert.equal(settings.notice, null);
+    assert.equal(settings.values?.['cell.ovp'], 3.65);
+    // The default level 1 password, as the vendor app sends it, before the first page read.
+    const firstRead = sim.received.findIndex((f) => f[0] === 0x7e && f[2] === P.FN.READ);
+    const auth = sim.received.findIndex((f) => f[0] === 0x7e && f[2] === P.FN.AUTH);
+    assert.ok(auth >= 0 && auth < firstRead, 'password before the first page read');
+    assert.equal(u16(sim.received[auth], 3), P.ADDR.PASSWORD_L1);
+  } finally {
+    await s.close();
+  }
+});
+
+test('session: empty pages without read access give a notice, the right password fixes it', async () => {
+  /** @type {ReturnType<typeof createAntSimulator>} */
+  let sim = /** @type {any} */ (null);
+  const s = await startSession((device) => (sim = createAntSimulator(device, { tickMs: 0, password: 'own-pass', level1Password: null })));
+  const { session } = s;
+  try {
+    await session.connect({ kind: 'link', link: s.host, selection: 'ant' });
+    let settings = await session.loadSettings();
+    assert.equal(settings.error, null, 'the switches and the password field stay usable');
+    assert.equal(settings.values?.['cell.ovp'], undefined);
+    assert.equal(settings.values?.['switch.charge'], true);
+    assert.match(String(settings.notice), /did not grant read access/);
+    const r = await session.writeSettings([{ id: 'ant.password', value: 'own-pass' }]);
+    assert.equal(r[0].ok, true);
+    settings = await session.loadSettings();
+    assert.equal(settings.notice, null);
+    assert.equal(settings.values?.['cell.ovp'], 3.65);
+    assert.ok(sim.received.some((f) => f[0] === 0x7e && f[2] === P.FN.AUTH && u16(f, 3) === P.ADDR.PASSWORD_L5));
+  } finally {
+    await s.close();
+  }
+});
+
+/** @param {Uint8Array} b @param {number} at */
+function u16(b, at) {
+  return b[at] | (b[at + 1] << 8);
+}
+

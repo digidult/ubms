@@ -33,6 +33,23 @@ export class ViewSettings extends UiElement {
         gap: 8px;
         margin-bottom: 12px;
       }
+      .notice {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+        padding: 10px 12px;
+        margin-bottom: 12px;
+        border-radius: var(--ui-radius, 10px);
+        border: 1px solid var(--ui-warn);
+        background: var(--ui-warn-soft);
+        font-size: 0.86rem;
+        line-height: 1.4;
+      }
+      .notice svg {
+        flex: none;
+        color: var(--ui-warn);
+        margin-top: 1px;
+      }
       .toolbar .meta {
         flex: 1;
         min-width: 140px;
@@ -344,7 +361,8 @@ export class ViewSettings extends UiElement {
       ${writable
         ? html`<button class="btn small" @click=${this.#import} title=${t('Load settings from a file')}>${icon('upload', { size: 16 })}${t('Import')}</button>`
         : nothing}
-    </div>`;
+    </div>
+    ${settings.notice ? html`<div class="notice" role="status">${icon('warning', { size: 18 })}<span>${t(settings.notice)}</span></div>` : nothing}`;
   }
 
   /** @param {import('@ubms/bms-core/settings').SettingGroup[]} groups */

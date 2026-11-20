@@ -30,6 +30,8 @@ import { msg } from './msg.js';
  * @property {number} [readAt]
  * @property {boolean} loading
  * @property {string | null} error
+ * @property {string | null} [notice] English message: the read worked, but values are missing for
+ *   a known reason (for example the device did not grant read access), so empty fields are explained
  *
  * @typedef {Object} WriteResult
  * @property {string} id
@@ -539,8 +541,12 @@ export class BmsSession extends Emitter {
     this.settings = { ...this.settings, schema: driver.getSettingsSchema(), loading: true, error: null };
     this.emit('settings', this.settings);
     try {
+      driver.settingsNotice = null;
       const values = await this.exclusive(() => driver.readSettings());
-      this.settings = { schema: driver.getSettingsSchema(), values, readAt: Date.now(), loading: false, error: null };
+      const schema = driver.getSettingsSchema();
+      const notice = driver.settingsNotice ?? (noDeviceValues(schema, values) ? msg('The device returned no values for its settings.') : null);
+      if (notice) this.log.warn(`Settings: ${notice}`);
+      this.settings = { schema, values, readAt: Date.now(), loading: false, error: null, notice };
     } catch (err) {
       this.settings = { ...this.settings, loading: false, error: err instanceof Error ? err.message : String(err) };
     }
@@ -644,4 +650,24 @@ function sameValue(a, b, f) {
     return Math.abs(a - b) <= tol;
   }
   return String(a) === String(b);
+}
+
+/**
+ * True when the schema has fields read from the device and none of them got a value: every field
+ * is empty, so the user should see why instead of a page of blank inputs. Fields kept in the app
+ * ('local'), write only fields and actions do not count.
+ * @param {import('./settings.js').SettingsSchema | null} schema
+ * @param {Record<string, any> | null | undefined} values
+ */
+export function noDeviceValues(schema, values) {
+  let readable = 0;
+  for (const g of schema?.groups ?? []) {
+    for (const f of g.fields) {
+      if (f.type === 'action' || f.writeOnly || f.meta?.kind === 'local') continue;
+      readable++;
+      const v = values?.[f.id];
+      if (v !== undefined && v !== null && v !== '') return false;
+    }
+  }
+  return readable > 0;
 }

@@ -1571,5 +1571,7 @@
   "{count} days": "{count} дн.",
   "{count} records in view": "Записів на екрані: {count}",
   "{count} records stored": "Записів збережено: {count}",
-  "{size} stored": "Збережено: {size}"
+  "{size} stored": "Збережено: {size}",
+  "The device returned no values for its settings.": "Пристрій не повернув жодного значення налаштувань.",
+  "The BMS answered with empty parameter pages: it did not grant read access. Check the BMS password in these settings and read them again.": "BMS відповіла порожніми сторінками параметрів: доступ на читання не надано. Перевірте пароль BMS у цих налаштуваннях і прочитайте їх знову."
 }
