@@ -8,6 +8,7 @@ import './views/info.js';
 import './views/log.js';
 import './views/charts.js';
 import './views/prefs.js';
+import './views/plugins.js';
 import './views/more.js';
 
 /** Routes that need a connected device. */
@@ -23,6 +24,7 @@ export const router = new HashRouter(
     { name: 'info', path: '/info' },
     { name: 'log', path: '/log' },
     { name: 'prefs', path: '/prefs' },
+    { name: 'plugins', path: '/plugins' },
     { name: 'more', path: '/more' },
   ],
   '/connect',
@@ -194,7 +196,7 @@ export class UbmsApp extends UiElement {
       items.push({ id: 'connect', label: t('Connect'), icon: 'link', href: '#/connect' }, charts, { id: 'log', label: t('Log'), icon: 'terminal', href: '#/log' });
     }
     items.push({ id: 'more', label: t('More'), icon: 'more', href: '#/more' });
-    const inMore = route === 'info' || route === 'prefs' || (route === 'log' && connected);
+    const inMore = route === 'info' || route === 'prefs' || route === 'plugins' || (route === 'log' && connected);
     const active = inMore ? 'more' : route;
     return { items, active };
   }
@@ -210,6 +212,7 @@ export class UbmsApp extends UiElement {
       info: t('Device information'),
       log: t('Protocol log'),
       prefs: t('Preferences'),
+      plugins: t('Plugins'),
       more: t('More'),
     };
     return /** @type {Record<string, string>} */ (titles)[route] ?? 'ubms';
@@ -276,6 +279,8 @@ export class UbmsApp extends UiElement {
         return html`<view-log .ctrl=${c}></view-log>`;
       case 'prefs':
         return html`<view-prefs .ctrl=${c}></view-prefs>`;
+      case 'plugins':
+        return html`<view-plugins .ctrl=${c}></view-plugins>`;
       case 'more':
         return html`<view-more .ctrl=${c}></view-more>`;
       default:
