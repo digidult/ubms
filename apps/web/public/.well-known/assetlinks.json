@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "io.github.supakov.ubms",
+      "sha256_cert_fingerprints": [
+        "59:E2:78:99:7D:04:D5:60:80:31:95:DB:A9:FC:B3:CB:87:F2:84:70:42:F0:66:65:61:32:78:47:34:76:DE:75"
+      ]
+    }
+  }
+]

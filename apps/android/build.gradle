@@ -1,0 +1,5 @@
+// ubms for Android: a Trusted Web Activity that shows https://ubms-html.vercel.app in Chrome
+// without browser UI. See docs/android.md.
+plugins {
+    id 'com.android.application' version '8.5.2' apply false
+}
