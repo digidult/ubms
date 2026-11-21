@@ -29,7 +29,8 @@ packages/transport/       generic device link layer (to be extracted)
 packages/ui/              generic UI kit (to be extracted)
 packages/bms-core/        BMS domain core
 packages/bms-drivers/     protocol drivers, simulators, test vectors
-docs/                     architecture, decisions, protocols, UI, i18n, Tauri plan
+docs/                     architecture, decisions, protocols, UI, i18n, Tauri plan, plugins
+examples/plugins/         example plugin for the desktop app (docs/plugins.md)
 scripts/                  smoke test, i18n checker, repository checks
 ```
 
@@ -51,6 +52,10 @@ scripts/                  smoke test, i18n checker, repository checks
 5. Tests in `packages/bms-drivers/test/<name>.test.js`: parse every vector, round trip through
    the simulator, session level test over an in-memory link.
 6. Mark every user facing string with `msg()`; run `npm run i18n:check` and add translations.
+
+The desktop app also loads drivers from plugins without a new build: one `.js` file in the
+`plugins` folder next to the app, see [plugins.md](plugins.md) and
+`examples/plugins/example-bms.js`. The same definition and driver rules apply.
 
 ## Conventions
 

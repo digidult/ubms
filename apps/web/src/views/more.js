@@ -76,6 +76,7 @@ export class ViewMore extends UiElement {
           : nothing}
         <ui-list-row href="#/prefs" icon="cog" heading=${t('Preferences')} text=${t('Language, theme, refresh interval')}></ui-list-row>
         <ui-list-row href="#/log" icon="terminal" heading=${t('Protocol log')} text=${t('Raw and decoded traffic, export for bug reports')}></ui-list-row>
+        ${env.tauri ? html`<ui-list-row href="#/plugins" icon="plug" heading=${t('Plugins')} text=${t('Drivers for more devices from the plugins folder')}></ui-list-row>` : nothing}
       </div>
       ${connected
         ? html`<div class="card danger-row">

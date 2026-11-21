@@ -94,6 +94,16 @@ The installed app keeps the chart history in the user profile, the portable one 
 Every push builds the same files as artifacts of the workflow "Desktop"; see
 [docs/tauri.md](docs/tauri.md) to build locally.
 
+### Plugins
+
+The desktop app loads drivers for more devices from plugins: one `.js` file per plugin in a
+folder named `plugins` next to the app (next to the `.AppImage` file on Linux, next to `ubms.app`
+on macOS). Plugin drivers appear in the device type list, in automatic detection and, with a
+simulator, in the demo list; More, Plugins shows the folders, what was loaded and what failed.
+[docs/plugins.md](docs/plugins.md) describes the file format and the API, and
+[examples/plugins/example-bms.js](examples/plugins/example-bms.js) is a complete example for a
+made up protocol. A plugin runs with the full rights of the app: install only plugins you trust.
+
 ## Develop
 
 ```
@@ -113,6 +123,7 @@ Read [AGENTS.md](AGENTS.md) and [docs/development.md](docs/development.md) befor
 - [Protocols](docs/protocols/)
 - [Translations](docs/i18n.md)
 - [Desktop app plan (Tauri)](docs/tauri.md)
+- [Desktop plugins](docs/plugins.md)
 
 ## Repository layout
 
@@ -124,6 +135,7 @@ packages/ui            UI kit: Lit components, theme, i18n, router, store
 packages/bms-core      BMS model, catalogs, driver contract, detection, session
 packages/bms-drivers   JK, ANT and Daly drivers with simulators and test vectors
 docs                   documentation
+examples/plugins       example plugin for the desktop app
 scripts                smoke test and checks
 ```
 
