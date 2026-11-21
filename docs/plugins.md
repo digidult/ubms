@@ -150,7 +150,8 @@ const channel = new FrameChannel(ctx.link, {
   log: ctx.log,
   source: definition.id,
 }).start();
-const frame = await channel.request(command, { match: (f) => f[2] === 0x81, timeout: 1000, retries: 1, name: 'Status request' });
+// encode() builds the request bytes; the answer is the first complete frame that `match` accepts.
+const frame = await channel.request(encode(0x01), { match: (f) => f[2] === 0x81, timeout: 1000, retries: 1, name: 'Status request' });
 ```
 
 ## The api object
