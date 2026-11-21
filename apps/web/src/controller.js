@@ -77,6 +77,7 @@ export const LANGUAGES = [
  * @property {{ loading: boolean, list: Array<{ path: string, name?: string, usbVendorId?: number, usbProductId?: number }> }} ports native port list (desktop app)
  * @property {RecordingState | null} recording history recording of the connected device
  * @property {import('@ubms/ui/timeseries').SeriesStoreInfo | null} historyInfo where the history is stored
+ * @property {import('./plugins.js').PluginReport & { loaded: boolean }} plugins desktop plugins (apps/web/src/plugins.js)
  *
  * @typedef {{ id: number, key: string | null, name: string, demo: boolean, epoch: number, rev: number, error: string | null }} RecordingState
  *
@@ -193,6 +194,7 @@ export class AppController {
         ports: { loading: false, list: [] },
         recording: null,
         historyInfo: null,
+        plugins: { loaded: false, dirs: [], plugins: [], failures: [] },
       }),
     );
     /** @type {(() => Promise<void>) | null} */
@@ -406,6 +408,21 @@ export class AppController {
     this.session.setPollInterval(prefs.pollMs);
     this.log.capacity = prefs.logCapacity;
     this.#updateWakeLock();
+  }
+
+  /**
+   * Desktop plugins are loaded and their drivers registered (apps/web/src/plugins.js): keep the
+   * report for the Plugins view, and bring back a saved demo or device type choice that names a
+   * plugin driver. The constructor dropped it while only the built-in drivers were known; the
+   * saved preferences still have it.
+   * @param {import('./plugins.js').PluginReport} report
+   */
+  setPlugins(report) {
+    const saved = /** @type {Partial<Prefs>} */ (this.storage.get('prefs', {}));
+    const prefs = { ...this.state.prefs };
+    if (saved.demoDriver && /** @type {any} */ (this.registry.get(saved.demoDriver))?.demo) prefs.demoDriver = saved.demoDriver;
+    if (saved.selection && selectionFits(this.registry, { ...prefs, selection: saved.selection })) prefs.selection = saved.selection;
+    this.store.set({ plugins: { loaded: true, ...report }, prefs });
   }
 
   /** Is the current selection filterable in the Bluetooth chooser? */
