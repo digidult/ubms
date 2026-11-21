@@ -67,24 +67,36 @@ const browser = spawn(
     `--user-data-dir=${profile}`,
     '--remote-debugging-port=0',
     '--allow-file-access-from-files',
+    // CI runners on Ubuntu 24.04 restrict the user namespaces the Chrome sandbox needs (AppArmor),
+    // so Chrome exits at once there; the sandbox stays on everywhere else.
+    ...(process.platform === 'linux' && process.env.CI ? ['--no-sandbox'] : []),
     'about:blank',
   ],
   { stdio: ['ignore', 'ignore', 'pipe'], windowsHide: true },
 );
 
-browser.stderr.resume();
+/** The end of the browser's error output, shown when it does not start. */
+let browserErr = '';
+browser.stderr.on('data', (/** @type {Buffer} */ d) => {
+  browserErr = (browserErr + d.toString()).slice(-4000);
+});
+/** @type {number | null} */
+let browserExit = null;
+browser.on('exit', (code) => (browserExit = code));
 browser.on('error', () => {});
 
 // The launcher process may hand over to a child and exit, so read the port from the profile.
 const port = await (async () => {
   const file = path.join(profile, 'DevToolsActivePort');
-  for (let i = 0; i < 200; i++) {
+  for (let i = 0; i < 600; i++) {
     if (existsSync(file)) {
       const [p] = readFileSync(file, 'utf8').split('\n');
       if (p && Number(p) > 0) return Number(p);
     }
     await new Promise((r) => setTimeout(r, 100));
   }
+  console.error(`Browser exit code: ${browserExit ?? 'still running'}`);
+  console.error(browserErr);
   throw new Error('Browser did not start (no DevToolsActivePort)');
 })();
 
