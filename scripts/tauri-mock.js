@@ -22,6 +22,11 @@
  *   only, as the record file's time; last is the newest record time). save_file decodes the
  *   base64 data and returns a path in C:/Users/mock/Downloads, adding " (2)" and so on for a
  *   taken name.
+ * - plugins_list (plugins.rs) returns { dirs, plugins, errors } for the folder C:/ubms-mock/plugins:
+ *   the files of window.__tauriMockPlugins = { plugins: [{ file, source }], errors: [{ file, error }] }
+ *   (set by the smoke test before this script, with the example plugin), only names ending in .js
+ *   in any case, sorted by name case-insensitively; a file over 1 MiB becomes an error entry. Without
+ *   that global the folder is missing: empty lists.
  * - window.getCurrentWindow().onCloseRequested(handler) registers a close handler; like Tauri, the
  *   window is destroyed after the handler unless it called preventDefault().
  * - Arguments of the wrong type fail like Tauri's argument check ("invalid args `x` for command").
@@ -313,6 +318,26 @@
     }
   }
 
+  // ----- Plugins (plugins.rs) -----
+
+  const PLUGIN_DIR = 'C:/ubms-mock/plugins';
+  const MAX_PLUGIN_BYTES = 1024 * 1024;
+
+  function pluginsList() {
+    const given = window.__tauriMockPlugins ?? {};
+    const lower = (s) => s.toLowerCase();
+    const files = (given.plugins ?? [])
+      .filter((p) => /\.js$/i.test(p.file) && p.file.length > 3)
+      .sort((a, b) => (lower(a.file) < lower(b.file) ? -1 : lower(a.file) > lower(b.file) ? 1 : a.file < b.file ? -1 : a.file > b.file ? 1 : 0));
+    const plugins = [];
+    const errors = (given.errors ?? []).map((e) => ({ file: String(e.file), error: String(e.error) }));
+    for (const p of files) {
+      if (utf8.encode(p.source).length > MAX_PLUGIN_BYTES) errors.push({ file: p.file, error: 'The file is larger than 1 MiB' });
+      else plugins.push({ file: p.file, source: p.source });
+    }
+    return { dirs: [PLUGIN_DIR], plugins, errors };
+  }
+
   /** Close handlers registered through window.getCurrentWindow().onCloseRequested(). */
   const closeHandlers = new Set();
   let destroyed = 0;
@@ -333,6 +358,8 @@
         calls[cmd] = (calls[cmd] ?? 0) + 1;
         if (cmd.startsWith('history_') || cmd === 'save_file') return historyCommand(cmd, args ?? {});
         switch (cmd) {
+          case 'plugins_list':
+            return pluginsList();
           case 'ble_adapter_state':
             return { state: 'on', reason: null, detail: null };
           case 'ble_scan_start': {

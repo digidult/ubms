@@ -311,11 +311,41 @@ const seedHistory = `(async () => {
   return list.some((d) => d.key === 'sn:smoke:0001' && d.count === recs.length);
 })()`;
 
-/** Imitation of the Tauri bridge, see scripts/tauri-mock.js. */
-const tauriMock = readFileSync(path.join(root, 'scripts', 'tauri-mock.js'), 'utf8');
+/**
+ * Files of the imitated plugin folder (plugins_list in scripts/tauri-mock.js): the example plugin,
+ * one that fails in register(), and one the bridge refused. Every Tauri scenario loads them.
+ */
+const mockPlugins = {
+  plugins: [
+    { file: 'example-bms.js', source: readFileSync(path.join(root, 'examples', 'plugins', 'example-bms.js'), 'utf8') },
+    { file: 'zz-broken.js', source: "export default function register() { throw new Error('Broken on purpose'); }" },
+  ],
+  errors: [{ file: 'huge.js', error: 'The file is larger than 1 MiB' }],
+};
+
+/** Imitation of the Tauri bridge, see scripts/tauri-mock.js, with the plugin files above. */
+const tauriMock = `window.__tauriMockPlugins = ${JSON.stringify(mockPlugins)};\n${readFileSync(path.join(root, 'scripts', 'tauri-mock.js'), 'utf8')}`;
+
+/** An element in the shadow root of one view of the app, for example viewPart('view-more', 'ui-list-row'). */
+const viewPart = (view, selector) =>
+  `document.querySelector('ubms-app').shadowRoot.querySelector(${JSON.stringify(view)})?.shadowRoot.querySelector(${JSON.stringify(selector)})`;
 
 const scenarios = [
-  ['connect-phone', { ...phone, hash: '/connect', steps: [{ eval: hasText('ubms'), shot: 'connect-phone' }] }],
+  [
+    'connect-phone',
+    {
+      ...phone,
+      hash: '/connect',
+      steps: [
+        { eval: hasText('ubms'), shot: 'connect-phone' },
+        // The browser has no plugins: no Plugins row in More, and the view says so.
+        { hash: '/more' },
+        { eval: `!!${viewPart('view-more', 'ui-list-row')} && !${viewPart('view-more', 'ui-list-row[href="#/plugins"]')}` },
+        { hash: '/plugins' },
+        { eval: hasText('Plugins are available in the desktop app only.') },
+      ],
+    },
+  ],
   ['connect-desktop-dark', { ...desktop, dark: true, hash: '/connect', steps: [{ shot: 'connect-desktop-dark' }] }],
   ['prefs-phone', { ...phone, hash: '/prefs', steps: [{ shot: 'prefs-phone' }] }],
   [
@@ -432,6 +462,50 @@ const scenarios = [
       ],
     },
   ],
+  [
+    'tauri-plugins-phone',
+    {
+      ...phone,
+      hash: '/more',
+      initScript: tauriMock,
+      steps: [
+        // Loaded before the first screen: the example driver comes after the built-in drivers.
+        {
+          eval: `window.ubms.state.plugins.loaded && window.ubms.registry.list().at(-1)?.id === 'example-bms' && window.ubms.state.plugins.plugins.length === 1 && window.ubms.state.plugins.plugins[0].file === 'example-bms.js' && window.ubms.state.plugins.plugins[0].drivers.join() === 'example-bms'`,
+        },
+        { eval: `window.ubms.state.plugins.failures.map((f) => f.file).join() === 'huge.js,zz-broken.js' && window.ubms.state.plugins.dirs.join() === 'C:/ubms-mock/plugins'` },
+        { eval: `window.ubms.log.entries().some((e) => e.source === 'plugins' && /Plugin example-bms\\.js loaded/.test(e.text ?? ''))` },
+        { eval: `!!${viewPart('view-more', 'ui-list-row[href="#/plugins"]')}`, shot: 'tauri-more-phone' },
+        { hash: '/plugins', wait: 900, shot: 'tauri-plugins-phone' },
+        { eval: hasText('C:/ubms-mock/plugins') },
+        { eval: hasText('Example BMS') },
+        { eval: hasText('example-bms.js') },
+        { eval: hasText('EXB1 example protocol') },
+        { eval: hasText('zz-broken.js') },
+        { eval: hasText('register(api) failed: Broken on purpose') },
+        { eval: hasText('The file is larger than 1 MiB') },
+        // Offered like a built-in driver: device type list, detection and the demo list.
+        { eval: `(window.ubms.setPref('transport', 'serial'), true)`, hash: '/connect', wait: 900 },
+        { eval: `!!${viewPart('view-connect', 'option[value="family:example"]')} && !!${viewPart('view-connect', 'option[value="example-bms"]')}` },
+        {
+          eval: `window.ubms.registry.serialCandidates().at(-1)?.definition.id === 'example-bms' && window.ubms.registry.bleCandidates({ name: 'EXB-8S100' })[0]?.definition.id === 'example-bms'`,
+        },
+        { eval: `(window.ubms.setPref('transport', 'demo'), true)`, wait: 600 },
+        { eval: `!!${viewPart('view-connect', 'option[value="example-bms"]')}`, shot: 'tauri-plugin-demo-list-phone' },
+        {
+          eval: `window.ubms.connectDemo('example-bms').then(() => window.ubms.state.state === 'connected' && window.ubms.state.device.driverId === 'example-bms')`,
+          wait: 2500,
+          shot: 'tauri-plugin-demo-overview-phone',
+        },
+        { eval: `window.ubms.state.snapshot?.cells?.length === 8 && window.ubms.state.info?.model === 'EXB-8S100'` },
+        { hash: '/settings', wait: 2000, shot: 'tauri-plugin-demo-settings-phone' },
+        { eval: `window.ubms.state.settings.values?.['cell.ovp'] === 3.65` },
+        { eval: writeCheck, wait: 300 },
+        { eval: `window.ubms.disconnect().then(() => (window.ubms.setPref('transport', 'ble'), window.ubms.setPref('selection', 'auto'), true))` },
+      ],
+    },
+  ],
+  ['tauri-plugins-desktop', { ...desktop, hash: '/plugins', initScript: tauriMock, steps: [{ eval: hasText('Example BMS'), shot: 'tauri-plugins-desktop' }] }],
   [
     'charts-demo-phone',
     {
