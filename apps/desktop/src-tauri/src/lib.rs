@@ -3,13 +3,16 @@
 //! The window shows the unchanged ubms web app (`apps/web`, built into `dist/`). This crate only
 //! adds what a browser cannot do: native device access (Bluetooth Low Energy through bluest,
 //! serial ports through serialport) and files (the chart history next to a portable app or in the
-//! user profile, saving exports), exposed as Tauri commands and events. The command and event
-//! contract is documented in `docs/tauri.md` and consumed by `packages/transport/src/tauri.js` and
-//! `packages/ui/src/timeseries.js`. The Rust side stays protocol agnostic: it moves bytes and
-//! lines, all BMS protocol logic lives in the JavaScript drivers.
+//! user profile, saving exports, reading plugin files from the `plugins` folder next to the app),
+//! exposed as Tauri commands and events. The command and event contract is documented in
+//! `docs/tauri.md` and consumed by `packages/transport/src/tauri.js`,
+//! `packages/ui/src/timeseries.js` and `apps/web/src/plugins.js`. The Rust side stays protocol
+//! agnostic: it moves bytes, lines and files, all BMS protocol logic lives in the JavaScript
+//! drivers (built in, or loaded from plugins).
 
 mod ble;
 mod history;
+mod plugins;
 mod serial;
 
 use std::time::Duration;
@@ -55,6 +58,7 @@ pub fn run() {
             history::history_remove,
             history::history_prune,
             history::save_file,
+            plugins::plugins_list,
         ])
         .build(tauri::generate_context!())
         .expect("error while building the ubms desktop app");
