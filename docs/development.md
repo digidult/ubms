@@ -82,7 +82,7 @@ The desktop app also loads drivers from plugins without a new build: one `.js` f
   2. `git tag v0.1.N && git push origin v0.1.N`.
   3. The workflow "Release" checks that the tag matches the version, runs the tests and the smoke
      test, builds `ubms.html` and the installers (Windows NSIS, MSI and portable exe; Linux deb, rpm
-     and AppImage; macOS universal dmg) and publishes the
+     and AppImage; macOS universal dmg), the Android apk, and publishes the
      GitHub release with generated notes. While the major version is 0 the release is marked as a
      pre-release (alpha). The workflow can rebuild an existing tag from the Actions tab.
 - Without a release, the workflows "CI" (ubms.html) and "Desktop" (installers) keep the files of

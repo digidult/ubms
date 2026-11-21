@@ -84,6 +84,7 @@ Downloads on the [releases](https://github.com/supakov/ubms/releases) page:
 | `ubms_<version>_amd64.deb`, `ubms-<version>-1.x86_64.rpm` | Linux packages |
 | `ubms_<version>_amd64.AppImage` | Linux, no installation |
 | `ubms_<version>_universal.dmg` | macOS 10.15 or newer, Apple silicon and Intel |
+| `ubms_<version>_android.apk` | Android 8 or newer with Chrome: the web app as a full screen app, see [docs/android.md](docs/android.md) |
 | `ubms.html` | any Chromium browser, see Use |
 
 The builds are not code signed, so Windows SmartScreen asks for confirmation on the first start.
