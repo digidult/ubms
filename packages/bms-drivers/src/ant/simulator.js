@@ -281,6 +281,9 @@ function send(device, bytes) {
  * @param {string | null} [opts.level1Password] level 1 password (default '12345678'; null: none accepted)
  * @param {boolean} [opts.readNeedsAuth] answer parameter reads with 0xFF bytes until a password
  *   granted level 1 or higher, like the ANT-BLE20PHUB of a field log (2026-11-20); default true
+ * @param {number} [opts.paramReadLevel] level the parameter pages need (default 1). The same board
+ *   at level 1 served the pack id and the versions and kept the parameter pages at 0xFF.
+ * @param {Record<number, string>} [opts.lowLevelPasswords] passwords of levels 2, 3 and 4
  * @param {string} [opts.hardwareVersion]
  * @param {string} [opts.softwareVersion]
  * @param {string} [opts.packId]
@@ -291,6 +294,8 @@ export function createAntSimulator(device, opts = {}) {
   const password = opts.password ?? DEFAULT_PASSWORD_L5;
   const level1Password = opts.level1Password === undefined ? DEFAULT_PASSWORD_L1 : opts.level1Password;
   const readNeedsAuth = opts.readNeedsAuth ?? true;
+  const paramReadLevel = opts.paramReadLevel ?? 1;
+  const lowLevelPasswords = opts.lowLevelPasswords ?? {};
   const settings = {
     chemistry: /** @type {'lfp'|'nmc'|'lto'} */ (chemistry),
     cells: battery.cellCount,
@@ -421,7 +426,8 @@ export function createAntSimulator(device, opts = {}) {
         const end = Math.min(regs.length, address + len);
         const data = regs.slice(Math.min(address, end), end);
         // Without read access the board sends the page as 0xFF bytes (field log, see opts).
-        if (readNeedsAuth && state.permission < 1) data.fill(0xff);
+        const identity = address === ADDR.PACK_ID || address === ADDR.DEVICE_INFO;
+        if (readNeedsAuth && state.permission < (identity ? 1 : paramReadLevel)) data.fill(0xff);
         send(device, encodeNewResponse(RSP.READ, address, data, { status: EXTRA.READ }));
         break;
       }
@@ -433,7 +439,15 @@ export function createAntSimulator(device, opts = {}) {
         break;
       case FN.AUTH: {
         const text = String.fromCharCode(...frame.subarray(6, 6 + len));
-        const level = address === ADDR.PASSWORD_L5 && text === password ? 5 : address === ADDR.PASSWORD_L1 && level1Password !== null && text === level1Password ? 1 : 0;
+        const low = [ADDR.PASSWORD_L2, ADDR.PASSWORD_L3, ADDR.PASSWORD_L4].indexOf(address) + 2;
+        const level =
+          address === ADDR.PASSWORD_L5 && text === password
+            ? 5
+            : address === ADDR.PASSWORD_L1 && level1Password !== null && text === level1Password
+              ? 1
+              : low >= 2 && lowLevelPasswords[low] === text
+                ? low
+                : 0;
         if (level) state.permission = Math.max(state.permission, level);
         const data = new Uint8Array(2);
         setU16le(data, 0, level);

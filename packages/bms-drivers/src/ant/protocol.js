@@ -148,6 +148,10 @@ export const ADDR = Object.freeze({
   PACK_ID: 0x0106,
   /** Level 1 password, 8 ASCII bytes. */
   PASSWORD_L1: 0x014a,
+  /** Level 2, 3 and 4 passwords, 8 ASCII bytes each (yosle "Passwords"; unverified on hardware). */
+  PASSWORD_L2: 0x0152,
+  PASSWORD_L3: 0x015a,
+  PASSWORD_L4: 0x0162,
   /** Level 5 password, 12 ASCII bytes. */
   PASSWORD_L5: 0x016a,
 });

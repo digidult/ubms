@@ -7,5 +7,5 @@ import { antDefinition, antLegacyDefinition } from './driver.js';
  */
 export const antDrivers = [antDefinition, antLegacyDefinition];
 
-export { antDefinition, antLegacyDefinition, AntDriver, AntLegacyDriver, isBlankPage, newStatusSnapshot, oldStatusSnapshot } from './driver.js';
+export { antDefinition, antLegacyDefinition, AntDriver, AntLegacyDriver, isBlankPage, parametersLocked, newStatusSnapshot, oldStatusSnapshot } from './driver.js';
 export { createAntSimulator, createAntLegacySimulator } from './simulator.js';

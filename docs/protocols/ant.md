@@ -310,6 +310,15 @@ between requests; the GPRS tab polls 0x06 every 1 s (ESPHome issue #20).
   read access was not granted and asks for the password right there. A single 0xFF page is normal (a page that is not
   configured). The same user reported that the values appeared after logging in with the vendor app first, so the
   access level outlives the vendor app's connection.
+* The permission byte does not tell whether the parameters can be read. In a second log of that board
+  (`ubms-log-2026-11-20T12-19-52.json`) the status reported level 1; the pack id (262) and the version page (620) were
+  served with extra section status 0x0B, while the parameter pages (0, 56, 104, 140, 152, 378) still came back as 0xFF
+  bytes with extra section status 0x01 and group 3. Which level the parameters need and which password the vendor app
+  sends for it is **unverified**, so ubms decides by the pages: when the first parameter block (address 0, always
+  configured on a working BMS) is blank, it sends the password of the settings as level 5 and, when it has at most 8
+  characters, as levels 1 to 4 (addresses 330, 338, 346, 354), then the factory passwords at the same addresses,
+  reading block 0 after each attempt. A password that unlocked nothing is not tried again until the user changes it;
+  the Settings tab then shows the password field.
 * Level 1 password (default `12345678`): function 0x23 at address 0x014A (330), 8 ASCII bytes. Per the 2024 app it only
   unlocks reading the parameter pages (yosle). A user reported that `12345678` was enough to switch MOSFETs and balancing
   from the app, while changing parameters needed `123456789abc` (ESPHome issue #5, lucasimons).

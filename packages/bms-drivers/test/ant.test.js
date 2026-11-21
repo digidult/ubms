@@ -16,7 +16,7 @@ import {
   storeBlock,
   valueToRaw,
 } from '../src/ant/settings.js';
-import { antDrivers, createAntSimulator, createAntLegacySimulator, isBlankPage, newStatusSnapshot, oldStatusSnapshot } from '../src/ant/index.js';
+import { antDrivers, createAntSimulator, createAntLegacySimulator, isBlankPage, parametersLocked, newStatusSnapshot, oldStatusSnapshot } from '../src/ant/index.js';
 
 const vectors = JSON.parse(readFileSync(new URL('./vectors/ant.json', import.meta.url), 'utf8'));
 /** @param {string} id */
@@ -1078,6 +1078,85 @@ test('session: a changed app password (level 1) typed once unlocks reading', asy
     assert.equal(settings.values?.['cell.ovp'], 3.65);
     const level1 = sim.received.filter((f) => f[0] === 0x7e && f[2] === P.FN.AUTH && u16(f, 3) === P.ADDR.PASSWORD_L1);
     assert.ok(level1.some((f) => String.fromCharCode(...f.subarray(6, 6 + f[5])) === 'app-pass'), 'the typed password tried as level 1');
+  } finally {
+    await s.close();
+  }
+});
+
+/** Second field log of the same board (2026-11-20, 12:19): level 1, identity readable, parameters refused. */
+const FIELD2 = {
+  status:
+    '7EA11100007E0102020800000000000000000000C4010000000000000000000000000C0D0D0D0C0D0C0D0D0D0B0D0C0D0C0D0F000F0010001100700AEEFF640064000101000000B108198C50971840EE8B03D0FFFFFFBB30EF05000000000D0D02000B0D060002000C0D000080007C00B202F2FA1CAA860364329103226302024C674B01295EAA55',
+  packIdPage: '7EA1120601204E4F4445330000000000000000000000000000000000000000000000000000002BF7FF0B000041F2AA55',
+  voltagePage: `7EA112000034${'FF'.repeat(52)}49A7FF01000432010300B187AA55`,
+};
+
+test('field log 2: level 1 serves the pack id and still refuses the parameter pages', () => {
+  assert.equal(P.parseStatus(fromHex(FIELD2.status)).permission, 1);
+  const id = P.parseReadResponse(fromHex(FIELD2.packIdPage));
+  assert.deepEqual([id.address, isBlankPage(id.data), id.extraStatus], [262, false, 0x0b]);
+  assert.equal(P.parsePackId(fromHex(FIELD2.packIdPage)).packId, 'NODE3');
+  const v = P.parseReadResponse(fromHex(FIELD2.voltagePage));
+  assert.deepEqual([v.address, v.data.length, isBlankPage(v.data), v.extraStatus], [0, 52, true, 1]);
+  // Six of seven pages blank, one readable: locked all the same, because block 0 is blank.
+  assert.equal(parametersLocked({ answered: 7, blank: 6, blankAt: new Set([0, 56, 104, 140, 152, 378]) }), true);
+  assert.equal(parametersLocked({ answered: 7, blank: 1, blankAt: new Set([262]) }), false, 'an empty pack id is not a lock');
+  assert.equal(parametersLocked({ answered: 2, blank: 2, blankAt: new Set([56, 104]) }), true);
+  assert.equal(parametersLocked({ answered: 0, blank: 0, blankAt: new Set() }), false);
+});
+
+test('session: parameters that need level 5 are unlocked with the factory password, unasked', async () => {
+  /** @type {ReturnType<typeof createAntSimulator>} */
+  let sim = /** @type {any} */ (null);
+  const s = await startSession((device) => (sim = createAntSimulator(device, { tickMs: 0, paramReadLevel: 5 })));
+  const { session } = s;
+  try {
+    await session.connect({ kind: 'link', link: s.host, selection: 'ant' });
+    const info = await until(() => (session.info?.softwareVersion ? session.info : null));
+    assert.equal(info.hardwareVersion, '16ZMB0TB120A', 'level 1 is enough for the versions');
+    const settings = await session.loadSettings();
+    assert.equal(settings.notice, null);
+    assert.equal(settings.values?.['cell.ovp'], 3.65);
+    assert.ok(sim.received.some((f) => f[0] === 0x7e && f[2] === P.FN.AUTH && u16(f, 3) === P.ADDR.PASSWORD_L5));
+    assert.equal(JSON.stringify(session.log.export()).includes('unlocked with a factory password as level 5') || session.log.entries().some((e) => /unlocked with/.test(e.text ?? '')), true);
+  } finally {
+    await s.close();
+  }
+});
+
+test('session: level 1 without the parameter password asks for it and remembers a failed one', async () => {
+  /** @type {ReturnType<typeof createAntSimulator>} */
+  let sim = /** @type {any} */ (null);
+  const s = await startSession((device) => (sim = createAntSimulator(device, { tickMs: 0, paramReadLevel: 5, password: 'own-pass' })));
+  const { session } = s;
+  try {
+    await session.connect({ kind: 'link', link: s.host, selection: 'ant' });
+    let settings = await session.loadSettings();
+    assert.equal(settings.values?.['cell.ovp'], undefined);
+    assert.equal(settings.values?.['ant.pack_id'], 'ubms demo', 'the pack id page is readable at level 1');
+    assert.match(String(settings.notice), /did not grant read access/);
+    assert.equal(settings.passwordField, 'ant.password');
+    const authCount = () => sim.received.filter((f) => f[0] === 0x7e && f[2] === P.FN.AUTH).length;
+    const before = authCount();
+    settings = await session.loadSettings();
+    assert.equal(authCount(), before, 'a reload does not repeat the passwords that failed');
+    assert.match(String(settings.notice), /did not grant read access/);
+    await session.writeSettings([{ id: 'ant.password', value: 'own-pass' }]);
+    assert.equal(session.settings.notice, null);
+    assert.equal(session.settings.values?.['cell.ovp'], 3.65);
+  } finally {
+    await s.close();
+  }
+});
+
+test('session: a factory password at level 3 unlocks the parameters', async () => {
+  const s = await startSession((device) => createAntSimulator(device, { tickMs: 0, paramReadLevel: 3, password: 'other-l5', lowLevelPasswords: { 3: P.DEFAULT_PASSWORD_L1 } }));
+  const { session } = s;
+  try {
+    await session.connect({ kind: 'link', link: s.host, selection: 'ant' });
+    const settings = await session.loadSettings();
+    assert.equal(settings.notice, null);
+    assert.equal(settings.values?.['cell.ovp'], 3.65);
   } finally {
     await s.close();
   }

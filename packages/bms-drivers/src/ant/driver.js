@@ -385,6 +385,25 @@ export function isBlankPage(data) {
   return data.length > 0 && data.every((b) => b === 0xff);
 }
 
+/**
+ * True when the BMS did not let us read the parameters. The first block (cell voltage
+ * protections, address 0) is configured on every working BMS, so a blank one means the page was
+ * refused; without an answer for it, every answered page being blank says the same. An
+ * ANT-BLE20PHUB at permission level 1 served the identity pages (pack id, versions) and still
+ * sent every parameter page as 0xFF bytes (field log 2026-11-20, 12:19), so one readable page
+ * proves nothing.
+ * @param {{ answered: number, blank: number, blankAt: Set<number> }} pages
+ */
+export function parametersLocked(pages) {
+  return pages.answered > 0 && (pages.blankAt.has(NEW_SETTING_BLOCKS[0].address) || pages.blank === pages.answered);
+}
+
+/** Password addresses below level 5 (8 character passwords). */
+const LOW_LEVEL_PASSWORDS = [ADDR.PASSWORD_L1, ADDR.PASSWORD_L2, ADDR.PASSWORD_L3, ADDR.PASSWORD_L4];
+
+/** @param {number} address password address @returns {number} permission level it belongs to */
+const passwordLevel = (address) => (address === ADDR.PASSWORD_L5 ? 5 : LOW_LEVEL_PASSWORDS.indexOf(address) + 1);
+
 export class AntDriver extends BaseDriver {
   /**
    * @param {DriverDefinition} definition
@@ -403,6 +422,8 @@ export class AntDriver extends BaseDriver {
     this.buzzer = undefined;
     /** @type {Map<number, number>} settings block address to consecutive read failures */
     this.blockFailures = new Map();
+    /** Password of these settings with which no login unlocked the parameters (not tried again). @type {string | null} */
+    this.unlockFailed = null;
   }
 
   /** @returns {import('@ubms/bms-core/driver').DriverCapabilities} */
@@ -504,16 +525,14 @@ export class AntDriver extends BaseDriver {
       }
       // A board at permission level 0 answers every parameter read with 0xFF bytes (field log of an
       // ANT-BLE20PHUB, 2026-11-20): log in first, as the vendor app does (spec 4.3).
-      const hadAccess = await this.#ensureReadAccess(status ?? this.status);
+      await this.#ensureReadAccess(status ?? this.status);
       let pages = await this.#readSettingBlocks();
-      if (pages.answered && pages.blank === pages.answered && hadAccess) {
-        // Every page empty although the status claimed access: log in and read once more.
-        this.log?.warn('ANT settings: every parameter page was empty, logging in and reading again');
-        if (await this.#ensureReadAccess(null)) pages = await this.#readSettingBlocks();
-      }
-      const { image, answered, blank } = pages;
+      // The permission byte does not tell whether the parameters can be read (level 1 was not
+      // enough on a 20PHUB), so the pages decide: locked ones get the passwords, then a new read.
+      if (parametersLocked(pages) && (await this.#unlockParameters())) pages = await this.#readSettingBlocks();
+      const { image, answered } = pages;
       if (!answered && !status) throw new Error(msg('The BMS did not answer the settings requests'));
-      if (answered && blank === answered) {
+      if (parametersLocked(pages)) {
         this.settingsNotice = msg(
           'The BMS answered with empty parameter pages: it did not grant read access. Enter the BMS password (the one of the ANT app) to read the settings.',
         );
@@ -536,6 +555,8 @@ export class AntDriver extends BaseDriver {
     const image = createRegisterImage();
     let answered = 0;
     let blank = 0;
+    /** @type {Set<number>} addresses of the blank blocks */
+    const blankAt = new Set();
     for (const block of NEW_SETTING_BLOCKS) {
       if ((this.blockFailures.get(block.address) ?? 0) >= BLOCK_FAILURE_LIMIT) continue;
       try {
@@ -547,13 +568,62 @@ export class AntDriver extends BaseDriver {
         storeBlock(image, block.address, data);
         this.blockFailures.delete(block.address);
         answered++;
-        if (isBlankPage(data)) blank++;
+        if (isBlankPage(data)) {
+          blank++;
+          blankAt.add(block.address);
+        }
       } catch (err) {
         this.blockFailures.set(block.address, (this.blockFailures.get(block.address) ?? 0) + 1);
         this.log?.warn(`ANT settings block ${block.name} (${block.address}): ${errorText(err)}`);
       }
     }
-    return { image, answered, blank };
+    return { image, answered, blank, blankAt };
+  }
+
+  /**
+   * Log in until the parameter pages can be read: the password of these settings as level 5 and
+   * (when it has at most 8 characters) as levels 1 to 4, then the factory passwords at the same
+   * addresses. Which level a board wants for its parameters, and which password the vendor app
+   * used, is not documented, so the first parameter block is read after every attempt and decides.
+   * A password that unlocked nothing is not tried again until the user changes it. Only call
+   * inside `this.channel.exclusive()`.
+   * @returns {Promise<boolean>} true when the parameters are readable now
+   */
+  async #unlockParameters() {
+    const own = this.password;
+    if (this.unlockFailed === own) return false;
+    /** @type {Array<[string, number]>} */
+    const tries = [];
+    /** @param {string} password @param {number} address */
+    const add = (password, address) => {
+      const max = address === ADDR.PASSWORD_L5 ? 12 : 8;
+      if (password && password.length <= max && !tries.some(([p, a]) => p === password && a === address)) tries.push([password, address]);
+    };
+    add(own, ADDR.PASSWORD_L5);
+    for (const a of LOW_LEVEL_PASSWORDS) add(own, a);
+    add(DEFAULT_PASSWORDS.new, ADDR.PASSWORD_L5);
+    for (const a of LOW_LEVEL_PASSWORDS) add(DEFAULT_PASSWORD_L1, a);
+    const probe = NEW_SETTING_BLOCKS[0];
+    let unanswered = 0;
+    for (const [password, address] of tries) {
+      const level = await this.#authenticate(password, address, { retries: 0 });
+      // A board that answers no password frame at all will not answer the next ones either.
+      if (level === undefined && ++unanswered >= 2) break;
+      try {
+        const f = await this.#request(newReadRequest(probe.address, probe.length), (fr) => fr[2] === RSP.READ && u16le(fr, 3) === probe.address, { timeout: 1000, retries: 1 });
+        if (!isBlankPage(parseReadResponse(f).data)) {
+          const which = password === own ? 'the password of the settings' : 'a factory password';
+          this.log?.event(`ANT parameters unlocked with ${which} as level ${passwordLevel(address)}`);
+          this.unlockFailed = null;
+          return true;
+        }
+      } catch (err) {
+        this.log?.warn(`ANT settings block ${probe.name} (${probe.address}): ${errorText(err)}`);
+      }
+    }
+    this.unlockFailed = own;
+    this.log?.warn('ANT parameters stay locked: no password was accepted');
+    return false;
   }
 
   /**
@@ -590,11 +660,12 @@ export class AntDriver extends BaseDriver {
    * accepted the change.
    * @param {string} [password]
    * @param {number} [address]
+   * @param {{ retries?: number }} [opts]
    * @returns {Promise<number | undefined>} the granted level from the 0x43 answer
    */
-  async #authenticate(password = this.password, address = ADDR.PASSWORD_L5) {
+  async #authenticate(password = this.password, address = ADDR.PASSWORD_L5, { retries = 1 } = {}) {
     try {
-      const f = await this.#request(newAuthRequest(password, address), (fr) => fr[2] === RSP.AUTH, { timeout: 1000, retries: 1 });
+      const f = await this.#request(newAuthRequest(password, address), (fr) => fr[2] === RSP.AUTH, { timeout: 1000, retries });
       return parseAuthResponse(f).permissionLevel;
     } catch (err) {
       this.log?.warn(`ANT password: ${errorText(err)}`);
@@ -645,6 +716,7 @@ export class AntDriver extends BaseDriver {
     if (meta.kind === 'local') {
       this.password = checkPassword(value, 'new');
       if (this.ctx.options) this.ctx.options.antPassword = this.password;
+      this.unlockFailed = null; // typed again: try it again
       return;
     }
     await this.channel.exclusive(async () => {
