@@ -77,10 +77,14 @@ scripts/                  smoke test, i18n checker, repository checks
   2. `git tag v0.1.N && git push origin v0.1.N`.
   3. The workflow "Release" checks that the tag matches the version, runs the tests and the smoke
      test, builds `ubms.html` and the installers (Windows NSIS, MSI and portable exe; Linux deb, rpm
-     and AppImage; macOS dmg only when started by hand with the macOS option) and publishes the
-     GitHub release with generated notes. It can rebuild an existing tag from the Actions tab.
+     and AppImage; macOS universal dmg) and publishes the
+     GitHub release with generated notes. While the major version is 0 the release is marked as a
+     pre-release (alpha). The workflow can rebuild an existing tag from the Actions tab.
 - Without a release, the workflows "CI" (ubms.html) and "Desktop" (installers) keep the files of
   every push to main as artifacts for 90 days.
+- The web app is deployed from `main` by Vercel (project `ubms-html`, output `dist`) to
+  https://ubms-html.vercel.app. The service worker loads the page from the network first, so a new
+  deployment shows on the next load; it falls back to the cached copy offline.
 
 ## Testing with hardware
 

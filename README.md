@@ -46,6 +46,9 @@ Every driver ships a simulator, so the demo mode shows each protocol without har
 
 ## Use
 
+Online: **https://ubms-html.vercel.app** (always the latest build of `main`; it also works offline
+once opened, and Chrome can install it as an app).
+
 1. Get `ubms.html` from the [releases](https://github.com/supakov/ubms/releases) (or build it:
    `npm install && npm run build`, file `dist/ubms.html`).
 2. Open it in Chrome, Edge or another Chromium browser on a computer or an Android phone.
@@ -80,9 +83,12 @@ Downloads on the [releases](https://github.com/supakov/ubms/releases) page:
 | `ubms_<version>_x64_portable.exe` | Windows, no installation: keeps its data in `ubms-data` next to the exe |
 | `ubms_<version>_amd64.deb`, `ubms-<version>-1.x86_64.rpm` | Linux packages |
 | `ubms_<version>_amd64.AppImage` | Linux, no installation |
+| `ubms_<version>_universal.dmg` | macOS 10.15 or newer, Apple silicon and Intel |
 | `ubms.html` | any Chromium browser, see Use |
 
 The builds are not code signed, so Windows SmartScreen asks for confirmation on the first start.
+On macOS open the app the first time with right click, Open (or run
+`xattr -dr com.apple.quarantine /Applications/ubms.app`), and allow Bluetooth when asked.
 The installed app keeps the chart history in the user profile, the portable one next to itself
 (see [docs/decisions/0011-history-and-charts.md](docs/decisions/0011-history-and-charts.md)).
 Every push builds the same files as artifacts of the workflow "Desktop"; see

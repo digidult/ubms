@@ -2,7 +2,7 @@ name: Desktop
 
 # Builds the desktop app with its installers on every relevant push, and is reused by the release
 # workflow (release.yml) for a tag. Windows: NSIS setup, MSI and a portable exe. Linux: deb, rpm
-# and AppImage. macOS (on demand): dmg. The builds are not code signed.
+# and AppImage. macOS: a universal (Apple silicon and Intel) dmg. The builds are not code signed.
 
 on:
   push:
@@ -20,11 +20,6 @@ on:
       - 'packages/transport/**'
       - '.github/workflows/desktop.yml'
   workflow_dispatch:
-    inputs:
-      macos:
-        description: Also build on macOS
-        type: boolean
-        default: false
   workflow_call:
     inputs:
       ref:
@@ -32,36 +27,28 @@ on:
         type: string
         required: false
         default: ''
-      macos:
-        description: Also build on macOS
-        type: boolean
-        required: false
-        default: false
 
 permissions:
   contents: read
 
 jobs:
-  plan:
-    runs-on: ubuntu-latest
-    outputs:
-      matrix: ${{ steps.matrix.outputs.matrix }}
-    steps:
-      - name: Platforms (macOS only on demand)
-        id: matrix
-        shell: bash
-        env:
-          MACOS: ${{ inputs.macos == true }}
-        run: |
-          list='{"os":"windows-latest","artifact":"ubms-desktop-windows"},{"os":"ubuntu-22.04","artifact":"ubms-desktop-linux"}'
-          if [ "$MACOS" = "true" ]; then list="$list"',{"os":"macos-latest","artifact":"ubms-desktop-macos"}'; fi
-          echo "matrix={\"include\":[$list]}" >> "$GITHUB_OUTPUT"
-
   build:
-    needs: plan
     strategy:
       fail-fast: false
-      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+      matrix:
+        include:
+          - os: windows-latest
+            artifact: ubms-desktop-windows
+            targets: ''
+            args: ''
+          - os: ubuntu-22.04
+            artifact: ubms-desktop-linux
+            targets: ''
+            args: ''
+          - os: macos-latest
+            artifact: ubms-desktop-macos
+            targets: aarch64-apple-darwin,x86_64-apple-darwin
+            args: --target universal-apple-darwin
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -74,6 +61,8 @@ jobs:
           cache: npm
 
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.targets }}
 
       - uses: Swatinem/rust-cache@v2
         with:
@@ -94,7 +83,7 @@ jobs:
         run: cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml
 
       - name: Build the desktop app and its installers
-        run: npm run tauri -w @ubms/desktop -- build
+        run: npm run tauri -w @ubms/desktop -- build ${{ matrix.args }}
 
       - name: Collect the installers
         run: node scripts/collect-desktop.mjs desktop-out

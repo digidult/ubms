@@ -94,6 +94,11 @@ export class ViewMore extends UiElement {
           >
           <span>${__BUILD_DATE__}</span>
         </div>
+        ${__APP_REPOSITORY__
+          ? html`<div class="build">
+              <span>${t('Source code and releases')}: <a href=${__APP_REPOSITORY__} target="_blank" rel="noopener">${__APP_REPOSITORY__.replace(/^https?:\/\//, '')}</a></span>
+            </div>`
+          : nothing}
         <p>${t('Open source viewer and configurator for battery management systems. Works offline: the whole app is a single HTML file and talks to the device directly from the browser.')}</p>
         <p>${t('Supported devices: {list}.', { list: this.ctrl.registry.families().map((f) => f.vendor).join(', ') })}</p>
         <p>${t('Changing BMS settings is at your own risk. Wrong values can damage cells, the BMS or connected equipment.')}</p>
