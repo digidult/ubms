@@ -88,14 +88,14 @@ fn is_separator(c: char, os: Os) -> bool {
 
 /// The folder part of `path` (a path in the syntax of `os`), or None for a bare name.
 fn parent(path: &str, os: Os) -> Option<&str> {
-    let index = path.rfind(|c| is_separator(c, os))?;
+    let index = path.rfind(|c: char| is_separator(c, os))?;
     // "/ubms" lives in the root folder; keep its separator.
     Some(if index == 0 { &path[..1] } else { &path[..index] })
 }
 
 /// `dir` plus `name`, with the separator `dir` already uses (Windows accepts both).
 fn join(dir: &str, name: &str, os: Os) -> String {
-    if dir.ends_with(|c| is_separator(c, os)) {
+    if dir.ends_with(|c: char| is_separator(c, os)) {
         return format!("{dir}{name}");
     }
     let separator = if os == Os::Windows && (dir.contains('\\') || !dir.contains('/')) { '\\' } else { '/' };
@@ -358,7 +358,7 @@ mod tests {
         fs::write(dir.join("bom.js"), "\u{feff}// bom").unwrap();
         fs::write(dir.join("notes.txt"), "not a plugin").unwrap();
         fs::write(dir.join("data.json"), "{}").unwrap();
-        fs::write(dir.join("bad.js"), [0x2f, 0x2f, 0xff, 0xfe]).unwrap();
+        fs::write(dir.join("bad.js"), b"//\xff\xfe").unwrap();
         let limit = usize::try_from(MAX_PLUGIN_BYTES).unwrap();
         fs::write(dir.join("exact.js"), vec![b' '; limit]).unwrap();
         fs::write(dir.join("big.js"), vec![b' '; limit + 1]).unwrap();
