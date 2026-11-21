@@ -1560,8 +1560,10 @@
   "{count} records stored": "{count} Datensätze gespeichert",
   "{size} stored": "{size} gespeichert",
   "The device returned no values for its settings.": "Das Gerät hat keine Werte für seine Einstellungen geliefert.",
-  "The BMS answered with empty parameter pages: it did not grant read access. Check the BMS password in these settings and read them again.": "Das BMS hat mit leeren Parameterseiten geantwortet: Es hat keinen Lesezugriff gewährt. Prüfen Sie das BMS-Passwort in diesen Einstellungen und lesen Sie sie erneut.",
   "Version {version}": "Version {version}",
   "Build": "Build",
-  "Supported devices: {list}.": "Unterstützte Geräte: {list}."
+  "Supported devices: {list}.": "Unterstützte Geräte: {list}.",
+  "Log in and read": "Anmelden und lesen",
+  "Source code and releases": "Quellcode und Releases",
+  "The BMS answered with empty parameter pages: it did not grant read access. Enter the BMS password (the one of the ANT app) to read the settings.": "Das BMS hat mit leeren Parameterseiten geantwortet: Es hat keinen Lesezugriff gewährt. Geben Sie das BMS-Passwort ein (das der ANT-App), um die Einstellungen zu lesen."
 }

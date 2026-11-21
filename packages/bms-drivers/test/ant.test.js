@@ -1049,12 +1049,35 @@ test('session: empty pages without read access give a notice, the right password
     assert.equal(settings.values?.['cell.ovp'], undefined);
     assert.equal(settings.values?.['switch.charge'], true);
     assert.match(String(settings.notice), /did not grant read access/);
+    assert.equal(settings.passwordField, 'ant.password', 'the UI offers the password with the notice');
     const r = await session.writeSettings([{ id: 'ant.password', value: 'own-pass' }]);
     assert.equal(r[0].ok, true);
     settings = await session.loadSettings();
     assert.equal(settings.notice, null);
+    assert.equal(settings.passwordField, null);
     assert.equal(settings.values?.['cell.ovp'], 3.65);
     assert.ok(sim.received.some((f) => f[0] === 0x7e && f[2] === P.FN.AUTH && u16(f, 3) === P.ADDR.PASSWORD_L5));
+  } finally {
+    await s.close();
+  }
+});
+
+test('session: a changed app password (level 1) typed once unlocks reading', async () => {
+  /** @type {ReturnType<typeof createAntSimulator>} */
+  let sim = /** @type {any} */ (null);
+  const s = await startSession((device) => (sim = createAntSimulator(device, { tickMs: 0, level1Password: 'app-pass', password: 'factory-l5x' })));
+  const { session } = s;
+  try {
+    await session.connect({ kind: 'link', link: s.host, selection: 'ant' });
+    let settings = await session.loadSettings();
+    assert.equal(settings.values?.['cell.ovp'], undefined);
+    assert.equal(settings.passwordField, 'ant.password');
+    await session.writeSettings([{ id: 'ant.password', value: 'app-pass' }]);
+    settings = session.settings;
+    assert.equal(settings.notice, null);
+    assert.equal(settings.values?.['cell.ovp'], 3.65);
+    const level1 = sim.received.filter((f) => f[0] === 0x7e && f[2] === P.FN.AUTH && u16(f, 3) === P.ADDR.PASSWORD_L1);
+    assert.ok(level1.some((f) => String.fromCharCode(...f.subarray(6, 6 + f[5])) === 'app-pass'), 'the typed password tried as level 1');
   } finally {
     await s.close();
   }

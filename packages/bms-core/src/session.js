@@ -32,6 +32,8 @@ import { msg } from './msg.js';
  * @property {string | null} error
  * @property {string | null} [notice] English message: the read worked, but values are missing for
  *   a known reason (for example the device did not grant read access), so empty fields are explained
+ * @property {string | null} [passwordField] id of the app kept password field the UI offers with the
+ *   notice (the driver's settingsPasswordField)
  *
  * @typedef {Object} WriteResult
  * @property {string} id
@@ -542,11 +544,13 @@ export class BmsSession extends Emitter {
     this.emit('settings', this.settings);
     try {
       driver.settingsNotice = null;
+      driver.settingsPasswordField = null;
       const values = await this.exclusive(() => driver.readSettings());
       const schema = driver.getSettingsSchema();
       const notice = driver.settingsNotice ?? (noDeviceValues(schema, values) ? msg('The device returned no values for its settings.') : null);
       if (notice) this.log.warn(`Settings: ${notice}`);
-      this.settings = { schema, values, readAt: Date.now(), loading: false, error: null, notice };
+      const passwordField = driver.settingsNotice ? driver.settingsPasswordField : null;
+      this.settings = { schema, values, readAt: Date.now(), loading: false, error: null, notice, passwordField };
     } catch (err) {
       this.settings = { ...this.settings, loading: false, error: err instanceof Error ? err.message : String(err) };
     }

@@ -92,6 +92,12 @@ export class BaseDriver extends Emitter {
      * @type {string | null}
      */
     this.settingsNotice = null;
+    /**
+     * With a notice: id of a text field kept in the app (for example a password) that the UI
+     * offers right next to the notice, so the user can fix the cause and read again.
+     * @type {string | null}
+     */
+    this.settingsPasswordField = null;
   }
 
   /** @returns {DriverCapabilities} */

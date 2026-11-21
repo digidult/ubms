@@ -1572,8 +1572,10 @@
   "{count} records stored": "Записей сохранено: {count}",
   "{size} stored": "Занято: {size}",
   "The device returned no values for its settings.": "Устройство не вернуло ни одного значения настроек.",
-  "The BMS answered with empty parameter pages: it did not grant read access. Check the BMS password in these settings and read them again.": "BMS ответила пустыми страницами параметров: доступ на чтение не предоставлен. Проверьте пароль BMS в этих настройках и прочитайте их снова.",
   "Version {version}": "Версия {version}",
   "Build": "Сборка",
-  "Supported devices: {list}.": "Поддерживаемые устройства: {list}."
+  "Supported devices: {list}.": "Поддерживаемые устройства: {list}.",
+  "Log in and read": "Войти и прочитать",
+  "Source code and releases": "Исходный код и релизы",
+  "The BMS answered with empty parameter pages: it did not grant read access. Enter the BMS password (the one of the ANT app) to read the settings.": "BMS ответила пустыми страницами параметров: доступ на чтение не предоставлен. Введите пароль BMS (тот, что в приложении ANT), чтобы прочитать настройки."
 }

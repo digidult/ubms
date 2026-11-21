@@ -476,6 +476,24 @@ const scenarios = [
     },
   ],
   [
+    'settings-login-phone',
+    {
+      ...phone,
+      hash: '/connect',
+      steps: [
+        { eval: `window.ubms.connectDemo('ant').then(() => window.ubms.state.state === 'connected')`, wait: 1500 },
+        { hash: '/settings', wait: 2500 },
+        // A BMS that refused read access: the notice offers the password right there.
+        {
+          eval: `(window.ubms.store.set((st) => ({ settings: { ...st.settings, notice: 'The BMS answered with empty parameter pages: it did not grant read access. Enter the BMS password (the one of the ANT app) to read the settings.', passwordField: 'ant.password' } })), true)`,
+          wait: 500,
+          shot: 'settings-login-phone',
+        },
+        { eval: `!!document.querySelector('ubms-app').shadowRoot.querySelector('view-settings').shadowRoot.querySelector('.notice form.login input[type=password]')` },
+      ],
+    },
+  ],
+  [
     'charts-atorch-phone',
     {
       ...phone,

@@ -515,8 +515,9 @@ export class AntDriver extends BaseDriver {
       if (!answered && !status) throw new Error(msg('The BMS did not answer the settings requests'));
       if (answered && blank === answered) {
         this.settingsNotice = msg(
-          'The BMS answered with empty parameter pages: it did not grant read access. Check the BMS password in these settings and read them again.',
+          'The BMS answered with empty parameter pages: it did not grant read access. Enter the BMS password (the one of the ANT app) to read the settings.',
         );
+        this.settingsPasswordField = 'ant.password';
       }
       const st = status ?? this.status;
       const values = decodeSettings(this.schema, image, { capacityUnit: capacityUnit(image, st?.capacityAh) });
@@ -557,18 +558,28 @@ export class AntDriver extends BaseDriver {
 
   /**
    * Make sure the BMS lets us read the parameter pages (spec 4.3). Nothing is sent when the last
-   * status frame reports permission level 1 or higher. Otherwise the default level 1 password is
-   * sent, as the vendor app does after connecting, and when that grants nothing, the level 5
-   * password of these settings. Pass `null` to log in regardless of the status.
-   * Only call inside `this.channel.exclusive()`.
+   * status frame reports permission level 1 or higher. Otherwise the passwords are tried until one
+   * grants level 1 or higher: the default level 1 password (as the vendor app sends it after
+   * connecting), then the password of these settings as level 5 and as level 1 (a user who changed
+   * the app password types it once; which level it is is not known). Pass `null` to log in
+   * regardless of the status. Only call inside `this.channel.exclusive()`.
    * @param {AntStatus | null} status
    * @returns {Promise<boolean>} true when read access was already granted, false when a login was needed
    */
   async #ensureReadAccess(status) {
     if (status && status.permission >= 1) return true;
-    let level = await this.#authenticate(DEFAULT_PASSWORD_L1, ADDR.PASSWORD_L1);
-    if (!(Number(level) >= 1)) level = await this.#authenticate();
-    this.log?.event(Number(level) >= 1 ? `ANT read access: level ${level}` : 'ANT read access: not granted by the BMS');
+    /** @type {Array<[string, number]>} */
+    const tries = [[DEFAULT_PASSWORD_L1, ADDR.PASSWORD_L1]];
+    if (this.password) {
+      tries.push([this.password, ADDR.PASSWORD_L5]);
+      if (this.password !== DEFAULT_PASSWORD_L1) tries.push([this.password, ADDR.PASSWORD_L1]);
+    }
+    let level;
+    for (const [password, address] of tries) {
+      level = await this.#authenticate(password, address);
+      if (Number(level) >= 1) break;
+    }
+    this.log?.event(Number(level) >= 1 ? `ANT read access: level ${level}` : 'ANT read access: not granted by the BMS (no password was accepted)');
     return false;
   }
 

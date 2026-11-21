@@ -18,6 +18,7 @@ export class ViewSettings extends UiElement {
     results: { state: true },
     query: { state: true },
     actionArgs: { state: true },
+    loggingIn: { state: true },
   };
 
   static styles = [
@@ -45,10 +46,26 @@ export class ViewSettings extends UiElement {
         font-size: 0.86rem;
         line-height: 1.4;
       }
-      .notice svg {
+      .notice > svg {
         flex: none;
         color: var(--ui-warn);
         margin-top: 1px;
+      }
+      .notice-body {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        min-width: 0;
+        flex: 1;
+      }
+      .login {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .login .input {
+        flex: 1 1 180px;
+        min-height: 36px;
       }
       .toolbar .meta {
         flex: 1;
@@ -362,7 +379,48 @@ export class ViewSettings extends UiElement {
         ? html`<button class="btn small" @click=${this.#import} title=${t('Load settings from a file')}>${icon('upload', { size: 16 })}${t('Import')}</button>`
         : nothing}
     </div>
-    ${settings.notice ? html`<div class="notice" role="status">${icon('warning', { size: 18 })}<span>${t(settings.notice)}</span></div>` : nothing}`;
+    ${settings.notice ? this.#notice(settings) : nothing}`;
+  }
+
+  /**
+   * The settings notice; with a password field the user can log in right here: the password is
+   * stored in the app (like the field in the settings) and the settings are read again.
+   * @param {any} settings
+   */
+  #notice(settings) {
+    const field = settings.passwordField;
+    return html`<div class="notice" role="status">
+      ${icon('warning', { size: 18 })}
+      <div class="notice-body">
+        <span>${t(settings.notice)}</span>
+        ${field
+          ? html`<form class="login" @submit=${(/** @type {SubmitEvent} */ e) => this.#login(e, field)}>
+              <input class="input" type="password" name="password" autocomplete="current-password" required aria-label=${t('BMS password')} placeholder=${t('BMS password')} />
+              <button class="btn small primary" type="submit" ?disabled=${settings.loading || this.loggingIn}>${icon('link', { size: 16 })}${t('Log in and read')}</button>
+            </form>`
+          : nothing}
+      </div>
+    </div>`;
+  }
+
+  /**
+   * @param {SubmitEvent} e
+   * @param {string} field
+   */
+  async #login(e, field) {
+    e.preventDefault();
+    const form = /** @type {HTMLFormElement} */ (e.currentTarget);
+    const input = /** @type {HTMLInputElement} */ (form.elements.namedItem('password'));
+    const password = input.value;
+    if (!password) return;
+    this.loggingIn = true;
+    try {
+      // Storing the password reads the settings again (writeSettings reloads them).
+      await this.ctrl.writeSettings([{ id: field, value: password }], { quiet: true });
+      input.value = '';
+    } finally {
+      this.loggingIn = false;
+    }
   }
 
   /** @param {import('@ubms/bms-core/settings').SettingGroup[]} groups */
