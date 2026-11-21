@@ -19,6 +19,8 @@ Bluetooth LE, [serialport](https://github.com/serialport/serialport-rs) 4 for se
   signals, one reader thread per port, writes, close.
 - `src-tauri/src/history.rs`: the chart history (one NDJSON file per device plus a meta file, in
   a folder next to a portable app or in the user profile) and saving exports into Downloads.
+- `src-tauri/src/plugins.rs`: reads the plugin files (`*.js`) of the `plugins` folder next to the
+  app; the web app loads them ([plugins.md](plugins.md)).
 - `src-tauri/Info.plist`: the macOS Bluetooth usage description.
 - The web app shows an in-app scan list and a port list instead of the browser choosers when it
   runs inside Tauri (`AppController.nativeBle`, `nativeSerial`).
@@ -253,6 +255,35 @@ the window"). `scripts/tauri-mock.js` implements the same commands in memory for
 smoke test (data folder `C:/ubms-mock/history`, portable; a reload of the page keeps the data,
 like files).
 
+### Plugins
+
+Plugins add drivers to the desktop app ([plugins.md](plugins.md)). The bridge only finds and
+reads the files; `apps/web/src/plugins.js` evaluates them and checks their driver definitions.
+
+| Command | Arguments | Result |
+| --- | --- | --- |
+| `plugins_list` | | `{ dirs: string[], plugins: [{ file, source }], errors: [{ file, error }] }` |
+
+Semantics:
+
+- `dirs` are the plugin folders in reading order, also missing ones (the Plugins view shows them),
+  resolved once per run from the path of the executable: Windows and Linux
+  `<folder of the executable>/plugins`; a Linux AppImage (`APPIMAGE` set)
+  `<folder of the AppImage file>/plugins`; macOS `<name>.app/Contents/MacOS/plugins`, then
+  `<folder that contains the .app>/plugins` (only when the executable is in a bundle). The rule
+  is a pure function with unit tests (`plugin_dirs` in plugins.rs).
+- `plugins`: every file whose name ends in `.js` in any case, that is a regular file or a link to
+  one, directly in a folder (not in subfolders); `file` is the file name, `source` the UTF-8 text
+  without a byte order mark. Sorted by file name, case-insensitively (ties by bytes).
+- `errors`: a file larger than 1 MiB (`The file is larger than 1 MiB`), a file that is not UTF-8
+  (`The file is not valid UTF-8 text`), a name already read from an earlier folder (`A plugin with
+  this file name was already read from an earlier folder`), or a read error with the system's
+  text. A folder that exists but cannot be listed gives an entry whose `file` is the folder path
+  (`Could not read the plugin folder: ...`). A missing folder is no error.
+- Read only, on the blocking thread pool; the command itself fails only when the path of the
+  executable is unknown. `scripts/tauri-mock.js` imitates it for the smoke test with the files in
+  `window.__tauriMockPlugins` (folder `C:/ubms-mock/plugins`).
+
 ### Closing the window
 
 The web app writes chart readings in batches every 10 s. A write started on `pagehide` may not
@@ -280,6 +311,7 @@ src-tauri/
   src/serial.rs      serialport: list, open (one reader thread per port), write, close
   src/history.rs     chart history files (NDJSON per key, meta, portable rule), save_file;
                      pure helpers with unit tests
+  src/plugins.rs     plugins_list: plugin folders (pure rule with unit tests), plugin files
   Info.plist         NSBluetoothAlwaysUsageDescription (merged into the macOS bundle)
   tauri.conf.json    withGlobalTauri: true, frontendDist: ../../../dist, macOS minimum 10.15
 ```

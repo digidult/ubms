@@ -27,7 +27,8 @@ after disconnecting it returns to Connect (Charts and Log stay open).
 | `#/info` | Device information | Identity reported by the device and connection details (GATT service and characteristics or port and baud rate, traffic counters). |
 | `#/log` | Protocol log | Live list with filters (sent, raw received, frames, events, warnings, errors, debug), text or hex search, pause, expandable entries (hex dump, decoded fields, copy), export JSON or text, open saved logs. |
 | `#/prefs` | Preferences | Language, theme, refresh interval, keep screen on, advanced settings; history: save on or off, recording interval, how long to keep it, storage location; log size, reset. |
-| `#/more` | More | Device information, preferences, log, disconnect, about. |
+| `#/plugins` | Plugins | Desktop app only (linked from More): security note, plugin folders, loaded plugins with their drivers, files that were not loaded with the reason. In the browser the view only says that plugins need the desktop app. See [plugins.md](plugins.md). |
+| `#/more` | More | Device information, preferences, log, plugins (desktop app), disconnect, about. |
 
 ## Charts
 
