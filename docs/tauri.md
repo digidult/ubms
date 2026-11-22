@@ -26,8 +26,8 @@ Bluetooth LE, [serialport](https://github.com/serialport/serialport-rs) 4 for se
   runs inside Tauri (`AppController.nativeBle`, `nativeSerial`).
 - The JavaScript side of the bridge is covered by the headless smoke test with an imitation of
   the bridge (`scripts/tauri-mock.js`) that feeds the real protocol simulators and mirrors the
-  bridge's behaviour (see the mock's header). The Rust side is built and unit tested on Windows
-  and Linux by `.github/workflows/desktop.yml` (macOS on manual runs).
+  bridge's behaviour (see the mock's header). The Rust side is built and unit tested on Windows,
+  Linux and macOS by `.github/workflows/desktop.yml`.
 
 Build locally (needs Rust and the Tauri prerequisites of your platform, see
 https://v2.tauri.app/start/prerequisites/):
@@ -40,8 +40,9 @@ npm run dev                # in one terminal: Vite dev server
 npm run desktop:dev        # in another terminal: desktop window on the dev server
 ```
 
-Not done yet: installers and code signing, Android and iOS targets, and the hardware checks
-listed under "Open points".
+The installers (NSIS, MSI, portable exe, deb, rpm, AppImage, dmg) are built by
+`.github/workflows/desktop.yml` and published by `.github/workflows/release.yml`. Not done yet:
+code signing, Android and iOS targets, and the hardware checks listed under "Open points".
 
 ## Approach
 
@@ -84,7 +85,9 @@ Adapter state: `state` is `on`, `off`, `unauthorized`, `unavailable` or `unknown
 null when on, otherwise a code the Connect screen turns into a text (`no-adapter`,
 `powered-off`, `permission-denied`, `permission-restricted`, `permission-pending`,
 `permission-unknown`, `error`); `detail` is the system's error text or null. For `error` the
-web app shows `detail`. Only `on` counts as available.
+web app shows `detail`. Only `on` counts as available. `tauri.js` listens to `ble://adapter`
+(`TauriBleProvider.onAvailabilityChange`) and the web app then asks `ble_adapter_state` again,
+so the Connect screen follows the adapter without waiting for a window focus.
 
 Semantics the JavaScript side relies on:
 
@@ -222,8 +225,13 @@ Data folder, chosen once per run by the first rule that applies:
    `<UBMS_DATA_DIR>/exports`, `portable: false`.
 2. A file named `portable` or `ubms.portable` is next to the executable (next to the AppImage
    file for an AppImage): portable, wherever the app is.
-3. An AppImage (`APPIMAGE` set, Linux) is portable in the folder of the AppImage file when that
-   folder is writable, otherwise installed. The executable itself runs from a temporary mount.
+3. An AppImage (Linux) is portable in the folder of the AppImage file when that folder is
+   writable, otherwise installed. The executable itself runs from a temporary mount. The app
+   counts as an AppImage when `APPIMAGE` is set and the executable lies inside `APPDIR` (both
+   made canonical, compared by whole components): the AppImage runtime sets both variables for
+   its whole process tree, so a ubms from a .deb or a development build started from another
+   AppImage (a terminal, an IDE) inherits them and must not use that AppImage's folder. The
+   rule is `own_appimage` in lib.rs, shared with the plugin folders.
 4. An executable in an install location is installed:
    - Windows: `%ProgramFiles%`, `%ProgramFiles(x86)%`, `%ProgramW6432%`, `%ProgramData%` and the
      whole of `%LOCALAPPDATA%`: the Tauri NSIS setup installs per user into
@@ -235,7 +243,10 @@ Data folder, chosen once per run by the first rule that applies:
    - Linux: `/usr`, `/opt`, `/snap`, and a Flatpak (`FLATPAK_ID` set).
 
    Paths compare by whole components (`/usrlocal` is not in `/usr`), case-insensitively on
-   Windows, with the `\\?\` prefix removed.
+   Windows, with the `\\?\` prefix removed. On Windows the executable and the install folders
+   are compared both in the form Windows reports and in their long, resolved form
+   (`fs::canonicalize`), and any match counts: `%TEMP%` is often in the short 8.3 form
+   (`C:\Users\ALEXAN~1\...`) while `%LOCALAPPDATA%` is long.
 5. Anywhere else the app is portable when its folder is writable (probed by creating and
    deleting a file), otherwise installed.
 
@@ -268,8 +279,9 @@ Semantics:
 
 - `dirs` are the plugin folders in reading order, also missing ones (the Plugins view shows them),
   resolved once per run from the path of the executable: Windows and Linux
-  `<folder of the executable>/plugins`; a Linux AppImage (`APPIMAGE` set)
-  `<folder of the AppImage file>/plugins`; macOS `<name>.app/Contents/MacOS/plugins`, then
+  `<folder of the executable>/plugins`; a Linux AppImage (`APPIMAGE` set and the executable
+  inside `APPDIR`, the same rule as for the data folder) `<folder of the AppImage file>/plugins`;
+  macOS `<name>.app/Contents/MacOS/plugins`, then
   `<folder that contains the .app>/plugins` (only when the executable is in a bundle). The rule
   is a pure function with unit tests (`plugin_dirs` in plugins.rs).
 - `plugins`: every file whose name ends in `.js` in any case, that is a regular file or a link to
@@ -358,7 +370,9 @@ Platform notes:
 - Windows keeps a link alive only while the app holds GATT objects; with an active subscription
   this is expected to be stable, not yet observed on hardware.
 - The portable rule is covered by unit tests on paths; it has not been tried yet with the real
-  NSIS and MSI installs, an AppImage, a .deb package and a macOS bundle.
+  NSIS and MSI installs, an AppImage, a .deb package and a macOS bundle. Not tried either: a
+  .deb build started from another AppImage, and an exe started from an archive under a profile
+  whose `%TEMP%` is in the 8.3 form.
 - Closing the window: whether readings of the last 10 s were lost on close before the close
   handler, and that the window still closes (permission `core:window:allow-destroy`) on Windows,
   macOS and Linux. Check: connect, wait 3 s after a write, close, count the lines of the record

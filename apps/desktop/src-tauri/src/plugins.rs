@@ -7,8 +7,9 @@
 //!
 //! - Folders, resolved once per run from the path of the executable (`plugin_dirs`, pure and
 //!   unit tested like the portable rule in `history.rs`): Windows and Linux `<folder of the
-//!   executable>/plugins`; a Linux AppImage (`APPIMAGE` set) `<folder of the AppImage
-//!   file>/plugins`, because the executable runs from a temporary mount; macOS
+//!   executable>/plugins`; a Linux AppImage (`APPIMAGE` set and the executable inside `APPDIR`,
+//!   see `current_appimage` in lib.rs) `<folder of the AppImage file>/plugins`, because the
+//!   executable runs from a temporary mount; macOS
 //!   `<name>.app/Contents/MacOS/plugins` and `<folder that contains the .app>/plugins` (the
 //!   second one is where users can put files without opening the bundle).
 //! - Every `*.js` file (the extension in any case) that is a regular file, or a link to one, in
@@ -114,7 +115,7 @@ fn bundle_parent(dir: &str) -> Option<&str> {
 }
 
 /// The plugin folders of an executable at `exe` (a path in the syntax of `os`), in reading order.
-/// `appimage` is the value of `APPIMAGE`, which only counts on Linux.
+/// `appimage` is the AppImage file of this run (`current_appimage`), which only counts on Linux.
 fn plugin_dirs(os: Os, exe: &str, appimage: Option<&str>) -> Vec<String> {
     let base = match appimage {
         Some(image) if os == Os::Linux && !image.is_empty() => image,
@@ -138,7 +139,8 @@ fn current_dirs() -> Result<Vec<PathBuf>, String> {
     static DIRS: OnceLock<Result<Vec<PathBuf>, String>> = OnceLock::new();
     DIRS.get_or_init(|| {
         let exe = std::env::current_exe().map_err(err)?;
-        let appimage = std::env::var_os("APPIMAGE").map(|value| value.to_string_lossy().into_owned());
+        // Only the AppImage this executable runs from, not one inherited from the parent process.
+        let appimage = crate::current_appimage(&exe).map(|image| image.to_string_lossy().into_owned());
         let dirs = plugin_dirs(Os::current(), &exe.to_string_lossy(), appimage.as_deref());
         Ok(dirs.into_iter().map(PathBuf::from).collect())
     })

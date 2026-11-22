@@ -316,6 +316,7 @@ fn write_all_within(port: &mut dyn SerialPort, mut data: &[u8], limit: Duration)
             Err(e) => return Err(e),
         }
         if !data.is_empty() && start.elapsed() > limit {
+            // Also listed in packages/transport/src/tauri.js BRIDGE_ERRORS; change both together.
             return Err(io::Error::new(io::ErrorKind::TimedOut, "Serial write timed out"));
         }
     }
@@ -324,6 +325,7 @@ fn write_all_within(port: &mut dyn SerialPort, mut data: &[u8], limit: Duration)
 
 #[tauri::command]
 pub async fn serial_write(state: State<'_, SerialState>, handle: String, data: Vec<u8>) -> Result<(), String> {
+    // Also listed in packages/transport/src/tauri.js BRIDGE_ERRORS; change both together.
     let port = state.get(&handle).ok_or_else(|| "Serial port is not open".to_string())?;
     let outcome = tauri::async_runtime::spawn_blocking(move || {
         let mut writer = port.writer.lock().unwrap_or_else(PoisonError::into_inner);

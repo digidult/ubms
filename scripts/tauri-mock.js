@@ -32,7 +32,8 @@
  * - Arguments of the wrong type fail like Tauri's argument check ("invalid args `x` for command").
  *
  * window.__tauriMock.dropBle(id) and .dropSerial(handle) simulate a remote close, .requestClose()
- * a click on the window's close button (resolves with { handlers, destroyed }). .calls counts the
+ * a click on the window's close button (resolves with { handlers, destroyed }). .setAdapter(status)
+ * changes the answer of ble_adapter_state and emits ble://adapter. .calls counts the
  * invoke calls per command; .historyKeys, .historyLines(key), .historyMeta(key) and .savedFiles
  * show what the app stored and saved.
  */
@@ -43,6 +44,8 @@
     for (const h of [...(listeners.get(event) ?? [])]) h({ event, payload });
   };
   const FFE0 = '0000ffe0-0000-1000-8000-00805f9b34fb';
+  /** Answer of ble_adapter_state, changed by __tauriMock.setAdapter(). */
+  let adapter = { state: 'on', reason: null, detail: null };
   const FFE1 = '0000ffe1-0000-1000-8000-00805f9b34fb';
   /** GATT property bits (0x02 read, 0x04 write without response, 0x08 write, 0x10 notify, 0x20 indicate). */
   const props = (bits) => ({
@@ -361,7 +364,7 @@
           case 'plugins_list':
             return pluginsList();
           case 'ble_adapter_state':
-            return { state: 'on', reason: null, detail: null };
+            return { ...adapter };
           case 'ble_scan_start': {
             stopScan();
             DEVICES.forEach((d, i) => {
@@ -453,6 +456,11 @@
   };
 
   window.__tauriMock = {
+    /** The adapter is switched on or off: later ble_adapter_state calls answer `status`. */
+    setAdapter(status) {
+      adapter = { state: 'on', reason: null, detail: null, ...status };
+      emit('ble://adapter', { ...adapter });
+    },
     /** The device dropped the link: the bridge forgets the connection, then reports it. */
     dropBle(id) {
       if (!ble.has(id)) return false;

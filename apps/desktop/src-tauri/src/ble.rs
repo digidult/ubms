@@ -58,6 +58,7 @@ const SETTLE: Duration = Duration::ZERO;
 
 // Texts the web app shows. Where the meaning matches, they equal the web app's own strings, so
 // the existing translations apply.
+// Also listed in packages/transport/src/tauri.js BRIDGE_ERRORS; change both together.
 const NOT_CONNECTED: &str = "Bluetooth device is not connected";
 const NOT_FOUND: &str = "Device not found, scan again";
 const TIMED_OUT: &str = "Bluetooth connection timed out";
@@ -606,6 +607,7 @@ pub async fn ble_scan_start(
     }
     let outcome = match timeout(SCAN_START_TIMEOUT, started_rx).await {
         Ok(Ok(result)) => result,
+        // Also listed in packages/transport/src/tauri.js BRIDGE_ERRORS; change both together.
         Ok(Err(_)) => Err("The Bluetooth scan stopped".to_string()),
         Err(_) => Err("The Bluetooth scan did not start".to_string()),
     };
@@ -952,6 +954,7 @@ async fn establish(app: &AppHandle, adapter: &Adapter, device: &Device, id: &str
         found.services.push(ServiceInfo { uuid: service_uuid.to_string(), characteristics: infos });
     }
     if found.chars.is_empty() {
+        // Also listed in packages/transport/src/tauri.js BRIDGE_ERRORS; change both together.
         return Err("The device did not report any GATT characteristics".to_string());
     }
     Ok(found)
@@ -1153,6 +1156,7 @@ pub async fn ble_subscribe(
     // Wait for the CCCD write, so its errors reach JavaScript.
     let started = match timeout(SUBSCRIBE_TIMEOUT, started_rx).await {
         Ok(Ok(result)) => result,
+        // Also listed in packages/transport/src/tauri.js BRIDGE_ERRORS; change both together.
         Ok(Err(_)) => Err("Notifications could not be enabled".to_string()),
         Err(_) => Err("Enabling notifications timed out".to_string()),
     };
@@ -1258,6 +1262,7 @@ pub async fn ble_write(
     let outcome = timeout(WRITE_TIMEOUT, write).await;
     match outcome {
         Ok(result) => result.map_err(err),
+        // Also listed in packages/transport/src/tauri.js BRIDGE_ERRORS; change both together.
         Err(_) => Err("Bluetooth write timed out".to_string()),
     }
 }

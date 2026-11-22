@@ -146,9 +146,13 @@ impl Os {
 /// testable on every platform (paths are plain strings in the syntax of `os`).
 struct Facts<'a> {
     os: Os,
-    /// Path of the running executable.
+    /// Path of the running executable, in the form it was started with.
     exe: &'a str,
-    /// Linux: started from an AppImage (`APPIMAGE` set); the base folder is the AppImage's.
+    /// Windows: the long, resolved form of `exe` (short 8.3 names such as `ALEXAN~1` expanded),
+    /// when it is known. The install rule accepts a match of either form.
+    exe_resolved: Option<&'a str>,
+    /// Linux: started from its own AppImage (`APPIMAGE` set and the executable inside `APPDIR`,
+    /// see `current_appimage` in lib.rs); the base folder is the AppImage's.
     appimage: bool,
     /// Linux: running inside a Flatpak (`FLATPAK_ID` set).
     flatpak: bool,
@@ -208,10 +212,9 @@ fn install_location(facts: &Facts) -> Option<String> {
             if facts.uninstaller {
                 return Some("An uninstaller is next to the app (installed by the setup program)".to_string());
             }
-            facts
-                .install_roots
-                .iter()
-                .find(|root| within(facts.exe, root.as_str(), Os::Windows))
+            std::iter::once(facts.exe)
+                .chain(facts.exe_resolved)
+                .find_map(|exe| facts.install_roots.iter().find(|root| within(exe, root.as_str(), Os::Windows)))
                 .map(|root| format!("The app is in an install location ({root})"))
         }
         Os::MacOs => {
@@ -280,6 +283,29 @@ fn install_roots(os: Os) -> Vec<String> {
         .collect()
 }
 
+/// `paths` followed by the other forms `resolve` gives for them, without duplicates. Windows
+/// reports a path in the form it was given: `%TEMP%` is often in the short 8.3 form
+/// (`C:\Users\ALEXAN~1\...`) while `%LOCALAPPDATA%` is long, so the install rule compares every
+/// form of the executable with every form of the install folders. Keeping the original forms
+/// means resolving a junction, a subst drive or a mapped drive never hides a match either.
+fn with_resolved(paths: Vec<String>, resolve: impl Fn(&str) -> Option<String>) -> Vec<String> {
+    let mut all = paths.clone();
+    for path in &paths {
+        if let Some(other) = resolve(path) {
+            if !all.contains(&other) {
+                all.push(other);
+            }
+        }
+    }
+    all
+}
+
+/// The long, resolved form of an existing path (`fs::canonicalize`, which also expands 8.3
+/// names), or None when it cannot be resolved.
+fn resolved(path: &str) -> Option<String> {
+    fs::canonicalize(path).ok().map(|path| path.to_string_lossy().into_owned())
+}
+
 /// Probes a folder by creating and deleting a file in it.
 fn dir_writable(dir: &Path) -> bool {
     let nanos = SystemTime::now().duration_since(UNIX_EPOCH).map_or(0, |d| d.subsec_nanos());
@@ -302,7 +328,8 @@ fn resolve_location(app: &AppHandle) -> Result<Location, String> {
     let os = Os::current();
     let exe = std::env::current_exe().map_err(err)?;
     let appimage = match os {
-        Os::Linux => std::env::var_os("APPIMAGE").filter(|value| !value.is_empty()).map(PathBuf::from),
+        // Only the AppImage this executable runs from, not one inherited from the parent process.
+        Os::Linux => crate::current_appimage(&exe),
         Os::Windows | Os::MacOs => None,
     };
     let base: Option<PathBuf> = appimage
@@ -314,10 +341,13 @@ fn resolve_location(app: &AppHandle) -> Result<Location, String> {
     let decision = match &base {
         Some(base) => {
             let exe_text = exe.to_string_lossy();
-            let roots = install_roots(os);
+            // The base folder stays the one of the original path; only the comparison uses both.
+            let exe_resolved = if os == Os::Windows { resolved(&exe_text) } else { None };
+            let roots = with_resolved(install_roots(os), resolved);
             let facts = Facts {
                 os,
                 exe: &*exe_text,
+                exe_resolved: exe_resolved.as_deref(),
                 appimage: appimage.is_some(),
                 flatpak: std::env::var_os("FLATPAK_ID").is_some_and(|value| !value.is_empty()),
                 install_roots: &roots,
@@ -949,7 +979,7 @@ mod tests {
     }
 
     fn facts<'a>(os: Os, exe: &'a str, roots: &'a [String]) -> Facts<'a> {
-        Facts { os, exe, appimage: false, flatpak: false, install_roots: roots, marker: false, uninstaller: false }
+        Facts { os, exe, exe_resolved: None, appimage: false, flatpak: false, install_roots: roots, marker: false, uninstaller: false }
     }
 
     fn windows_roots() -> Vec<String> {
@@ -1086,6 +1116,30 @@ mod tests {
         assert_eq!(read_only, Decision::installed("The app folder is not writable"));
         let downloads = r"C:\Users\Ann\Downloads\ubms-desktop.exe";
         assert!(decide(&facts(Os::Windows, downloads, &roots), || true).portable);
+    }
+
+    #[test]
+    fn windows_short_names_still_find_the_install_location() {
+        // An archiver starts the exe from %TEMP%, which Windows often gives in the 8.3 form,
+        // while %LOCALAPPDATA% is long.
+        let long_local = r"C:\Users\Alexander\AppData\Local";
+        let short_exe = r"C:\Users\ALEXAN~1\AppData\Local\Temp\7zO12AB\ubms-desktop.exe";
+        let long_exe = r"\\?\C:\Users\Alexander\AppData\Local\Temp\7zO12AB\ubms-desktop.exe";
+        let never = || -> bool { panic!("no write probe for an install location") };
+        let roots = vec![long_local.to_string()];
+        assert!(decide(&facts(Os::Windows, short_exe, &roots), || true).portable, "string forms alone do not match");
+        let mut started_short = facts(Os::Windows, short_exe, &roots);
+        started_short.exe_resolved = Some(long_exe);
+        assert!(!decide(&started_short, never).portable, "the resolved form of the exe matches");
+
+        // A short root is resolved too, and the original forms stay in the list.
+        let expand = |path: &str| -> Option<String> { Some(path.replace("ALEXAN~1", "Alexander")) };
+        let roots = with_resolved(vec![r"C:\Users\ALEXAN~1\AppData\Local".to_string()], expand);
+        assert_eq!(roots, vec![r"C:\Users\ALEXAN~1\AppData\Local".to_string(), long_local.to_string()]);
+        let exe = r"C:\Users\Alexander\AppData\Local\Temp\Temp1_ubms.zip\ubms-desktop.exe";
+        assert!(!decide(&facts(Os::Windows, exe, &roots), never).portable);
+        assert_eq!(with_resolved(vec!["a".to_string(), "b".to_string()], |_| None), vec!["a", "b"]);
+        assert_eq!(with_resolved(vec!["a".to_string()], |p| Some(p.to_string())), vec!["a"], "no duplicates");
     }
 
     #[test]
