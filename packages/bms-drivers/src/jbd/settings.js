@@ -170,7 +170,7 @@ export function buildJbdSchema({ unit100 = false, missing = new Set(), ble = fal
   };
   const local = () => {
     if (ble) {
-      add(field('jbd.module_password', { label: msg('Bluetooth module password'), group: 'identity', type: 'text', maxLength: 6, description: MODULE_PASSWORD, meta: { kind: 'local', option: 'password' } }));
+      add(field('jbd.module_password', { label: msg('Bluetooth module password'), group: 'identity', type: 'text', maxLength: 6, description: MODULE_PASSWORD, secret: true, meta: { kind: 'local', option: 'password' } }));
       add(field('jbd.module_address', { label: msg('Bluetooth device address'), group: 'identity', type: 'text', maxLength: 17, description: MODULE_ADDRESS, meta: { kind: 'local', option: 'address' } }));
     }
   };
@@ -332,7 +332,7 @@ export function buildJbdSchema({ unit100 = false, missing = new Set(), ble = fal
   reg('jbd.production_date', 0x15, { label: msg('Production date'), type: 'text', ...id, description: STORED });
   reg('jbd.cycle_count', 0x17, { label: msg('Cycle count (EEPROM)'), decimals: 0, ...id, advanced: true, description: msg('Cycle counter kept by the BMS, shown only.') });
   local();
-  add(field('jbd.bms_password', { label: msg('BMS password'), group: 'identity', type: 'text', maxLength: 6, advanced: true, description: BMS_PASSWORD, meta: { kind: 'local', option: 'bmsPassword' } }));
+  add(field('jbd.bms_password', { label: msg('BMS password'), group: 'identity', type: 'text', maxLength: 6, advanced: true, description: BMS_PASSWORD, secret: true, meta: { kind: 'local', option: 'bmsPassword' } }));
 
   // Actions (0x0A, spec 8.3): only the codes with two sources
   add(field('jbd.reset_capacity', { label: msg('Recalculate remaining capacity'), group: 'actions', type: 'action', danger: true, description: RESET_CAPACITY, meta: { kind: 'control', code: CONTROL.RESET_CAPACITY } }));

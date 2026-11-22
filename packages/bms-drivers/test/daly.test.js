@@ -34,6 +34,7 @@ import {
   modbusRegisters,
   p81Alarms,
   parseClassic,
+  parseD2Password,
   parseD2Status,
   parseModbusRequest,
   parseModbusResponse,
@@ -41,7 +42,7 @@ import {
   validateClassic,
   withCrc,
 } from '../src/daly/protocol.js';
-import { buildClassicSchema, buildD2Schema, buildP81Schema, decodeClassicSettings, setGroupValue } from '../src/daly/settings.js';
+import { D2_SETTING_BLOCKS, buildClassicSchema, buildD2Schema, buildP81Schema, decodeClassicSettings, decodeRegisterSettings, setGroupValue } from '../src/daly/settings.js';
 import { dalyDrivers, createDalySimulator, createDalyModbusSimulator, CurrentSign, d2Snapshot } from '../src/daly/index.js';
 import { drivers } from '../src/index.js';
 
@@ -112,6 +113,8 @@ function modbusView(v) {
   assert.notEqual(start, undefined, `${v.id}: no start register known`);
   /** @type {Record<string, any>} */
   const o = decodeModbusResponse(frame, start);
+  // The log decoder masks the password; the vectors give the text the frame carries.
+  if (start === 0x00c9) Object.assign(o, parseD2Password(frame));
   const regs = modbusRegisters(frame);
   const data = modbusData(frame);
   o.allFF = Array.from(data).every((b) => b === 0xff);
@@ -667,7 +670,8 @@ test('session: Modbus D2 driver with the simulator', async () => {
   assert.equal(values['discharge.ocp'], 200);
   assert.equal(values['mos.otp'], 85);
   assert.equal(values['system.battery_type'], 0);
-  assert.equal(values['identity.password'], '123456');
+  assert.equal(values['identity.password'], undefined, 'the parameter password is not read (spec 4.5)');
+  assert.ok(!sim.received.some((f) => f[1] === 0x03 && ((f[2] << 8) | f[3]) === 0x00c9), 'no read of 0x00C9');
   assert.equal(values['daly.invert_current'], false);
   assert.equal(
     settings.schema?.groups.flatMap((g) => g.fields).some((f) => f.id === 'switch.balance'),
@@ -804,3 +808,151 @@ test('D2 snapshot from captured frames', () => {
     ['t1', 't2', 't3', 't4', 'mos'],
   );
 });
+
+test('D2 schema: sleep delay limits, no password field, cell counts of the boards that exist', () => {
+  const d2 = fieldMap(buildD2Schema());
+  const sleep = /** @type {any} */ (d2.get('system.sleep_delay'));
+  assert.deepEqual([sleep.min, sleep.max], [10, 65535], 'no 0 s sleep time (spec 7.8)');
+  assert.ok(sleep.description);
+  assert.equal(d2.has('identity.password'), false);
+  assert.equal(fieldMap(buildP81Schema()).has('identity.password'), false);
+  assert.ok(!D2_SETTING_BLOCKS.some((b) => b.start === 0x00c9), 'the password block is not read');
+  /** @param {number} boards */
+  const regs = (boards) => new Map([[0x0082, boards], [0x0083, 16], [0x0084, 6], [0x0085, 6], [0x0086, 2], [0x0087, 1], [0x0088, 1]]);
+  // Settings block of a balancer with one board (daly-balancer.md 12 item 4).
+  let v = decodeRegisterSettings(buildD2Schema(), regs(1));
+  assert.deepEqual([v['system.cell_count'], v['system.temp_sensor_count']], [16, 2]);
+  v = decodeRegisterSettings(buildD2Schema(), regs(3));
+  assert.deepEqual([v['system.cell_count'], v['system.temp_sensor_count']], [28, 4]);
+  v = decodeRegisterSettings(buildD2Schema(), regs(0));
+  assert.equal(v['system.cell_count'], 28, 'an implausible board count sums every board');
+});
+
+test('log decoder masks the parameter password of D2 and 0x81 frames', () => {
+  const d2 = fromHex(/** @type {any} */ (vectors.find((v) => v.id === 'd2-rx-password')).hex);
+  const o = /** @type {any} */ (decodeModbusResponse(d2, 0x00c9));
+  assert.equal(o.password, '******');
+  assert.deepEqual(o.registers, [0x2a2a, 0x2a2a, 0x2a2a]);
+  assert.equal(parseD2Password(d2).password, '123456', 'the protocol parser still reads it');
+  const p81 = fromHex(/** @type {any} */ (vectors.find((v) => v.id === 'p81-rx-settings1-ess')).hex);
+  const s = /** @type {any} */ (decodeModbusResponse(p81, 0x0100));
+  assert.equal(s.password, '******');
+  assert.deepEqual(s.registers.slice(0x26, 0x29), [0x2a2a, 0x2a2a, 0x2a2a]);
+  assert.equal(s.registers[0x15], 65535, 'other registers stay');
+  assert.ok(!JSON.stringify(s).includes('123456'));
+});
+
+test('D2 snapshot: balancer state 2 (active balancing) counts as balancing', () => {
+  const st = parseD2Status(fromHex(/** @type {any} */ (vectors.find((v) => v.id === 'd2-rx-status62-4s-charging-uart')).hex));
+  for (const [state, active] of [[0, false], [1, true], [2, true]]) {
+    assert.equal(d2Snapshot({ ...st, balancerState: state }, { current: 0 }).balancingActive, active, `state ${state}`);
+  }
+});
+
+test('session: lost D2 MOSFET block replies pause the read instead of dropping it for the connection', async () => {
+  const { session, host, device } = setup();
+  session.pollIntervalMs = 200;
+  await device.open();
+  let drop = 0;
+  const write = device.write.bind(device);
+  // Replies to the 9 register read of 0x003E (byte count 18); no other block has that size.
+  device.write = (/** @type {Uint8Array} */ bytes, /** @type {any} */ meta) => {
+    if (drop > 0 && bytes[0] === 0xd2 && bytes[1] === 0x03 && bytes[2] === 18) {
+      drop--;
+      return Promise.resolve();
+    }
+    return write(bytes, meta);
+  };
+  const sim = createDalyModbusSimulator(device, { tickMs: 0 });
+  const mosReads = () => sim.received.filter((f) => f[1] === 0x03 && u16(f, 2) === 0x003e).length;
+  const mosTemp = () => session.snapshot?.temperatures?.find((t) => t.id === 'mos')?.value;
+  try {
+    await session.connect({ kind: 'link', link: host, selection: 'daly-modbus' });
+    await waitFor(() => mosTemp() !== undefined);
+    drop = 1;
+    let n = mosReads();
+    await waitFor(() => mosReads() >= n + 2);
+    assert.notEqual(mosTemp(), undefined, 'one lost reply keeps the values and the read');
+    drop = 2;
+    n = mosReads();
+    await waitFor(() => drop === 0 && mosTemp() === undefined);
+    assert.equal(mosTemp(), undefined, 'two lost replies drop the values while the read is paused');
+    n = mosReads();
+    await waitFor(() => mosTemp() !== undefined, 15000);
+    assert.equal(mosReads(), n + 1, 'read again after the pause');
+  } finally {
+    await session.disconnect();
+    sim.stop();
+  }
+});
+
+test('session: settings of a silent Daly BMS give up early with the asleep message', async () => {
+  // Classic: the first two groups and one SOC read, not all 14 groups.
+  {
+    const { session, host, device } = setup();
+    session.pollIntervalMs = 100000;
+    await device.open();
+    const sim = createDalySimulator(device, { tickMs: 0 });
+    try {
+      await session.connect({ kind: 'link', link: host, selection: 'daly' });
+      await quiet(sim.received); // the device info read after connecting is done
+      sim.state.drop = 1e9;
+      const n = sim.received.length;
+      const settings = await session.loadSettings();
+      assert.match(String(settings.error), /asleep or out of range/);
+      const cmds = sim.received.slice(n).map((f) => f[2]);
+      assert.deepEqual([...new Set(cmds)], [CMD.RATED, CMD.BOARDS, CMD.SOC]);
+    } finally {
+      await session.disconnect();
+      sim.stop();
+    }
+  }
+  // D2: the first block and one status read.
+  {
+    const { session, host, device } = setup();
+    session.pollIntervalMs = 100000;
+    await device.open();
+    const sim = createDalyModbusSimulator(device, { tickMs: 0 });
+    try {
+      await session.connect({ kind: 'link', link: host, selection: 'daly-modbus' });
+      await quiet(sim.received); // the device info read after connecting is done
+      sim.state.sleepUntil = Date.now() + 10 * 60 * 1000;
+      const n = sim.received.length;
+      const settings = await session.loadSettings();
+      assert.match(String(settings.error), /asleep or out of range/);
+      assert.deepEqual([...new Set(sim.received.slice(n).map((f) => u16(f, 2)))], [0x0080, 0x0000]);
+    } finally {
+      await session.disconnect();
+      sim.stop();
+    }
+  }
+});
+
+/** @param {Uint8Array} b @param {number} at */
+function u16(b, at) {
+  return (b[at] << 8) | b[at + 1];
+}
+
+/**
+ * Wait until no request arrived for 500 ms.
+ * @param {Uint8Array[]} received
+ */
+async function quiet(received) {
+  for (let n = -1; n !== received.length; ) {
+    n = received.length;
+    await new Promise((r) => setTimeout(r, 500));
+  }
+}
+
+/**
+ * @param {() => any} fn
+ * @param {number} [timeout]
+ */
+async function waitFor(fn, timeout = 5000) {
+  const end = Date.now() + timeout;
+  while (Date.now() < end) {
+    if (fn()) return;
+    await new Promise((r) => setTimeout(r, 10));
+  }
+  throw new Error('condition not met in time');
+}

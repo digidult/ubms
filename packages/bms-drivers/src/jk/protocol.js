@@ -444,9 +444,10 @@ const CELL_INFO_TABLE = [
   ['chargeCurrentSensorVoltage', 190, 222, 'u16', 0.001],
   ['dischargeCurrentSensorVoltage', 192, 224, 'u16', 0.001],
   ['batteryVoltageCorrection', 194, 226, 'f32'],
-  // On JK02_24S this slot is not the pack voltage (spec 6.1), so it is not decoded there.
+  // On JK02_24S neither slot is decoded (spec 6.1): bytes 202..205 there are one i32 of unknown
+  // meaning (captures 1250, 2221, -457, -251), not the pack voltage and the heating current.
   ['totalVoltage2', null, 234, 'u16', 0.01],
-  ['heatingCurrent', 204, 236, 'i16', 0.001],
+  ['heatingCurrent', null, 236, 'i16', 0.001],
   ['chargerPlugged', null, 245, 'bool8'],
   ['sysRunTicks', null, 246, 'u32'],
   ['temperature3', null, 254, 'temp'],
@@ -743,7 +744,7 @@ export function encodeSettings(s, variant = VARIANT.JK02_32S, counter = 0) {
 // Device info frame (type 0x03), spec 6.3 and 10
 // ---------------------------------------------------------------------------------------------
 
-/** ASCII fields: name, offset, length. Passcodes are decoded for the log only. */
+/** ASCII fields: name, offset, length. Passcodes are masked when decoded (see PASSCODES). */
 const DEVICE_STRINGS = /** @type {Array<[string, number, number]>} */ ([
   ['model', 6, 16],
   ['hardwareVersion', 22, 8],
@@ -757,6 +758,9 @@ const DEVICE_STRINGS = /** @type {Array<[string, number, number]>} */ ([
   ['setupPasscode', 118, 16],
   ['userData2', 134, 16],
 ]);
+
+/** Device info strings that are passwords: decoded as one asterisk per character, like ANT logins. */
+const PASSCODES = new Set(['devicePasscode', 'setupPasscode']);
 
 /** Numeric device info fields; everything from byte 134 on is JK02_32S only. */
 const DEVICE_NUMBERS = specs([
@@ -816,7 +820,10 @@ export const JK02_DEVICE_SETTINGS = [
 export function parseDeviceInfo(frame) {
   /** @type {Record<string, any>} */
   const out = { frameType: frame[4], frameCounter: frame[5] };
-  for (const [name, o, len] of DEVICE_STRINGS) out[name] = ascii(frame, o, len);
+  for (const [name, o, len] of DEVICE_STRINGS) {
+    const text = ascii(frame, o, len);
+    out[name] = PASSCODES.has(name) ? '*'.repeat(text.length) : text;
+  }
   for (const s of DEVICE_NUMBERS) out[s.name] = readField(frame, s);
   out.checksumValid = sum8(frame, 0, 299) === frame[299];
   return out;

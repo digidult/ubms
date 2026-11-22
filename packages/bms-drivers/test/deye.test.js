@@ -390,6 +390,9 @@ test('snapshot: LVESS15 pack, presumed current offset, alarm bytes, unknown MOSF
   assert.equal(s.capacityNominal, undefined, 'type 27 is in no list');
   assert.equal(aa55Info(main, { protocol: 'x' }).extra?.currentEncoding.value, 'Offset 30000 (not confirmed)');
   assert.equal(aa55Info(main, { protocol: 'x' }).extra?.batteryType.value, '27');
+  // Code 0 was never set: a translatable text, not the vendor tool word "undefined".
+  assert.equal(aa55Info({ ...main, batteryType: 0 }, { protocol: 'x' }).extra?.batteryType.value, 'Not set');
+  assert.equal(P.batteryTypeText(0), 'Not set');
   // Current decoding: both ranges, rejected values.
   assert.deepEqual(P.decodeCurrent(3000), { offset: 3000, current: 0 });
   assert.deepEqual(P.decodeCurrent(2000), { offset: 3000, current: -100 });

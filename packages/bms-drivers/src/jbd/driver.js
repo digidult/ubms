@@ -448,13 +448,14 @@ export class JbdDriver extends BaseDriver {
   }
 
   /**
-   * Basic information with the plausibility rules of spec 11.2 step 3: the full rule for the
-   * detection (`strict`), the structural part otherwise, so an open NTC does not stop polling.
-   * @param {{ timeout?: number, retries?: number, strict?: boolean }} [opts]
+   * Basic information with the structural plausibility rules of spec 11.2 step 3, for the
+   * detection and the polling alike: an open or shorted NTC does not stop the connection, a
+   * reconnect or the polling.
+   * @param {{ timeout?: number, retries?: number }} [opts]
    */
-  async #readBasic({ strict = false, ...opts } = {}) {
+  async #readBasic(opts = {}) {
     const data = await this.#readData(REG.BASIC, opts);
-    const problem = basicProblem(data, { strict });
+    const problem = basicProblem(data, { strict: false });
     if (problem) {
       this.log?.warn(`JBD 0x03 answer ignored, implausible ${problem}`, { source: this.definition.id });
       const err = new Error(IMPLAUSIBLE);
@@ -666,7 +667,7 @@ export class JbdDriver extends BaseDriver {
   /** @param {number} perTry */
   async #probeBasic(perTry) {
     try {
-      return await this.#readBasic({ timeout: perTry, retries: 1, strict: true });
+      return await this.#readBasic({ timeout: perTry, retries: 1 });
     } catch (err) {
       if (!isTimeout(err) && /** @type {any} */ (err)?.code !== 'IMPLAUSIBLE' && /** @type {any} */ (err)?.code !== 'STATUS') this.log?.warn(errorText(err), { source: this.definition.id });
       return null;
@@ -881,25 +882,35 @@ export class JbdDriver extends BaseDriver {
       const regs = new Map();
       /** @type {Set<number>} */
       const missing = new Set();
-      await this.#factory(
-        async () => {
-          let silent = 0;
-          for (const register of SETTINGS_REGISTERS) {
-            const optional = OPTIONAL_REGISTERS.includes(register);
-            try {
-              regs.set(register, await this.#readData(register, { retries: optional ? 0 : 1 }));
-              silent = 0;
-            } catch (err) {
-              if (/** @type {any} */ (err)?.code === 'STATUS' || optional) missing.add(register);
-              this.log?.event(`JBD register ${h2(register)}: ${errorText(err)}`, { source: this.definition.id });
-              // A BMS that stopped answering would cost 3 s per register: give up after three
-              // unanswered core registers (older firmware may not answer the optional ones).
-              if (isTimeout(err) && !optional && ++silent >= 3) throw new Error(msg('The BMS stopped answering the settings requests'));
+      try {
+        await this.#factory(
+          async () => {
+            let silent = 0;
+            for (const register of SETTINGS_REGISTERS) {
+              const optional = OPTIONAL_REGISTERS.includes(register);
+              try {
+                regs.set(register, await this.#readData(register, { retries: optional ? 0 : 1 }));
+                silent = 0;
+              } catch (err) {
+                if (/** @type {any} */ (err)?.code === 'STATUS' || optional) missing.add(register);
+                this.log?.event(`JBD register ${h2(register)}: ${errorText(err)}`, { source: this.definition.id });
+                // A BMS that stopped answering would cost 3 s per register: give up after three
+                // unanswered core registers (older firmware may not answer the optional ones).
+                if (isTimeout(err) && !optional && ++silent >= 3) throw new Error(msg('The BMS stopped answering the settings requests'));
+              }
             }
-          }
-        },
-        { save: false },
-      );
+          },
+          { save: false },
+        );
+      } catch (err) {
+        const e = /** @type {any} */ (err);
+        if (e?.code !== 'STATUS' || e.register !== REG.FACTORY_ENTER) throw err;
+        // A BMS password (spec 4.4): the values that need no factory mode, and the password field
+        // right next to the notice, so the user can enter it and read again.
+        this.settingsNotice = msg('The BMS refused factory mode, so its settings cannot be read. If it has a BMS password, enter it here.');
+        this.settingsPasswordField = 'jbd.bms_password';
+        return { ...(await this.#mosValues()), ...this.#localValues() };
+      }
       if (!regs.size) throw new Error(msg('The BMS did not answer the settings requests'));
       this.regs = regs;
       this.missing = missing;
@@ -907,17 +918,21 @@ export class JbdDriver extends BaseDriver {
       this.unit100 = !!fc && fc.length === 2 && ((word(fc) >> FUNC_UNIT_BIT) & 1) === 1;
       this.#rebuildSchema();
       const values = decodeJbdSettings(this.schema, regs, { unit100: this.unit100 });
-      try {
-        const b = await this.#readBasic();
-        values['switch.charge'] = b.chargeMos;
-        values['switch.discharge'] = b.dischargeMos;
-      } catch (err) {
-        this.log?.warn(`JBD MOSFET state: ${errorText(err)}`, { source: this.definition.id });
-      }
-      Object.assign(values, this.#localValues());
+      Object.assign(values, await this.#mosValues(), this.#localValues());
       this.#publishFactoryInfo(values);
       return values;
     });
+  }
+
+  /** Values of the MOSFET switches from a fresh 0x03 (none when it is not answered). */
+  async #mosValues() {
+    try {
+      const b = await this.#readBasic();
+      return { 'switch.charge': b.chargeMos, 'switch.discharge': b.dischargeMos };
+    } catch (err) {
+      this.log?.warn(`JBD MOSFET state: ${errorText(err)}`, { source: this.definition.id });
+      return {};
+    }
   }
 
   /** @param {Record<string, any>} values */
@@ -988,6 +1003,9 @@ export class JbdDriver extends BaseDriver {
    * - a MOSFET that 0x03 reports on is not held by 0xE1, so it is never commanded off;
    * - with the software lock bit 12 clear nothing is held by 0xE1 (the switch was released by
    *   another app or a power cycle), so the saved command is stale and dropped;
+   * - an off MOSFET under bit 12 with no other protection bit can only be held by 0xE1 (ubms
+   *   rule, unverified for all firmware), so it is kept off even when the saved command says
+   *   otherwise (another app changed 0xE1, or the answer to the last 0xE1 was lost);
    * - otherwise the saved command decides; without one, an off MOSFET under bit 12 is kept off.
    *   Bit 12 does not tell which MOSFET it holds: when other protection bits are set too, the
    *   MOSFET may be held by a protection instead, which is logged.
@@ -1001,6 +1019,7 @@ export class JbdDriver extends BaseDriver {
     const saved = raw && typeof raw === 'object' ? raw : null;
     if (!softLock) delete this.options[MOS_COMMAND];
     if (otherOn || !softLock) return false;
+    if ((b.protectionBits & ~SOFT_LOCK) === 0) return true;
     if (saved) return !!saved[`${other}Off`];
     if ((b.protectionBits & ~SOFT_LOCK) !== 0) {
       this.log?.event(`JBD ${other} MOSFET is off with protection bits 0x${b.protectionBits.toString(16).padStart(4, '0')} and no saved command: kept off`, { source: this.definition.id });
@@ -1019,7 +1038,15 @@ export class JbdDriver extends BaseDriver {
     const other = key === 'charge' ? 'discharge' : 'charge';
     const otherOff = this.#otherMosOff(before, other);
     const cmd = key === 'charge' ? { chargeOff: !on, dischargeOff: otherOff } : { chargeOff: otherOff, dischargeOff: !on };
-    await this.#factory(() => this.#write(encodeMos(cmd)), { save: false });
+    await this.#factory(async () => {
+      try {
+        await this.#write(encodeMos(cmd));
+      } catch (err) {
+        // Unanswered: the BMS may have applied it, so the saved command is no longer known.
+        if (/** @type {any} */ (err)?.code !== 'STATUS') delete this.options[MOS_COMMAND];
+        throw err;
+      }
+    }, { save: false });
     this.options[MOS_COMMAND] = cmd;
     for (let i = 0; i < 4; i++) {
       await sleep(i === 0 ? 100 : 300);

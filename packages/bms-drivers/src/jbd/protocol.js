@@ -519,9 +519,10 @@ export function parseBasic(d, { variant, unit100: unitSetting = false } = {}) {
 
 /**
  * Plausibility of a 0x03 answer (spec 11.2 step 3). Returns a reason in English for the log, or
- * null. Detection uses the full rule; polling passes `strict: false` and checks the structure only
- * (length, cell count, NTC count, SOC), so one open or shorted NTC does not stop the monitoring
- * (the snapshot reports it as a sensor fault instead).
+ * null. The driver passes `strict: false` for detection and polling alike and checks the structure
+ * only (length, cell count, NTC count, SOC), so one open or shorted NTC does not stop the
+ * connection or the monitoring (the snapshot reports it as a sensor fault instead). `strict` adds
+ * the temperature range of every NTC.
  * @param {Uint8Array} d data bytes
  * @param {{ strict?: boolean }} [opts]
  */
@@ -835,6 +836,9 @@ export function parseAnswer(f, opts = {}) {
   return out;
 }
 
+/** @param {number} n @returns {string} n asterisks standing for a password of n characters */
+const mask = (n) => '*'.repeat(n);
+
 /**
  * Meaning of the data of a write request (spec 5.1, 8).
  * @param {number} register
@@ -848,9 +852,10 @@ function describeWriteData(register, data) {
   if (register === REG.MOS && v !== null) return { mos: { chargeOff: (v & 1) !== 0, dischargeOff: (v & 2) !== 0 } };
   if (register === REG.FB && data.length === 2) return { mosV11: { type: data[0], off: data[1] } };
   if (register === REG.CONTROL && v !== null) return { control: CONTROL_NAMES[/** @type {keyof typeof CONTROL_NAMES} */ (v)] ?? `0x${v.toString(16)}` };
-  if (register === REG.PASSWORD && data.length >= 1) return { password: { length: data[0], text: latin1(data.subarray(1)) } };
-  if (register === REG.PASSWORD_CHANGE && data.length >= 13) return { passwordChange: { length: data[0], old: latin1(data.subarray(1, 7)), new: latin1(data.subarray(7, 13)) } };
-  if (register === REG.PASSWORD_CLEAR && data.length >= 1) return { clearPassword: latin1(data.subarray(1, 1 + data[0])) };
+  // Passwords are masked for the log: only their length is shown (as ant/protocol.js does).
+  if (register === REG.PASSWORD && data.length >= 1) return { password: { length: data[0], text: mask(data.length - 1) } };
+  if (register === REG.PASSWORD_CHANGE && data.length >= 13) return { passwordChange: { length: data[0], old: mask(6), new: mask(6) } };
+  if (register === REG.PASSWORD_CLEAR && data.length >= 1) return { clearPassword: mask(data.subarray(1, 1 + data[0]).length) };
   if (register === REG.FA && data.length >= 3) return { fa: { paramStart: u16(data, 0), paramCount: data[2] } };
   if (REGISTERS[register]) return decodeRegister(register, data);
   return {};

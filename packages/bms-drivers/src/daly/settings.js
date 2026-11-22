@@ -23,7 +23,8 @@ import { CMD, D2_BATTERY_TYPES, D2_REG, P81_REG, rtcText } from './protocol.js';
  * - `{ kind: 'battery-code' }` classic battery code (0x57 / 0x17, five frames)
  * - `{ kind: 'register', register, words?, scale?, add?, codec? }` Modbus register (u16, or u32
  *   over two registers), written with function 0x06
- * - `{ kind: 'register-sum', registers }`, `{ kind: 'register-text', register, length }`,
+ * - `{ kind: 'register-sum', registers, countRegister? }` (sum of the first n registers when
+ *   `countRegister` holds n = 1..3), `{ kind: 'register-text', register, length }`,
  *   `{ kind: 'register-date', register }` Modbus read-only views
  * - `{ kind: 'soc', register? }` state of charge: read from the live data, written with 0x21
  *   (classic) or to `register` (Modbus)
@@ -491,7 +492,6 @@ function roReg(id, register, codec, overrides = {}) {
 /** D2 register blocks loaded by readSettings (spec 4.3, 5.4). */
 export const D2_SETTING_BLOCKS = Object.freeze([
   { start: 0x0080, count: 41, name: 'settings' },
-  { start: 0x00c9, count: 3, name: 'password' },
   { start: 0x00cc, count: 2, name: 'production date' },
 ]);
 
@@ -539,22 +539,28 @@ export function buildD2Schema({ balancerSwitch = false } = {}) {
     daly('soc.value', { decimals: 1, min: 0, max: 100, meta: { kind: 'soc', register: D2_REG.SOC } }),
     field('switch.charge', { meta: { kind: 'switch', key: 'charge', register: D2_REG.CHARGE_MOS } }),
     field('switch.discharge', { meta: { kind: 'switch', key: 'discharge', register: D2_REG.DISCHARGE_MOS } }),
-    field('system.cell_count', { readOnly: true, description: HARDWARE_CONFIG, meta: { kind: 'register-sum', registers: [0x0083, 0x0084, 0x0085] } }),
-    field('system.temp_sensor_count', { readOnly: true, description: HARDWARE_CONFIG, meta: { kind: 'register-sum', registers: [0x0086, 0x0087, 0x0088] } }),
+    // Only the boards that exist count: a balancer with one board reports 16, 6, 6 cells
+    // (daly-balancer.md 12 item 4).
+    field('system.cell_count', { readOnly: true, description: HARDWARE_CONFIG, meta: { kind: 'register-sum', registers: [0x0083, 0x0084, 0x0085], countRegister: 0x0082 } }),
+    field('system.temp_sensor_count', { readOnly: true, description: HARDWARE_CONFIG, meta: { kind: 'register-sum', registers: [0x0086, 0x0087, 0x0088], countRegister: 0x0082 } }),
     reg('daly.board_count', 0x0082, {}, { label: msg('Acquisition boards'), group: 'system', decimals: 0, readOnly: true, advanced: true, description: HARDWARE_CONFIG }),
     reg('system.battery_type', 0x0089, {}, {
       options: Object.entries(D2_BATTERY_TYPES).map(([value, label]) => ({ value: Number(value), label })),
       danger: true,
       advanced: true,
     }),
-    reg('system.sleep_delay', 0x008a, {}, { min: 0, max: 65535, step: 1 }),
-    invertCurrentField(),
-    field('identity.password', {
-      readOnly: true,
-      maxLength: 6,
-      description: msg('Parameter password of the official app (the app checks it, the BMS does not). Shown but never written.'),
-      meta: { kind: 'register-text', register: 0x00c9, length: 6 },
+    // At least 10 s as on classic: the effect of shorter values (0 in particular) is not documented,
+    // and a sleeping BMS does not wake up on RS485 traffic (spec 2.2, 7.8).
+    reg('system.sleep_delay', 0x008a, {}, {
+      min: 10,
+      max: 65535,
+      step: 1,
+      description: msg('Idle time in seconds before the BMS sleeps. 65535 means never on Daly balancers; on BMS boards this is not confirmed.'),
     }),
+    invertCurrentField(),
+    // The parameter password (0x00C9, 6 ASCII) is not read: settings values and decoded frames go
+    // into exports and log exports, and a password the user changed must not end up in bug
+    // reports (spec 4.5). The BMS does not check it, so ubms does not need it.
     field('daly.production_date', { label: msg('Production date'), group: 'identity', type: 'text', readOnly: true, description: PRODUCTION_DATE, meta: { kind: 'register-date', register: 0x00cc } }),
     field('daly.restart', {
       label: msg('Restart BMS'),
@@ -680,7 +686,7 @@ export function buildP81Schema() {
       description: msg('Set in steps of 10 s; 655350 s means the BMS never goes to sleep.'),
     }),
     invertCurrentField(),
-    field('identity.password', { readOnly: true, maxLength: 6, description: INFERRED_81, meta: { kind: 'register-text', register: 0x0126, length: 6 } }),
+    // 0x0126..0x0128 (password, as D2 0x00C9) is left out on purpose, see buildD2Schema().
     field('daly.production_date', { label: msg('Production date'), group: 'identity', type: 'text', readOnly: true, description: INFERRED_81, meta: { kind: 'register-date', register: 0x0129 } }),
   ]);
 }
@@ -733,7 +739,10 @@ export function decodeRegisterSettings(schema, regs) {
         const raw = regs.get(meta.register);
         if (raw !== undefined) values[f.id] = raw !== 0;
       } else if (meta.kind === 'register-sum') {
-        const parts = meta.registers.map((/** @type {number} */ a) => regs.get(a));
+        // With a board count of 1 to 3 in `countRegister`, only the registers of those boards.
+        const boards = meta.countRegister === undefined ? undefined : regs.get(meta.countRegister);
+        const used = boards !== undefined && boards >= 1 && boards <= meta.registers.length ? meta.registers.slice(0, boards) : meta.registers;
+        const parts = used.map((/** @type {number} */ a) => regs.get(a));
         if (parts.every((/** @type {number | undefined} */ v) => v !== undefined)) values[f.id] = parts.reduce((/** @type {number} */ s, /** @type {number} */ v) => s + v, 0);
       } else if (meta.kind === 'register-text') {
         const bytes = [];

@@ -142,7 +142,7 @@ The SE-F5 Pro gets Bluetooth only with the optional data logger stick ([MAN-F5P]
 
 ### 2.4 USB-CAN adapters
 
-- **SLCAN (Lawicel ASCII)** adapters (CANable with slcan firmware, USBtin, Lawicel CANUSB and clones) appear as a serial port and can be driven with Web Serial; ubms supports this kind only (section 3.3.2). [PF] page 2 shows a user reading InterCAN with a CANable through the SLCAN driver of "CAN Monitor 3000" ("Selecting SL-Can/ Lawicel => set to listen only and 250").
+- **SLCAN (Lawicel ASCII)** adapters (USBtin, Lawicel CANUSB, CANable with slcan firmware and clones) appear as a serial port and can be driven with Web Serial; ubms supports this kind only (section 3.3.2), and only adapters that answer every command with CR or BEL (4.3). The stock CANable slcan firmware (normaldotcom/canable-fw, `usbd_cdc_if.c`: the CR and BEL replies are commented out; `slcan.c` knows no `L`, its listen only mode is `M1`) answers no command, so the probe times out on `S6` and the adapter is not supported (firmware source read, **unverified** on hardware; other CANable firmware builds were not checked). Support for adapters without answers (write the commands blindly, open with `M1`, let received frames prove the adapter) is not implemented. [PF] page 2 shows a user reading InterCAN with a CANable through the SLCAN driver of "CAN Monitor 3000" ("Selecting SL-Can/ Lawicel => set to listen only and 250").
 - **ZLG USBCAN / CANalyst-II**: the vendor CAN tool ([UC]) uses the ZLG `ControlCAN` library (`ControlCAN.lib`, `kerneldll.ini` lists `USBCAN.dll`, `USBCAN_E.dll` and other ZLG drivers); these are USB devices with a vendor DLL, not reachable from a browser. [PF] page 2: "the software doesn't work with it [slcan device]".
 - **CH340 "USB-CAN" analyzers** with the binary `AA ... 55` serial protocol of "CAN Monitor 3000" ([PSR] `CANInformation/Can bus analysis.txt`: `AA-55-01-01-01-56-03-...`) are a different protocol, not SLCAN; not supported. Their `AA 55` frames must not be confused with the battery's AA 55 RS485 frames.
 
@@ -238,7 +238,7 @@ The battery frame 0x351 `48 02 00 00 FC 08 E0 01` arrives as `t351848020000FC08E
 ### 4.3 CAN (SLCAN)
 
 1. Open the serial port (CDC ACM; the baud rate is ignored by most adapters).
-2. Write `C` CR (close a channel left open), `S6` CR (500 kbit/s), then `L` CR (listen only). In listen only mode the adapter takes no part in the bus: no acknowledge bit, no error frame. When another node (the inverter) is on the bus, it acknowledges the battery's frames and the adapter receives all of them within one bank cycle. When the battery is the only other node, nobody acknowledges: the battery repeats its first frame forever, each attempt ends in an error at the acknowledge delimiter, and the adapter receives nothing (CAN acknowledge rule; general CAN behaviour, not a Deye source). So when nothing arrives within about 1.5 s, write `C` CR and `O` CR: in normal mode the adapter acknowledges frames, but transmits none of its own. Normal mode also sends error frames on bit errors, so on a bus with another bit rate (the 250 kbit/s InterCAN pins, 2.2) it would disturb that bus; listen only first keeps this to the case where nothing at all was received. If the acknowledging node leaves later (the inverter is switched off), the frames stop in listen only mode; then switch to normal mode the same way.
+2. Write `C` CR (close a channel left open), `S6` CR (500 kbit/s), then `L` CR (listen only). Each command waits up to 500 ms for CR or BEL; no answer to `S6` ends the probe (no SLCAN adapter, or one that answers no command, 2.4). In listen only mode the adapter takes no part in the bus: no acknowledge bit, no error frame. When another node (the inverter) is on the bus, it acknowledges the battery's frames and the adapter receives all of them within one bank cycle. When the battery is the only other node, nobody acknowledges: the battery repeats its first frame forever, each attempt ends in an error at the acknowledge delimiter, and the adapter receives nothing (CAN acknowledge rule; general CAN behaviour, not a Deye source). So when nothing arrives within about 1.5 s, write `C` CR and `O` CR: in normal mode the adapter acknowledges frames, but transmits none of its own. Normal mode also sends error frames on bit errors, so on a bus with another bit rate (the 250 kbit/s InterCAN pins, 2.2) it would disturb that bus; listen only first keeps this to the case where nothing at all was received. If the acknowledging node leaves later (the inverter is switched off), the frames stop in listen only mode; then switch to normal mode the same way.
 3. Listen. The master pack sends every bank frame about once per second, the per-pack frames 0x110, 0x150, 0x200, 0x250, 0x400 about once per second, 0x500, 0x600, 0x650 every 2.1 s and 0x550, 0x700, 0x750 every 5.3 s ([VPC] measured over 296 s: mean intervals 1.00 to 1.09 s, 2.10 to 2.13 s, 5.28 to 5.36 s).
 4. Never transmit. The battery sends its frames without the inverter heartbeat 0x305: a user read the PCS bus for a year with an ESP32 that never wrote ("Currently I am only reading and not writing to the CANBUS", and filtering for 0x305 found nothing, [PF] page 3). Whether the pack raises "PCS communication failure" (table 4 bit 6) or goes to sleep sooner without 0x305 is unknown; the same user saw his idle pack switch off after one or two days (**unverified** cause).
 5. Close with `C` CR.
@@ -542,7 +542,7 @@ Byte 0 mode: 0 standstill, 1 charge, 2 discharge. Byte 1 fault level: 0 none, 1 
 
 | Code | Cells | Sources |
 | --- | --- | --- |
-| 0 | undefined (charge and discharge limits stay 0 A until set, [PS] issue 7) | [UC] `config.txt` |
+| 0 | undefined (charge and discharge limits stay 0 A until set, [PS] issue 7); ubms shows "Not set" | [UC] `config.txt` |
 | 1 | GOTION 96 Ah | [UC], [V33] ("1. GOTION"), [PS] |
 | 2 | CATL 100 Ah | [UC], [V33], [PS] |
 | 3 | EVE 100 Ah | [UC], [V33], [PS], [PSR] (SE-G5.1 Pro) |
@@ -561,8 +561,8 @@ Byte 0 mode: 0 standstill, 1 charge, 2 discharge. Byte 1 fault level: 0 none, 1 
 | software version | 0x01 offset 30 (`LVESS0223526N03`) | 0x500 + n bytes 0-1 as hex digits ("F005") and boot version bytes 3-7 ("V1.0F") | `softwareVersion` |
 | hardware version | 0x01 offset 46 | 0x363 bytes 2-3 | `hardwareVersion` |
 | serial number | BLE: advertised name without "BAT" ([SX]); RS485: none | 0x600 + n and 0x650 + n, 16 ASCII characters ([V33]); wait for both halves ([VP] README) | `serialNumber` |
-| protocol | "Deye RS485 (AA 55)" / "Deye Bluetooth" | "Deye PCS CAN" plus the profile (native or victronCAN) | `protocol` |
-| extra | battery type code and name, sensor and cell counts, current offset in use | nominal capacity (0x35E), pack counts (0x364), firmware marker, per-pack summaries | `extra` |
+| protocol | the definition label: "Deye LVESS (RS485)" / "Deye LVESS (Bluetooth)" | the definition label "Deye PCS CAN (USB-CAN adapter)"; the profile is not part of it | `protocol` |
+| extra | `batteryType` (code and name, 9.6), `cellCount`, `tempCount`, `currentEncoding` (offset in use), `pcsProtocol` when sent | `bootVersion`, `batteryType`, `capacity` (nominal, 0x35E or 0x35F), `packNumber`, `profile` ("Deye native" or "victronCAN (Pylontech identity)"), `packCount` (the number of packs seen on the per-pack identifiers, shown when more than one) | `extra` |
 
 Trim NUL and trailing spaces from every string. The CAN serial number is a private identifier; [VP] keeps it out of shared output ("Sensitive local-only identifier; redact from shared output").
 

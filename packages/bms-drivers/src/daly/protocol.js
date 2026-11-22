@@ -1443,7 +1443,23 @@ function describeModbus(frame, ctx) {
 }
 
 /**
+ * Decoded read response with the parameter password hidden: decoded frames go into log exports,
+ * and a password the user changed must not end up in bug reports (spec 4.5). The text becomes one
+ * `*` per character and its 3 registers (from index `at`) read 0x2A2A ("**"). The raw bytes of the
+ * log entry still carry what the device sent.
+ * @template {{ registers?: number[], password: string }} T
+ * @param {T} decoded
+ * @param {number} at index of the first password register in `decoded.registers`
+ * @returns {T}
+ */
+function maskPassword(decoded, at) {
+  const registers = decoded.registers?.map((r, i) => (i >= at && i < at + 3 ? 0x2a2a : r));
+  return { ...decoded, ...(registers ? { registers } : {}), password: '*'.repeat(decoded.password.length) };
+}
+
+/**
  * Decode a read response with the start register of its request (the response does not carry it).
+ * The parameter password is masked (see `maskPassword`).
  * @param {Uint8Array} frame
  * @param {number} [start]
  */
@@ -1455,7 +1471,7 @@ export function decodeModbusResponse(frame, start) {
       if (start === D2.MOS_INFO.start) return { ...base, ...parseD2MosInfo(frame) };
       if (start === D2.SETTINGS.start) return { ...base, ...parseD2Settings(frame) };
       if (start === D2.VERSION.start) return { ...base, ...parseD2Version(frame) };
-      if (start === D2.PASSWORD.start) return { ...base, ...parseD2Password(frame) };
+      if (start === D2.PASSWORD.start) return maskPassword({ ...base, ...parseD2Password(frame) }, 0);
       if (start === D2.PRODUCTION_DATE.start) return { ...base, ...parseD2ProductionDate(frame) };
       if (start === D2.BALANCER.start && base.registerCount === 1) return { ...base, ...parseD2BalancerSwitch(frame) };
     } else {
@@ -1463,7 +1479,7 @@ export function decodeModbusResponse(frame, start) {
       if (start === P81.REALTIME_2.start) return { ...base, ...omitBytes(parseP81Realtime2(frame)) };
       if (start === P81.VERSION.start) return { ...base, ...parseP81Version(frame) };
       if (start === P81.LIMITS.start) return { ...base, ...parseP81Limits(frame) };
-      if (start === P81.SETTINGS_1.start) return { ...base, ...parseP81Settings1(frame) };
+      if (start === P81.SETTINGS_1.start) return maskPassword({ ...base, ...parseP81Settings1(frame) }, 0x26);
     }
   } catch {
     /* fall back to the raw registers */

@@ -1162,6 +1162,117 @@ test('session: a factory password at level 3 unlocks the parameters', async () =
   }
 });
 
+/** @param {Uint8Array[]} frames @param {number} func */
+const countNew = (frames, func) => frames.filter((f) => f[0] === 0x7e && f[2] === func).length;
+
+test('session: a silent BMS does not lock the settings blocks, and a silent read stops early', async () => {
+  /** @type {ReturnType<typeof createAntSimulator>} */
+  let sim = /** @type {any} */ (null);
+  const s = await startSession((device) => (sim = createAntSimulator(device, { tickMs: 0 })));
+  const { session } = s;
+  session.pollIntervalMs = 100000;
+  try {
+    await session.connect({ kind: 'link', link: s.host, selection: 'ant' });
+    assert.equal((await session.loadSettings()).values?.['cell.ovp'], 3.65);
+    sim.state.sleepUntil = Date.now() + 10 * 60 * 1000; // restarting, asleep or out of range
+    for (let i = 0; i < 2; i++) {
+      const before = countNew(sim.received, P.FN.READ);
+      const settings = await session.loadSettings();
+      assert.match(String(settings.error), /did not answer the settings requests/);
+      assert.equal(countNew(sim.received, P.FN.READ) - before, 3, 'only the first block is requested (3 attempts)');
+    }
+    sim.state.sleepUntil = 0;
+    const settings = await session.loadSettings();
+    assert.equal(settings.error, null);
+    assert.equal(settings.values?.['cell.ovp'], 3.65, 'every block is read again');
+  } finally {
+    await s.close();
+  }
+});
+
+test('session: a block that fails while the BMS answers is left out for three reads, then read again', async () => {
+  const block = 56;
+  let drop = true;
+  /** @type {ReturnType<typeof createAntSimulator>} */
+  let sim = /** @type {any} */ (null);
+  const s = await startSession((device) => {
+    const write = device.write.bind(device);
+    device.write = (/** @type {Uint8Array} */ bytes, /** @type {any} */ meta) =>
+      drop && bytes[0] === 0x7e && bytes[2] === P.RSP.READ && u16(bytes, 3) === block ? Promise.resolve() : write(bytes, meta);
+    return (sim = createAntSimulator(device, { tickMs: 0 }));
+  });
+  const { session } = s;
+  session.pollIntervalMs = 100000;
+  const requests = () => sim.received.filter((f) => f[0] === 0x7e && f[2] === P.FN.READ && u16(f, 3) === block).length;
+  try {
+    await session.connect({ kind: 'link', link: s.host, selection: 'ant' });
+    for (let i = 0; i < 2; i++) {
+      const settings = await session.loadSettings();
+      assert.equal(settings.values?.['cell.ovp'], 3.65);
+      assert.equal(settings.values?.['charge.otp'], undefined);
+    }
+    const before = requests();
+    drop = false;
+    for (let i = 0; i < 3; i++) await session.loadSettings();
+    assert.equal(requests(), before, 'skipped in the next three reads');
+    const settings = await session.loadSettings();
+    assert.equal(requests(), before + 1, 'requested again after that');
+    assert.equal(typeof settings.values?.['charge.otp'], 'number');
+  } finally {
+    await s.close();
+  }
+});
+
+test('session: legacy settings of a silent BMS report the silence and do not give up on the parameters', async () => {
+  let mute = false;
+  const s = await startSession((device) => {
+    const write = device.write.bind(device);
+    device.write = (/** @type {Uint8Array} */ bytes, /** @type {any} */ meta) => (mute ? Promise.resolve() : write(bytes, meta));
+    return createAntLegacySimulator(device, { tickMs: 0 });
+  });
+  const { session } = s;
+  session.pollIntervalMs = 100000;
+  try {
+    await session.connect({ kind: 'link', link: s.host, selection: 'ant-legacy' });
+    mute = true;
+    let settings = await session.loadSettings();
+    assert.match(String(settings.error), /did not answer the settings requests/, 'no cached switch values as a success');
+    mute = false;
+    settings = await session.loadSettings();
+    assert.equal(settings.error, null);
+    assert.equal(settings.values?.['cell.ovp'], 4.2, 'the parameters are read once the BMS answers again');
+  } finally {
+    await s.close();
+  }
+});
+
+test('session: read access logins that the BMS refused are not repeated, level 1 gets at most 8 characters', async () => {
+  /** @type {ReturnType<typeof createAntSimulator>} */
+  let sim = /** @type {any} */ (null);
+  const s = await startSession((device) => (sim = createAntSimulator(device, { tickMs: 0, password: 'OwnerSecret1', level1Password: 'ownerpw1' })));
+  const { session } = s;
+  try {
+    await session.connect({ kind: 'link', link: s.host, selection: 'ant' });
+    await until(() => session.info);
+    let settings = await session.loadSettings();
+    assert.equal(settings.passwordField, 'ant.password');
+    const auth = () => sim.received.filter((f) => f[0] === 0x7e && f[2] === P.FN.AUTH);
+    for (const f of auth()) {
+      const address = u16(f, 3);
+      assert.ok(address === P.ADDR.PASSWORD_L5 ? f[5] <= 12 : f[5] <= 8, `password frame at ${address} with ${f[5]} bytes`);
+    }
+    const before = auth().length;
+    for (let i = 0; i < 3; i++) await session.loadSettings();
+    assert.equal(auth().length, before, 'reloads send no password the BMS refused');
+    await session.writeSettings([{ id: 'ant.password', value: 'ownerpw1' }]);
+    settings = session.settings;
+    assert.ok(auth().length > before, 'a typed password is tried');
+    assert.equal(settings.values?.['cell.ovp'], 3.65);
+  } finally {
+    await s.close();
+  }
+});
+
 /** @param {Uint8Array} b @param {number} at */
 function u16(b, at) {
   return b[at] | (b[at + 1] << 8);

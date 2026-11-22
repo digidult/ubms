@@ -650,7 +650,8 @@ export function parsePx100Reply(frame, query) {
  * Learns from the stream whether the device computes the checksum (spec 11.2 step 6, after [KO]
  * `ReportStream`): until a rule is learned, a report passes with a valid checksum or with the
  * plausibility checks; once `proof` reports in a row matched the standard rule (or the [DW]
- * byte 3 variant), reports that fail that rule are rejected.
+ * byte 3 variant) with a last byte that changed from one counted report to the next, reports
+ * that fail that rule are rejected.
  */
 export class ChecksumPolicy {
   /** @param {{ proof?: number }} [opts] */
@@ -659,6 +660,8 @@ export class ChecksumPolicy {
     /** @type {'standard'|'from3'|null} learned rule */
     this.rule = null;
     this.streak = { standard: 0, from3: 0 };
+    /** last byte of the previous report counted per rule, -1 for none */
+    this.lastByte = { standard: -1, from3: -1 };
   }
 
   /** Whether a report frame is accepted under the current state. @param {Uint8Array} frame */
@@ -679,8 +682,19 @@ export class ChecksumPolicy {
     const standard = checksumValid(frame);
     // Both rules differ by the message type byte (0x01), so they never match the same frame.
     const from3 = !standard && checksumFrom3Valid(frame);
-    this.streak.standard = standard ? this.streak.standard + 1 : 0;
-    this.streak.from3 = from3 ? this.streak.from3 + 1 : 0;
+    // A computed checksum moves with the content; a constant last byte (DT24TW-300A, DL24 2025,
+    // spec 3.2) never does. A stable report that matches such a byte by coincidence repeats
+    // unchanged, so only a match whose last byte differs from the previous match counts.
+    const last = frame[frame.length - 1];
+    for (const [name, ok] of /** @type {const} */ ([['standard', standard], ['from3', from3]])) {
+      if (!ok) {
+        this.streak[name] = 0;
+        this.lastByte[name] = -1;
+      } else if (last !== this.lastByte[name]) {
+        this.streak[name] += 1;
+        this.lastByte[name] = last;
+      }
+    }
     if (this.streak.standard >= this.proof) this.rule = 'standard';
     else if (this.streak.from3 >= this.proof) this.rule = 'from3';
     return this.rule;

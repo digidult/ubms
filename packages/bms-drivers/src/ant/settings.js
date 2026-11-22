@@ -124,7 +124,7 @@ function action(id, label, action, overrides = {}) {
 
 /** Password field shared by both generations; the value lives in the driver instance. */
 function passwordField(description, maxLength) {
-  return field('ant.password', { label: msg('BMS password'), group: 'identity', type: 'text', maxLength, description, meta: { kind: 'local' } });
+  return field('ant.password', { label: msg('BMS password'), group: 'identity', type: 'text', maxLength, description, secret: true, meta: { kind: 'local' } });
 }
 
 /**

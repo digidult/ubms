@@ -58,7 +58,7 @@ The "BD" models (JK-BD4A8S4P, JK-BD6A17S6P, JK-BD6A24S10P, JK-BD6A32S15P, JK_BD4
 
 | Protocol | Spec | ubms driver | Status |
 |---|---|---|---|
-| JK04 over BLE | [JK] 3.1–3.4, 6.4, 11.3; this document sections 2.1, 3.1, 4.1, 6.1–6.4, 7 | `jk-balancer-ble` (device type balancer, `packages/bms-drivers/src/jk/balancer.js`); in automatic detection it is probed before `jk-ble` for every name that ranks `jk-ble` ("JK-", "JK_") and for names no driver ranks (section 11.1). `jk-ble` variant `JK04` takes a balancer only when `jk-ble` is chosen explicitly, when the balancer probe sees no JK04 data in time, or for a balancer whose name matches the JK-PB serial number pattern of `jk-ble` | implemented; `jk-balancer-ble` keeps the balance start voltage read only, `jk-ble` still writes it (pitfall 1) |
+| JK04 over BLE | [JK] 3.1–3.4, 6.4, 11.3; this document sections 2.1, 3.1, 4.1, 6.1–6.4, 7 | `jk-balancer-ble` (device type balancer, `packages/bms-drivers/src/jk/balancer.js`); in automatic detection it is probed before `jk-ble` for every name that ranks `jk-ble` ("JK-", "JK_") and for names no driver ranks (section 11.1). `jk-ble` variant `JK04` takes a balancer only when `jk-ble` is chosen explicitly, when the balancer probe sees no JK04 data in time, or for a balancer whose name matches the JK-PB serial number pattern of `jk-ble` | implemented; `jk-balancer-ble` and the JK04 schema of `jk-ble` both keep the balance start voltage read only (pitfall 1) |
 | JK balancer RS485 ("55 AA" / "EB 90") | this document sections 2.2, 3.2–3.4, 4.2, 5.3, 6.5, 6.6 | `jk-balancer-rs485` (`packages/bms-drivers/src/jk/balancer.js`, demo simulator) | implemented; every write compares the echoed value (section 4.2) |
 | JK02_32S on 2024 balancers | [JK] | `jk-ble` would treat such a device as a BMS | **unverified**, no capture |
 | CAN (DZ08) | section 6.7 | none | ubms has no CAN transport |
@@ -197,7 +197,7 @@ No other requests are known for JK04: event log (0xA1), restart, shutdown and pr
 
 ### 5.2 JK04 BLE writes
 
-Zero-filler frames as sent by [SY], [BM] and the `jk-ble` driver, and the captured app frames for the same registers:
+Zero-filler frames as sent by [SY], [BM] and the `jk-ble` driver (ubms sends every one except the balance start voltage frame, which is the [SY] frame only), and the captured app frames for the same registers:
 
 | Purpose | Frame | Source |
 |---|---|---|
@@ -221,7 +221,7 @@ Zero-filler frames as sent by [SY], [BM] and the `jk-ble` driver, and the captur
 | max balance current 2.0 A | `AA 55 90 EB 68 04 00 00 00 40 00 00 00 00 00 00 00 00 00 26` | computed |
 | max balance current 1.0 A, app | `AA 55 90 EB 68 04 00 00 80 3F 04 D2 E3 6F B8 C5 D4 91 2E DD` | [D48], `bal-jk04-tx-app-max-balance-current-1a-b2a16s` |
 | max balance current 3.5 A, app | `AA 55 90 EB 68 04 00 00 60 40 87 90 EA A8 83 82 EF BC 34 13` | [CAP04], `bal-jk04-tx-app-max-balance-current-3a5-b5a24s` |
-| balance start voltage 1.00 V (register 0x58, **unverified**, see pitfall 1) | `AA 55 90 EB 58 04 00 00 80 3F 00 00 00 00 00 00 00 00 00 95` | [SY] test BalancingStartVoltage1p00V, computed; no capture |
+| balance start voltage 1.00 V (register 0x58, **unverified**, see pitfall 1) | `AA 55 90 EB 58 04 00 00 80 3F 00 00 00 00 00 00 00 00 00 95` | [SY] test BalancingStartVoltage1p00V, computed; no capture; not sent by ubms |
 
 All 32 app writes of [CAP04] and [D48] are in the vector file. The JK02 balancer register (`AA 55 90 EB 1F 04 01 … 9E`) has no effect on a JK04 balancer ([D48], vector `bal-jk04-tx-jk02-balancer-register-has-no-effect`).
 
@@ -481,7 +481,7 @@ Other ubms serial protocols at 9600 baud use other frames (Daly `A5` with a 13-b
 
 ## 12. Pitfalls and quirks
 
-1. **JK04 balance start voltage write register is not verified.** [SY] writes register 0x58 (and so does the ubms `jk-ble` JK04 schema through `JK04_SETTINGS_LAYOUT`), but no capture contains such a write (the Android app has no field for it, the iPhone app was never captured). The six captured JK04 registers all equal "settings offset − 6", which gives 0x5C for S98; 0x58 would address S94, a field that reads 0. Keep `balance.start_voltage` read-only on JK04 until a capture shows the register. `jk-balancer-ble` does; `jk-ble` reaches a balancer only in the cases listed in section 1.3.
+1. **JK04 balance start voltage write register is not verified.** [SY] writes register 0x58, but no capture contains such a write (the Android app has no field for it, the iPhone app was never captured). The six captured JK04 registers all equal "settings offset − 6", which gives 0x5C for S98; 0x58 would address S94, a field that reads 0. Keep `balance.start_voltage` read-only on JK04 until a capture shows the register. Both drivers do: the `jk-ble` JK04 schema (`buildJk04Schema`) and `jk-balancer-ble` keep it read only. `JK04_SETTINGS_LAYOUT` still records 0x58 as the ESPHome register, used only to name the register in the log, never to build a write.
 2. The JK04 cell info fields `cellVoltageAverage`, `cellVoltageDelta` and the min / max indexes do not always match the cell voltages of the same frame (section 6.1). The same applies to the RS485 index bytes and delta (section 6.5). Compute these values from the cells.
 3. Index bytes are 0-based in both protocols; the RS485 vendor document and [MPP] present them as cell numbers.
 4. RS485 temperature: vendor documents say 1 °C, the captured unit sends 0.1 °C. Without a sensor the raw value is unknown; treat implausible values (outside −40–100 °C after scaling) as absent.

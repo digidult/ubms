@@ -575,7 +575,8 @@ export function spaValue(def, raw) {
   const v = def.type === 's16' ? s16(raw) : raw;
   if (def.kind === 'temp') return tempFromRaw(v);
   const x = rnd(v * def.scale, decimalsOf(def));
-  return def.negate ? -x : x;
+  // `|| 0`: raw 0 is 0, not -0 (shown as "-0").
+  return def.negate ? -x || 0 : x;
 }
 
 /**

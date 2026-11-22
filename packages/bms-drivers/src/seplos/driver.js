@@ -323,16 +323,26 @@ const trim = (s) => s.replace(/[\s\0]+$/, '');
 // ---------------------------------------------------------------------------------------------
 
 /**
- * Plausible 0x42 answer for detection (spec 11.2): Seplos layout with P = 10 and plausible values.
- * Pylontech shares the framing and VER 0x20 but sends P = 2 or 4.
+ * Seplos layout of a 0x42 answer (spec 11.2 step 2): M, N, P = 10 and the LENID they give. This
+ * alone decides the detection; Pylontech shares the framing and VER 0x20 but sends P = 2 or 4.
+ * @param {Record<string, any>} t
+ * @param {number} lenid
+ */
+export function telemetryLayout(t, lenid) {
+  const m = t.cellCount;
+  const n = t.tempCount;
+  if (m < 1 || m > 24 || n < 1 || n > 8 || t.customCount !== 10) return false;
+  return lenid === 2 * (3 + 2 * m + 1 + 2 * n + 7 + 2 * t.customCount);
+}
+
+/**
+ * Seplos layout with plausible values (every cell 0 or 1..5 V, SOC at most 100 %): only raises
+ * the probe confidence, so a pack with a dead cell or an open sense lead still connects.
  * @param {Record<string, any>} t
  * @param {number} lenid
  */
 export function plausibleTelemetry(t, lenid) {
-  const m = t.cellCount;
-  const n = t.tempCount;
-  if (m < 1 || m > 24 || n < 1 || n > 8 || t.customCount !== 10) return false;
-  if (lenid !== 2 * (3 + 2 * m + 1 + 2 * n + 7 + 2 * t.customCount)) return false;
+  if (!telemetryLayout(t, lenid)) return false;
   if (!t.cellVoltages.every((/** @type {number} */ v) => v === 0 || (v >= 1 && v <= 5))) return false;
   return t.soc === undefined || t.soc <= 100;
 }
@@ -424,8 +434,10 @@ export class SeplosV2AsciiDriver extends BaseDriver {
       let confidence = 0.6;
       try {
         const t = await this.#request(ASCII_CMD.TELEMETRY, undefined, { timeout: per, retries: 0 });
-        if (!plausibleTelemetry(parseTelemetry(t.info), t.lenid)) return null;
-        confidence = 0.95;
+        const telemetry = parseTelemetry(t.info);
+        if (!telemetryLayout(telemetry, t.lenid)) return null;
+        if (plausibleTelemetry(telemetry, t.lenid)) confidence = 0.95;
+        else this.log?.warn('Seplos V2: 0x42 has the Seplos layout but implausible values (cell or SOC out of range): lower confidence', { source: this.definition.id });
       } catch (err) {
         if (!isTimeout(err)) return null;
       }

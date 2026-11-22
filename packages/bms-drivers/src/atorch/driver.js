@@ -325,14 +325,15 @@ export class AtorchDriver extends BaseDriver {
   }
 
   /**
-   * Load state: a recent PX100 answer, otherwise derived from the reports, running when the
-   * runtime seconds byte changed ([SY]) or current flows ([JC]) (spec 8.2).
+   * Load state: running whenever current flows ([JC]), otherwise a recent PX100 answer, otherwise
+   * running when the runtime seconds byte changed ([SY]) (spec 8.2). Every FF 55 command (the
+   * ON/OFF key, resets) invalidates the PX100 answer, since it may have changed the state.
    * @param {AtorchReport} r
    */
   #loadRunning(r) {
     const px = this.px100;
-    if (px.load !== undefined && Date.now() - px.loadAt <= PX100_FRESH_MS) return px.load;
     if (r.current > 0) return true;
+    if (px.load !== undefined && Date.now() - px.loadAt <= PX100_FRESH_MS) return px.load;
     return !!this.previous && this.previous !== r && this.previous.runtimeSeconds !== r.runtimeSeconds;
   }
 
@@ -623,6 +624,9 @@ export class AtorchDriver extends BaseDriver {
         return null;
       } finally {
         this.lastCommandAt = Date.now();
+        // The command may have switched the load (OP.ENTER is the ON/OFF key), so the last PX100
+        // answer no longer tells the state.
+        this.px100.loadAt = 0;
       }
     });
   }

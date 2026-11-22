@@ -15,10 +15,9 @@ import { neeyBleDefinition } from './driver.js';
  * name (spec 11.4). The settings request that follows decides the variant by its length
  * (100 bytes NEEY_V1, 150 bytes NEEY_V2, spec 11.5) and starts the cell info stream.
  *
- * Registration (spec 11.6): register this family after the JK drivers and before ANT, that is
- * `drivers = [...jkDrivers, ...neeyDrivers, ...antDrivers, ...dalyDrivers, ...atorchDrivers]` in
- * packages/bms-drivers/src/index.js, giving the Bluetooth order jk-balancer-ble, jk-ble, neey-ble,
- * ant, ant-legacy, daly-modbus, daly, atorch. Candidates are ranked by name first, so a unit with
+ * Registration (spec 11.6): this family is registered right after the JK drivers and before ANT
+ * (the full array and order are in packages/bms-drivers/src/index.js). Candidates are ranked by
+ * name first, so a unit with
  * a default name (GW-..., EK-...) is probed as NEEY first anyway; the order only matters for
  * renamed or unnamed FFE0 devices:
  * - JK BMS are the most common FFE0 devices and their names are user defined, so the two JK

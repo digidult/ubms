@@ -305,8 +305,11 @@ between requests; the GPRS tab polls 0x06 every 1 s (ESPHome issue #20).
   successful but every register read as "not configured" (ubms field log `ubms-log-2026-11-20T10-26-50.json`, status
   `...0008...` with byte 6 = 0). This matches the vendor app, which sends the level 1 password before the version read
   when the permission byte is below 1 (below). ubms therefore logs in before reading when the status reports level 0:
-  first the default level 1 password, then the password of the settings as level 5 and as level 1 (users who changed
-  the app password know it, not its level). When every page still comes back as 0xFF bytes, the Settings tab says that
+  first the default level 1 password, then the password of the settings as level 5 and, when it has at most 8
+  characters (the size of the level 1 field), as level 1 (users who changed the app password know it, not its level).
+  When the BMS answered these logins and granted nothing, they are not sent again on later reads until the user
+  changes the password; a BMS that answered none of them gets them again. When every page still comes back as 0xFF
+  bytes, the Settings tab says that
   read access was not granted and asks for the password right there. A single 0xFF page is normal (a page that is not
   configured). The same user reported that the values appeared after logging in with the vendor app first, so the
   access level outlives the vendor app's connection.
@@ -319,6 +322,12 @@ between requests; the GPRS tab polls 0x06 every 1 s (ESPHome issue #20).
   characters, as levels 1 to 4 (addresses 330, 338, 346, 354), then the factory passwords at the same addresses,
   reading block 0 after each attempt. A password that unlocked nothing is not tried again until the user changes it;
   the Settings tab then shows the password field.
+* Settings reads by ubms: a parameter block that failed in two settings reads in a row while the BMS answered is left
+  out of the next three settings reads and then requested again. When neither the status request of a settings read
+  nor the first block is answered, the BMS is taken as silent (asleep, restarting, out of range): the other blocks are
+  not requested, nothing is counted against the blocks and the Settings tab reports that the BMS did not answer. The
+  legacy driver (ANT_OLD) likewise stops after the first unanswered parameter read without a fresh status, and marks
+  the parameters as not readable for the connection only when the same settings read got a status answer.
 * Level 1 password (default `12345678`): function 0x23 at address 0x014A (330), 8 ASCII bytes. Per the 2024 app it only
   unlocks reading the parameter pages (yosle). A user reported that `12345678` was enough to switch MOSFETs and balancing
   from the app, while changing parameters needed `123456789abc` (ESPHome issue #5, lucasimons).

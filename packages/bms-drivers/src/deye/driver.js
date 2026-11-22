@@ -650,7 +650,7 @@ export class DeyeCanDriver extends BaseDriver {
       this.log?.event('Deye CAN: the adapter refused listen only mode (L), opening it in normal mode', { source: this.definition.id });
       return await this.#openChannel('O');
     } catch (err) {
-      return isTimeout(err) ? 'no SLCAN reply (not an SLCAN adapter or wrong state)' : errorText(err);
+      return isTimeout(err) ? 'no SLCAN reply (not an SLCAN adapter, an adapter that does not answer commands such as the stock CANable firmware, or wrong state)' : errorText(err);
     }
   }
 
@@ -893,8 +893,10 @@ export const deyeCanDefinition = {
       // receives as noise, and the binary probes of other families could make an SLCAN adapter
       // open the channel and transmit a frame onto the battery bus.
       autoDetect: false,
+      // The adapter must answer every command with CR or BEL. The stock CANable slcan firmware
+      // answers none and has no L command (source read, unverified on hardware; spec 2.4).
       note: msg(
-        'SLCAN (Lawicel) USB-CAN adapter, for example a CANable with slcan firmware: CAN H on pin 4 and CAN L on pin 5 of the PCS port, 500 kbit/s. Select this type explicitly; automatic detection does not try it.',
+        'SLCAN (Lawicel) USB-CAN adapter that answers its commands, for example a USBtin or a Lawicel CANUSB: CAN H on pin 4 and CAN L on pin 5 of the PCS port, 500 kbit/s. The stock CANable slcan firmware sends no answers and is not supported. Select this type explicitly; automatic detection does not try it.',
       ),
     },
   },

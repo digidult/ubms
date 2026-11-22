@@ -35,22 +35,22 @@ const EXTRA_GROUPS = {
  */
 const INFO = {
   // Cell voltage
-  'seplos.cell_ov_alarm_recovery': { label: msg('Cell high voltage alarm recovery'), group: 'cell_voltage' },
-  'seplos.cell_uv_alarm_recovery': { label: msg('Cell low voltage alarm recovery'), group: 'cell_voltage' },
+  'seplos.cell_ov_alarm_recovery': { label: msg('Cell high voltage alarm recovery'), group: 'cell_voltage', unit: 'V' },
+  'seplos.cell_uv_alarm_recovery': { label: msg('Cell low voltage alarm recovery'), group: 'cell_voltage', unit: 'V' },
   'seplos.low_voltage_charge_forbid': {
     label: msg('Charging prohibited below cell voltage'),
     group: 'cell_voltage',
     description: msg('Below this cell voltage the BMS does not allow charging.'),
   },
-  'seplos.cell_uv_failure': { label: msg('Cell undervoltage failure'), group: 'cell_voltage' },
-  'seplos.cell_diff_protection_recovery': { label: msg('Cell voltage difference protection recovery'), group: 'cell_voltage' },
-  'seplos.cell_diff_alarm_recovery': { label: msg('Cell voltage difference alarm recovery'), group: 'cell_voltage' },
-  'seplos.float_lock_voltage': { label: msg('Float charge lock voltage'), group: 'charging' },
-  'seplos.float_release_voltage': { label: msg('Float charge release voltage'), group: 'charging' },
+  'seplos.cell_uv_failure': { label: msg('Cell undervoltage failure'), group: 'cell_voltage', unit: 'V' },
+  'seplos.cell_diff_protection_recovery': { label: msg('Cell voltage difference protection recovery'), group: 'cell_voltage', unit: 'V' },
+  'seplos.cell_diff_alarm_recovery': { label: msg('Cell voltage difference alarm recovery'), group: 'cell_voltage', unit: 'V' },
+  'seplos.float_lock_voltage': { label: msg('Float charge lock voltage'), group: 'charging', unit: 'V' },
+  'seplos.float_release_voltage': { label: msg('Float charge release voltage'), group: 'charging', unit: 'V' },
   'seplos.float_lock_current': { label: msg('Float charge lock current'), group: 'charging', unit: 'A', decimals: 3 },
   // Pack voltage
-  'seplos.pack_ov_alarm_recovery': { label: msg('Pack high voltage alarm recovery'), group: 'pack_voltage' },
-  'seplos.pack_uv_alarm_recovery': { label: msg('Pack low voltage alarm recovery'), group: 'pack_voltage' },
+  'seplos.pack_ov_alarm_recovery': { label: msg('Pack high voltage alarm recovery'), group: 'pack_voltage', unit: 'V' },
+  'seplos.pack_uv_alarm_recovery': { label: msg('Pack low voltage alarm recovery'), group: 'pack_voltage', unit: 'V' },
   'seplos.charge_ovp': {
     label: msg('Charging overvoltage protection'),
     group: 'charging',

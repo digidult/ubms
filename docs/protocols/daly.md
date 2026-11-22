@@ -342,7 +342,9 @@ Multi-board RS485: poll each board with its own address (`0x40 + board - 1`); ro
 2. Live poll: read `0x0000` with 62 registers (`D2 03 00 00 00 3E D7 B9`, all implementations) or 80 registers
    (`D2 03 00 00 00 50 56 55`, syssi `status_registers: 80`, adds balance current and MOSFET temperature on newer
    firmware). aiobmsble reads `0x003E` with 9 registers for the MOSFET temperature before the 62 register read and stops
-   doing so when it times out or returns `0x0000`/`0xFFFF`.
+   doing so when it times out or returns `0x0000`/`0xFFFF`. ubms stops for good on `0x0000`/`0xFFFF`, an exception
+   reply, or two lost replies before the block ever answered; once it answered, two lost replies in a row only pause
+   the read for 15 polls (the first lost reply keeps the last values).
 3. Settings: read `0x0080` with 41 registers (`D2 03 00 80 00 29 96 5F`).
 4. Device info: read `0x00A9` with 32 registers (`D2 03 00 A9 00 20 87 91`) and the password `0x00C9` with 3
    (`D2 03 00 C9 00 03 C6 56`).
@@ -379,6 +381,10 @@ open source implementations needs these steps; their purpose is **unverified**.
   capture). The official app only reads it and compares the user input locally; MOSFET writes work without writing it
   (batmon-ha `daly2.py` comment on the HCI snoop). syssi has a `password` option (default `12345678`) that is stored but
   never sent.
+* ubms does not read the D2 password and does not show the 0x81 one, as for the Daly balancer (daly-balancer.md 7.4):
+  settings values and decoded frames go into exports and log exports, and a password the user changed must not end up
+  in bug reports. The log decoder masks the text (`******`) and its registers (`0x2A2A`) of a 0x00C9 read and of
+  registers 0x0126..0x0128 in the 0x81 settings block 1; the raw bytes of a log entry still carry what the device sent.
 * 0x81 map: the same 6 ASCII bytes `123456` were observed at `0x0126..0x0128` (ESS capture; **unverified** meaning).
 * Classic: no password in the protocol. A forum post summarised by smefa/DalyBMS-to-MQTT
   (`docs/daly-write-commands.md`, "Engineering unlock") says some firmware ignores extended commands until
@@ -856,7 +862,7 @@ vendor list. Sources for every row: both vendor xlsx files in syssi/esphome-daly
 | `0x0031` | 98–99 | u16be | | cell count | aiobmsble and syssi clamp to 32 |
 | `0x0032` | 100–101 | u16be | | temperature sensor count | clamp to 8 |
 | `0x0033` | 102–103 | u16be | | cycle count | |
-| `0x0034` | 104–105 | u16be | 0 off, 1 on | balancing active | |
+| `0x0034` | 104–105 | u16be | 0 off, 1 on (2 active balancing on balancers, daly-balancer.md 9.1, **unverified**) | balancing active | ubms shows 1 and 2 as balancing |
 | `0x0035` | 106–107 | u16be | 0 off, 1 on | charge MOSFET | |
 | `0x0036` | 108–109 | u16be | 0 off, 1 on | discharge MOSFET | |
 | `0x0037` | 110–111 | u16be | 1 mV | average cell voltage | |
@@ -1136,14 +1142,14 @@ All temperature thresholds are `+40` encoded (raw = °C + 40): one byte in class
 | Setting | id | Classic | D2 | 0x81 | Encoding | Status |
 |---|---|---|---|---|---|---|
 | number of acquisition boards | `daly.board_count` | `0x51` data 0 / `0x11` | `0x0082` | `0x0102` (inferred) | u8 / u16be | confirmed classic, D2; changing it breaks measurements: read-only |
-| cells per board 1–3 | `system.cell_count` (sum) | `0x51` data 1–3 / `0x11` | `0x0083`–`0x0085` | `0x0103`–`0x0105` (inferred) | u8 / u16be | read-only recommended |
+| cells per board 1–3 | `system.cell_count` (sum; D2: only the first `0x0082` boards) | `0x51` data 1–3 / `0x11` | `0x0083`–`0x0085` | `0x0103`–`0x0105` (inferred) | u8 / u16be | read-only recommended |
 | NTC sensors per board 1–3 | `system.temp_sensor_count` (sum) | `0x51` data 4–6 / `0x11` | `0x0086`–`0x0088` | `0x0106`–`0x0108` (inferred) | u8 / u16be | read-only recommended |
 | battery type | `system.battery_type` | `0x53` data 1 / `0x13` | `0x0089` | unknown (`0x0118` = 3 in ESS) | D2: 0 LiFePO4, 1 ternary, 2 LTO; classic raw (section 6.2) | D2 confirmed (vendor list); classic enumeration **unverified** |
 | battery operation mode | `daly.operation_mode` | `0x53` data 0 / `0x13` | none | unknown | raw | **unverified** |
-| sleep delay | `system.sleep_delay` | `0x53` data 5–6 / `0x13` (seconds, `0xFFFF` = never) | `0x008A` (seconds) | `0x0115` (units of 10 s, 65535 = off) | | classic: smefa captures; D2: vendor list; 0x81: patagonaa |
+| sleep delay | `system.sleep_delay` | `0x53` data 5–6 / `0x13` (seconds, `0xFFFF` = never) | `0x008A` (seconds; 65535 = never on balancers, **unverified** on BMS boards) | `0x0115` (units of 10 s, 65535 = off) | | classic: smefa captures; D2: vendor list; 0x81: patagonaa. ubms writes at least 10 s on every variant (7.8): the effect of shorter values is not documented |
 | production date | `daly.production_date` | `0x53` data 2–4 / `0x13` | `0x00CC`–`0x00CD` (read) | `0x0129`–`0x012A` (read, inferred) | `YY MM DD` | keep read-only |
 | board number (bus address) | `system.address` | not in the protocol (PC software; a forum user needed a special firmware) | none | `0x0100` | u16be | patagonaa; changing it changes the Modbus address |
-| parameter password | `identity.password` | none | `0x00C9`–`0x00CB` (6 ASCII) | `0x0126`–`0x0128` (observed) | ASCII | D2 confirmed |
+| parameter password | none (not read by ubms, 4.5) | none | `0x00C9`–`0x00CB` (6 ASCII) | `0x0126`–`0x0128` (observed) | ASCII | D2 confirmed |
 | battery code | `daly.battery_code` | `0x57` / `0x17` (5 frames) | none | `0x019B`–`0x01AA` (read) | ASCII | classic write captured once (forum) |
 | firmware index number | `daly.firmware_index` | `0x54` / `0x14` | none | none | 8 ASCII | read-only (the PC software rewrites the read value) |
 | clock | `daly.rtc` | `0x61` / `0x21` (together with SOC) | `0x00D4`–`0x00D6` (write, snoop) | `0x0061`–`0x0063` (read, observed) | `YY MM DD hh mm ss` | |
@@ -1323,7 +1329,7 @@ context **unverified**. Registers `0x0066..0x0069` ("type 1" faults) are not dec
 | classic `0x93` data 1 / 2, D2 `0x0035` / `0x0036`, 0x81 `0x0052` / `0x0053` | 0 off, 1 on | all |
 | classic `0x94` data 2 / 3 | charger / load: 0 disconnected, 1 connected | CAN v1.0 notes, maland16 |
 | classic `0x94` data 4 | bit 0–3 DI1–DI4, bit 4–7 DO1–DO4 | CAN v1.0 notes, python-daly-bms, acpiccolo |
-| D2 `0x0034` | balancing: 0 off, 1 on | vendor list |
+| D2 `0x0034` | balancing: 0 off, 1 on; 2 active balancing (daly-balancer.md 9.1, **unverified**) | vendor list; syssi register map |
 | 0x81 `0x004D` | balancing: 0 off, 1 passive, 2 active (other values seen: 7) | syssi, ril3y |
 | D2 `0x0089` | battery type: 0 LiFePO4, 1 ternary, 2 lithium titanate | vendor list |
 | D2 `0x0057` (GPS valid flag), D2 `0x005F`/`0x0061` (acquisition normal flag) | `0xA5` = valid | vendor list |
@@ -1477,7 +1483,9 @@ If none of the probes is answered, the board may be a Sinowealth based "Daly" th
 * **Non-standard write multiple** (no byte count, section 3.2).
 * **AT text** from the BLE module on `fff1` (section 2.1.2).
 * **Sleep.** BLE module after 1 hour without activity; BMS after its sleep time; RS485 cannot wake it (sections 2.1.4,
-  2.2). Show "asleep or out of range" instead of a protocol error after repeated timeouts.
+  2.2). Show "asleep or out of range" instead of a protocol error after repeated timeouts. ubms does so in the poll
+  after the first unanswered request, and in a settings read when the first two classic groups (or the first Modbus
+  block) and then one SOC (or live block) read are unanswered, instead of waiting for every other request.
 * **Shared UART.** Frames of the Daly dongle appear on the line; filter by address and command.
 * **Board 2 and higher** answer with their board number in byte 1 (classic) or `0x50 + board` (Modbus).
 * **Not available markers.** Temperatures `0x00FF` (0x81), `0x0000`/`0xFFFF` (D2 MOSFET temperature), `0` for unused

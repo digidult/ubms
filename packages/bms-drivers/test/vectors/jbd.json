@@ -474,7 +474,7 @@
       "checksumValid": true,
       "password": {
         "length": 6,
-        "text": "\u0007\u0006\u0005\b\u0002\b"
+        "text": "******"
       }
     },
     "expectedComputed": true
@@ -496,8 +496,8 @@
       "checksumValid": true,
       "passwordChange": {
         "length": 12,
-        "old": "\u0007\u0006\u0005\b\u0002\b",
-        "new": "\u0001\u0002\u0003\u0004\u0005\u0006"
+        "old": "******",
+        "new": "******"
       }
     },
     "expectedComputed": true
@@ -1149,7 +1149,7 @@
       "checksumValid": true,
       "password": {
         "length": 6,
-        "text": "\u0000\u0000\u0000\u0000\u0000\u0000"
+        "text": "******"
       }
     },
     "expectedComputed": true
@@ -2026,7 +2026,7 @@
       "data": "064A3142324434",
       "checksum": 65155,
       "checksumValid": true,
-      "clearPassword": "J1B2D4"
+      "clearPassword": "******"
     },
     "expectedComputed": true
   },

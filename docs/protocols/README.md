@@ -21,28 +21,29 @@ the frames in `packages/bms-drivers/test/vectors/<family>.json` are the referenc
 
 | Driver id | Family | Specification sections | Detection |
 | --- | --- | --- | --- |
+| `jk-balancer-ble` | JK | JK04 balancer | device info request 0x97, then the first cell frame after 0x96 must have the JK04 layout; registered before `jk-ble` |
 | `jk-ble` | JK | JK02 24S and 32S, JK04 | device info request 0x97, variant from the software version and the first cell frame |
 | `jk-pb-rs485` | JK | JK-PB RS485 | FC 0x10 frame trigger to the configured address |
 | `jk-uart` | JK | 4E 57 UART | read-all command |
+| `jk-balancer-rs485` | JK | RS485 balancer | read request 55 AA 01 FF 00 00 FF at 9600 baud, 74-byte EB 90 answer with plausible cells |
+| `neey-ble` | NEEY | V1 and V2 | device info request AA 55 11 01 01 00 14 00 (sum8, then the xor8 form of the old app once); registered after JK and before ANT |
 | `ant` | ANT | 2021+ protocol | status request 7E A1 01 |
 | `ant-legacy` | ANT | legacy protocol | status request DB DB 00 00 00 00 (BLE) or 5A 5A 00 00 01 01 (UART) |
+| `jbd` | JBD | DD A5 | basic info read DD A5 03 00 FF FD 77, on FF00 at most one app key frame; registered before the Daly drivers |
+| `daly-balancer` | Daly | Modbus D2 balancer | D2 read of 62 status registers with plausible cells; registered before `daly-modbus`, which would accept a balancer |
 | `daly-modbus` | Daly | Modbus D2 and 0x81 | status register read (D2 first, then the 0x81 map) |
 | `daly` | Daly | classic A5 | 0x90 request (twice, Daly modules sleep) then 0x94 |
-| `jk-balancer-ble` | JK | JK04 balancer | device info request 0x97, then the first cell frame after 0x96 must have the JK04 layout; registered before `jk-ble` |
-| `jk-balancer-rs485` | JK | RS485 balancer | read request 55 AA 01 FF 00 00 FF at 9600 baud, 74-byte EB 90 answer with plausible cells |
-| `atorch` | Atorch | FF 55 | listens for a report for up to 3 s and never writes; registered last |
-| `neey-ble` | NEEY | V1 and V2 | device info request AA 55 11 01 01 00 14 00 (sum8, then the xor8 form of the old app once); registered after JK and before ANT |
-| `daly-balancer` | Daly | Modbus D2 balancer | D2 read of 62 status registers with plausible cells; registered before `daly-modbus`, which would accept a balancer |
-| `jbd` | JBD | DD A5 | basic info read DD A5 03 00 FF FD 77, on FF00 at most one app key frame; registered before the Daly drivers |
 | `jbd-up-rs485` | JBD | UP series | Modbus read at the configured address; serial only, after the Daly drivers |
+| `deye-rs485` | Deye | AA 55 over RS485 | read AA 55 01 01 00 00 20 0D 0A at 9600 baud, CRC and plausibility checks; before Seplos |
 | `seplos-v3` | Seplos | version 3 | Modbus function 0x04 and 0x01 reads |
 | `seplos-v2-ble` | Seplos | version 2 over Bluetooth | 0x51 and 0x61 reads |
 | `seplos-v2` | Seplos | version 2 ASCII | 0x51 and 0x42 reads at 19200, then 9600 baud |
-| `deye-rs485` | Deye | AA 55 over RS485 | read AA 55 01 01 00 00 20 0D 0A at 9600 baud, CRC and plausibility checks; before Seplos |
 | `deye-ble` | Deye | AA 55 in an AES session | handshake message `random`, only a Deye BMS computes the expected cipher block from the advertised name |
 | `deye-can` | Deye | PCS CAN through SLCAN | explicit selection only (`autoDetect: false`); opens the adapter listen-only and never transmits a CAN frame |
+| `atorch` | Atorch | FF 55 | listens for a report for up to 3 s and never writes; registered last |
 
-Within a family the order above is also the detection order.
+The table lists the drivers in detection order, which is the registration order in
+`packages/bms-drivers/src/index.js`.
 
 ## Common notes
 

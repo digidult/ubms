@@ -282,6 +282,31 @@ test('checksum policy: learns the byte 3 variant of a J7-C, never a rule from ra
   assert.equal(dl24m.accepts(bad), false);
 });
 
+test('checksum policy: a constant last byte that matches a stable report by coincidence is never learned', () => {
+  for (const id of ['dc-dt24tw-300a-report-checksum-constant', 'dc-dl24-2025-report-checksum-constant']) {
+    const base = bytesOf(id);
+    const last = base[35];
+    // Stable content that happens to sum to the constant byte: adjust the price low byte.
+    const stable = Uint8Array.from(base);
+    let found = false;
+    for (let v = 0; v < 256 && !found; v++) {
+      stable[18] = v;
+      found = P.checksumValid(stable) && stable[35] === last;
+    }
+    assert.ok(found, `${id}: a matching stable frame exists`);
+    const policy = new P.ChecksumPolicy();
+    const { a, frames } = hostAssembler({ policy });
+    for (let i = 0; i < 6; i++) a.push(stable);
+    assert.equal(policy.rule, null, `${id}: identical frames prove nothing`);
+    // Changed content with the same constant byte still passes on plausibility.
+    const changed = Uint8Array.from(stable);
+    changed[29] = (changed[29] + 1) % 60;
+    assert.equal(P.checksumValid(changed), false);
+    a.push(changed);
+    assert.equal(frames.length, 7, `${id}: the changed report is accepted`);
+  }
+});
+
 test('detector: high confidence on a valid checksum, lower on two plausible reports 0.5 to 2 s apart', () => {
   const valid = bytesOf('ac-at3010-report-1');
   const d1 = new P.ReportDetector();
@@ -803,6 +828,29 @@ test('session: a load that stops answering PX100 gets its state from the reports
     settings = await session.loadSettings();
     assert.equal(settings.values?.['atorch.load'], false);
     assert.equal(session.snapshot?.extra?.loadRunning.value, false);
+  } finally {
+    await s.close();
+  }
+});
+
+test('session: the ON/OFF key right after a settings read is not hidden by the PX100 answer', async () => {
+  const s = await startSession('DL24_BLE', { load: true, loadOn: false, loadCurrent: 1.5 });
+  const { session, sim } = s;
+  try {
+    await session.connect({ kind: 'link', link: s.host, selection: 'atorch' });
+    let settings = await session.loadSettings();
+    assert.equal(settings.values?.['atorch.load'], false);
+    await session.runAction('atorch.key_enter');
+    assert.equal(sim.state.load.on, true);
+    await until(() => session.snapshot?.current === 1.5 && session.snapshot);
+    const snap = await until(() => session.snapshot?.extra?.loadRunning.value === true && session.snapshot, 1500);
+    assert.equal(snap.current, 1.5);
+    // Off again: no current, the invalidated "off" answer no longer decides, the stalled runtime does.
+    await session.runAction('atorch.key_enter');
+    assert.equal(sim.state.load.on, false);
+    await until(() => session.snapshot?.current === 0 && session.snapshot?.extra?.loadRunning.value === false, 1500);
+    settings = await session.loadSettings();
+    assert.equal(settings.values?.['atorch.load'], false);
   } finally {
     await s.close();
   }

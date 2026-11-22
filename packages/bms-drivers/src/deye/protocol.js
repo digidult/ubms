@@ -1,3 +1,4 @@
+import { msg } from '@ubms/bms-core';
 import { FrameAssembler, concat, crc16Modbus, hex, u16be } from '@ubms/transport';
 import { aes128CbcDecrypt, aes128CbcEncrypt, latin1, sha256Hex } from '../common/crypto.js';
 
@@ -44,9 +45,11 @@ export const CELL_SLOTS = 32;
 /** Number of temperature slots in the 0x03 answer (spec 6.1.3). */
 export const TEMP_SLOTS = 8;
 
-/** Battery (cell) type codes (spec 9.6); 27 and 28 are not in any list. */
+/**
+ * Battery (cell) type codes (spec 9.6); 27 and 28 are not in any list. Code 0 ("undefined" in the
+ * vendor tool: never set) is no product name and is shown as a translated text instead.
+ */
 export const BATTERY_TYPES = Object.freeze({
-  0: 'undefined',
   1: 'GOTION 96 Ah',
   2: 'CATL 100 Ah',
   3: 'EVE 100 Ah',
@@ -64,10 +67,12 @@ export const BATTERY_TYPES = Object.freeze({
 export const TYPE_CAPACITY = Object.freeze({ 1: 96, 2: 100, 3: 100, 4: 100, 5: 120, 6: 100, 7: 104 });
 
 /**
- * Text of a battery type code: the cell name of the vendor tool list, or the raw code.
+ * Text of a battery type code: the cell name of the vendor tool list, "Not set" for 0, or the
+ * raw code.
  * @param {number} code
  */
 export function batteryTypeText(code) {
+  if (code === 0) return msg('Not set');
   const name = BATTERY_TYPES[/** @type {keyof typeof BATTERY_TYPES} */ (code)];
   return name ? `${code} (${name})` : String(code);
 }

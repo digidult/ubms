@@ -670,9 +670,9 @@ Request settings (0x04) right after a successful probe and set `NEEY_V2` for a 1
 
 ### 11.6 Registration order
 
-Current Bluetooth order: `jk-balancer-ble`, `jk-ble`, `ant`, `ant-legacy`, `daly-modbus`, `daly`, `atorch`; candidates are ranked by name first, so the order only matters among equal ranks (a NEEY with a default name ranks `neey-ble` first anyway).
+Candidates are ranked by name first, so the order only matters among equal ranks (a NEEY with a default name ranks `neey-ble` first anyway). At the time of writing the Bluetooth order without NEEY was `jk-balancer-ble`, `jk-ble`, `ant`, `ant-legacy`, `daly-modbus`, `daly`, `atorch`, and the recommendation below was made against it.
 
-Recommendation: register `neey-ble` after `jk-ble` and before `ant`, i.e. `drivers = [...jkDrivers, ...neeyDrivers, ...antDrivers, ...dalyDrivers, ...atorchDrivers]`, giving `jk-balancer-ble`, `jk-ble`, `neey-ble`, `ant`, `ant-legacy`, `daly-modbus`, `daly`, `atorch`. Reasons:
+Recommendation, implemented: register `neey-ble` after `jk-ble` and before `ant`. With the families added since, the Bluetooth order in `packages/bms-drivers/src/index.js` is now `jk-balancer-ble`, `jk-ble`, `neey-ble`, `ant`, `ant-legacy`, `jbd`, `daly-balancer`, `daly-modbus`, `daly`, `seplos-v3`, `seplos-v2-ble`, `deye-ble`, `atorch` (that file is the reference). Reasons:
 
 - Renamed or unnamed FFE0 devices are probed in registration order. JK BMS names are user defined and JK devices are the most common FFE0 devices, so the two JK probes stay first; a renamed NEEY then waits for the two JK probe timeouts, which is cheaper than delaying every renamed JK device by the NEEY timeout.
 - NEEY units are often renamed (11.1) while ANT names keep their "ANT-BLE" form ([ant.md](ant.md)), which ranks the ANT drivers first for ANT devices; placing NEEY before ANT therefore costs ANT devices nothing in practice and saves renamed NEEY units two ANT probes.

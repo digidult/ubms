@@ -448,8 +448,8 @@ Layout rule ([SY] `decode_jk02_cell_info_`, [AIO] `_FIELDS` "JK02_24S has offset
 | 194 (0xC2) | 226 (0xE2) | 4 | f32 | | `batteryVoltageCorrection` (about 3.0 in all captures) | [JKMB] BatVolCorrect FLOAT; [SY] logs it as an integer |
 | | 230 (0xE6) | 2 | u16 | % | PWM charge duty cycle | [JKMB] V1.0 only, **unverified** |
 | | 232 (0xE8) | 2 | u16 | % | PWM discharge duty cycle | [JKMB] V1.0 only, **unverified** |
-| 202 (0xCA) | 234 (0xEA) | 2 | u16 | 0.01 V | `totalVoltage2` (32S) | [SY], [JKMB] BatVol; on 24S this slot is not the pack voltage (captures read 1250, 2221, 65079), meaning unknown |
-| 204 (0xCC) | 236 (0xEC) | 2 | i16 | 0.001 A | `heatingCurrent` | [SY] (i16), [AIO] (signed), [DSB] (u16) |
+| 202 (0xCA) | 234 (0xEA) | 2 | u16 | 0.01 V | `totalVoltage2` (32S) | [SY], [JKMB] BatVol; on 24S see the next row |
+| 204 (0xCC) | 236 (0xEC) | 2 | i16 | 0.001 A | `heatingCurrent` (32S) | [SY] (i16), [AIO] (signed), [DSB] (u16). On 24S, bytes 202..205 are one i32 of unknown meaning (six captures read 1250, 1250, 1250, 2221, -457, -251), so bytes 204..205 are only its sign extension (00 00 or FF FF). ubms decodes neither slot on 24S; [SY] and [AIO] apply the 32S offset minus 32 there. |
 | | 244 (0xF4) | 1 | | | reserved | [JKMB] RVD |
 | | 245 (0xF5) | 1 | u8 | | `chargerPlugged` (0, 1) | [SY], [JKMB] ChargerPlugged |
 | | 246 (0xF6) | 4 | u32 | 0.1 s | `sysRunTicks` | [JKMB] SysRunTicks, **unverified** |
@@ -1040,8 +1040,8 @@ C166..C169 (u32) on 32S, C136..C137 (u16, bits 0–15 only) on 24S, PB register 
 |---|---|
 | 0 | charging MOSFET on |
 | 1 | discharging MOSFET on |
-| 2 | balancer switch on |
-| 3 | battery present: 1 normal, 0 dropped / offline |
+| 2 | balancing active, **inferred from captures**: [JK4E57] calls it balance switch state, but in all four read-all captures the balancer switch setting 0x9D is 1 while bit 2 is set only in the two where the cell delta exceeds the trigger and the highest cell is above the start voltage. ubms reports it as `balancingActive` and takes the balancer switch from 0x9D. |
+| 3 | battery present: 1 normal, 0 dropped / offline ([JK4E57]), **unverified**: 0 in all four captures of a working, connected pack (status 0x0004, 0x0003, 0x0003, 0x0007). ubms does not show it. |
 | 4–15 | reserved |
 
 ### 9.4 Temperature sensor presence (C182 on 24S, C214 on 32S, PB 0x12D0 high byte)

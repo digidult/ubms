@@ -372,8 +372,14 @@ function checkPassword(value, generation) {
 // ANT_NEW driver
 // ---------------------------------------------------------------------------------------------
 
-/** Read failures after which a settings block is skipped for the rest of the connection. */
+/**
+ * Settings reads in a row in which a block failed while the BMS answered, after which the block
+ * is skipped for `BLOCK_SKIP_READS` settings reads and then requested again. Reads in which the
+ * BMS answered nothing at all (asleep, restarting, out of range) do not count.
+ */
 const BLOCK_FAILURE_LIMIT = 2;
+/** Settings reads that leave out a block that failed `BLOCK_FAILURE_LIMIT` times. */
+const BLOCK_SKIP_READS = 3;
 
 /**
  * True when a parameter page is all 0xFF. One such page is a page that is not configured; when
@@ -422,8 +428,12 @@ export class AntDriver extends BaseDriver {
     this.buzzer = undefined;
     /** @type {Map<number, number>} settings block address to consecutive read failures */
     this.blockFailures = new Map();
+    /** @type {Map<number, number>} settings block address to the settings reads that still skip it */
+    this.blockSkips = new Map();
     /** Password of these settings with which no login unlocked the parameters (not tried again). @type {string | null} */
     this.unlockFailed = null;
+    /** Password of these settings with which no login granted read access (not tried again). @type {string | null} */
+    this.readAccessFailed = null;
   }
 
   /** @returns {import('@ubms/bms-core/driver').DriverCapabilities} */
@@ -526,10 +536,17 @@ export class AntDriver extends BaseDriver {
       // A board at permission level 0 answers every parameter read with 0xFF bytes (field log of an
       // ANT-BLE20PHUB, 2026-11-20): log in first, as the vendor app does (spec 4.3).
       await this.#ensureReadAccess(status ?? this.status);
-      let pages = await this.#readSettingBlocks();
+      /** @type {Set<number>} blocks this settings read leaves out */
+      const skip = new Set();
+      for (const [address, left] of this.blockSkips) {
+        skip.add(address);
+        if (left > 1) this.blockSkips.set(address, left - 1);
+        else this.blockSkips.delete(address);
+      }
+      let pages = await this.#readSettingBlocks(skip, status !== null);
       // The permission byte does not tell whether the parameters can be read (level 1 was not
       // enough on a 20PHUB), so the pages decide: locked ones get the passwords, then a new read.
-      if (parametersLocked(pages) && (await this.#unlockParameters())) pages = await this.#readSettingBlocks();
+      if (parametersLocked(pages) && (await this.#unlockParameters())) pages = await this.#readSettingBlocks(skip, true);
       const { image, answered } = pages;
       if (!answered && !status) throw new Error(msg('The BMS did not answer the settings requests'));
       if (parametersLocked(pages)) {
@@ -549,16 +566,23 @@ export class AntDriver extends BaseDriver {
 
   /**
    * Read every settings block; a block whose data is all 0xFF counts as blank (no read access, or
-   * a page that is not configured at all). Only call inside `this.channel.exclusive()`.
+   * a page that is not configured at all). When the status of this settings read and the first
+   * block both went unanswered, the BMS is silent: the other blocks are not requested and the
+   * failures are not counted against the blocks. Only call inside `this.channel.exclusive()`.
+   * @param {Set<number>} skip addresses of the blocks to leave out
+   * @param {boolean} statusAnswered whether the status request of this settings read was answered
    */
-  async #readSettingBlocks() {
+  async #readSettingBlocks(skip, statusAnswered) {
     const image = createRegisterImage();
     let answered = 0;
     let blank = 0;
     /** @type {Set<number>} addresses of the blank blocks */
     const blankAt = new Set();
+    /** @type {number[]} addresses of the blocks that failed */
+    const failed = [];
     for (const block of NEW_SETTING_BLOCKS) {
-      if ((this.blockFailures.get(block.address) ?? 0) >= BLOCK_FAILURE_LIMIT) continue;
+      if (skip.has(block.address)) continue;
+      if (!statusAnswered && !answered && failed.length) break;
       try {
         const f = await this.#request(newReadRequest(block.address, block.length), (fr) => fr[2] === RSP.READ && u16le(fr, 3) === block.address, {
           timeout: 1000,
@@ -573,8 +597,19 @@ export class AntDriver extends BaseDriver {
           blankAt.add(block.address);
         }
       } catch (err) {
-        this.blockFailures.set(block.address, (this.blockFailures.get(block.address) ?? 0) + 1);
+        failed.push(block.address);
         this.log?.warn(`ANT settings block ${block.name} (${block.address}): ${errorText(err)}`);
+      }
+    }
+    if (statusAnswered || answered) {
+      for (const address of failed) {
+        const n = (this.blockFailures.get(address) ?? 0) + 1;
+        if (n < BLOCK_FAILURE_LIMIT) {
+          this.blockFailures.set(address, n);
+          continue;
+        }
+        this.blockFailures.delete(address);
+        this.blockSkips.set(address, BLOCK_SKIP_READS);
       }
     }
     return { image, answered, blank, blankAt };
@@ -630,26 +665,34 @@ export class AntDriver extends BaseDriver {
    * Make sure the BMS lets us read the parameter pages (spec 4.3). Nothing is sent when the last
    * status frame reports permission level 1 or higher. Otherwise the passwords are tried until one
    * grants level 1 or higher: the default level 1 password (as the vendor app sends it after
-   * connecting), then the password of these settings as level 5 and as level 1 (a user who changed
-   * the app password types it once; which level it is is not known). Pass `null` to log in
-   * regardless of the status. Only call inside `this.channel.exclusive()`.
+   * connecting), then the password of these settings as level 5 and, when it has at most 8
+   * characters, as level 1 (a user who changed the app password types it once; which level it is
+   * is not known). When the BMS answered and granted nothing, the same passwords are not sent
+   * again until the user changes the password. Pass `null` to log in regardless of the status.
+   * Only call inside `this.channel.exclusive()`.
    * @param {AntStatus | null} status
    * @returns {Promise<boolean>} true when read access was already granted, false when a login was needed
    */
   async #ensureReadAccess(status) {
     if (status && status.permission >= 1) return true;
+    if (this.readAccessFailed === this.password) return false;
     /** @type {Array<[string, number]>} */
     const tries = [[DEFAULT_PASSWORD_L1, ADDR.PASSWORD_L1]];
     if (this.password) {
       tries.push([this.password, ADDR.PASSWORD_L5]);
-      if (this.password !== DEFAULT_PASSWORD_L1) tries.push([this.password, ADDR.PASSWORD_L1]);
+      if (this.password !== DEFAULT_PASSWORD_L1 && this.password.length <= 8) tries.push([this.password, ADDR.PASSWORD_L1]);
     }
     let level;
+    let answered = false;
     for (const [password, address] of tries) {
       level = await this.#authenticate(password, address);
+      if (level !== undefined) answered = true;
       if (Number(level) >= 1) break;
     }
-    this.log?.event(Number(level) >= 1 ? `ANT read access: level ${level}` : 'ANT read access: not granted by the BMS (no password was accepted)');
+    const granted = Number(level) >= 1;
+    // Only a BMS that answered and refused counts; a silent one gets the passwords next time.
+    if (!granted && answered) this.readAccessFailed = this.password;
+    this.log?.event(granted ? `ANT read access: level ${level}` : 'ANT read access: not granted by the BMS (no password was accepted)');
     return false;
   }
 
@@ -717,6 +760,7 @@ export class AntDriver extends BaseDriver {
       this.password = checkPassword(value, 'new');
       if (this.ctx.options) this.ctx.options.antPassword = this.password;
       this.unlockFailed = null; // typed again: try it again
+      this.readAccessFailed = null;
       return;
     }
     await this.channel.exclusive(async () => {
@@ -913,16 +957,18 @@ export class AntLegacyDriver extends BaseDriver {
       /** @type {Record<string, any>} */
       const values = {};
       /** @type {AntOldStatus | null} */
-      let st = null;
+      let fresh = null;
       try {
-        st = await this.#readStatus({ timeout: 1500, retries: 1 });
+        fresh = await this.#readStatus({ timeout: 1500, retries: 1 });
       } catch (err) {
         this.log?.warn(`ANT status for settings: ${errorText(err)}`);
       }
-      st ??= this.status;
+      const st = fresh ?? this.status;
       if (st) Object.assign(values, oldSwitchValues(st));
       // The password is not returned: settings values end up in exports and log exports.
+      let paramAnswered = false;
       if (this.paramReads !== 'unsupported') {
+        let stop = false;
         for (const g of this.schema.groups) {
           for (const f of g.fields) {
             if (f.meta?.kind !== 'old-param') continue;
@@ -931,19 +977,26 @@ export class AntLegacyDriver extends BaseDriver {
               if (f.meta.highParam) raw += (await this.#readParam(f.meta.highParam)) * 65536;
               values[f.id] = legacyValue(f, raw);
               this.paramReads = 'ok';
+              paramAnswered = true;
             } catch (err) {
               this.log?.warn(`ANT parameter ${f.meta.param}: ${errorText(err)}`);
-              if (this.paramReads !== 'ok') {
+              if (paramAnswered) continue;
+              // Without a fresh status the BMS is silent (asleep, out of range): try again next
+              // time. A BMS that answers the status and not this read ignores parameter reads.
+              if (fresh && this.paramReads !== 'ok') {
                 this.paramReads = 'unsupported';
                 this.log?.event('ANT legacy: the BMS does not answer parameter reads, only the status is shown');
+              }
+              if (!fresh || this.paramReads === 'unsupported') {
+                stop = true;
                 break;
               }
             }
           }
-          if (this.paramReads === 'unsupported') break;
+          if (stop) break;
         }
       }
-      if (!st && this.paramReads !== 'ok') throw new Error(msg('The BMS did not answer the settings requests'));
+      if (!fresh && !paramAnswered) throw new Error(msg('The BMS did not answer the settings requests'));
       return values;
     });
   }

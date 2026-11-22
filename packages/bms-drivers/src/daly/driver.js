@@ -107,6 +107,24 @@ const isSerialLink = (link) => /serial/.test(link?.kind ?? '');
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
 /**
+ * Run one read that every working device answers; a timeout means the device is silent (asleep
+ * or out of range) and becomes NO_ANSWER, other errors are ignored (the device answered).
+ * @param {() => Promise<unknown>} read
+ */
+async function ensureAnswering(read) {
+  try {
+    await read();
+  } catch (err) {
+    if (isTimeout(err)) throw new Error(NO_ANSWER);
+  }
+}
+
+/** Lost D2 MOSFET block replies in a row after which the block is paused (or, before it ever answered, dropped). */
+const MOS_FAILURES = 2;
+/** Polls that leave out the D2 MOSFET block after `MOS_FAILURES` lost replies. */
+const MOS_SKIP_POLLS = 15;
+
+/**
  * RS485 board number from the user options (1..16, default 1, spec 2.2).
  * @param {Record<string, any> | undefined} options
  */
@@ -294,7 +312,8 @@ export function d2Snapshot(st, { current, mos, balancerSwitch, capacityNominal, 
     cycles: st.cycles,
     cells: st.cellVoltages,
     // Per cell balancing bits (0x003E/0x003F) are inferred only (spec 6.3), so only the flag is shown.
-    balancingActive: st.balancerState === 1,
+    // 1 passive, 2 active balancing (daly-balancer.md 9.1), as on the 0x81 map.
+    balancingActive: st.balancerState === 1 || st.balancerState === 2,
     temperatures,
     switches: { charge: st.chargeMos, discharge: st.dischargeMos, ...(balancerSwitch !== undefined ? { balance: balancerSwitch } : {}) },
     alarms: failureAlarms(st.faultBytes),
@@ -674,12 +693,17 @@ export class DalyClassicDriver extends BaseDriver {
       /** @type {Map<number, Uint8Array>} */
       const groups = new Map();
       let answered = 0;
+      let unanswered = 0;
       for (const cmd of CLASSIC_SETTING_GROUPS) {
         try {
           groups.set(cmd, Uint8Array.from((await this.#read(cmd)).subarray(4, 12)));
           answered++;
         } catch (err) {
           this.log?.warn(`Daly settings group 0x${cmd.toString(16).toUpperCase()}: ${errorText(err)}`, { source: this.definition.id });
+          // The first two groups unanswered: ask for the SOC, which every board answers. A BMS
+          // that does not answer it either is asleep or out of range; do not wait for every other
+          // group (spec 12.2).
+          if (!answered && isTimeout(err) && ++unanswered === 2) await ensureAnswering(() => this.#read(CMD.SOC, { retries: 0 }));
         }
       }
       this.groups = groups;
@@ -890,8 +914,12 @@ export class DalyModbusDriver extends BaseDriver {
     this.schema = null;
     /** @type {Map<string, import('@ubms/bms-core/settings').SettingField>} */
     this.fields = new Map();
-    /** D2 MOSFET temperature block: 'unknown' until read, 'off' after a timeout or 0 / 0xFFFF. */
+    /** D2 MOSFET temperature block: 'unknown' until read, 'off' when the firmware has none (see #pollD2). */
     this.mosInfo = 'unknown';
+    /** Lost D2 MOSFET block replies in a row. */
+    this.mosFailures = 0;
+    /** Polls that still leave out the D2 MOSFET block. */
+    this.mosSkip = 0;
     /** @type {{ mosTemperature: number | null, balanceCurrent: number } | null} */
     this.mos = null;
     /** D2 balancer switch (0x00CF) when the device has one. @type {boolean | undefined} */
@@ -1055,16 +1083,28 @@ export class DalyModbusDriver extends BaseDriver {
 
   async #pollD2() {
     const st = await this.#readD2Status();
-    if (this.mosInfo !== 'off') {
+    if (this.mosInfo !== 'off' && this.mosSkip > 0) {
+      this.mosSkip--;
+    } else if (this.mosInfo !== 'off') {
       // aiobmsble reads 9 registers from 0x003E for the MOSFET temperature and stops when it times
-      // out or reports 0x0000 / 0xFFFF (spec 4.3 step 2).
+      // out or reports 0x0000 / 0xFFFF (spec 4.3 step 2). ubms stops for good on 0x0000 / 0xFFFF,
+      // an exception reply, or lost replies before the block ever answered. Once it answered, lost
+      // replies only pause it: the first keeps the last values, the second drops them for
+      // MOS_SKIP_POLLS polls.
       try {
         const m = parseD2MosInfo(await this.#read(D2.MOS_INFO.start, D2.MOS_INFO.count, { timeout: Math.min(800, this.timing.timeout), retries: 0 }));
         this.mosInfo = m.mosTemperature === null ? 'off' : 'ok';
         this.mos = m.mosTemperature === null ? null : m;
-      } catch {
-        this.mosInfo = 'off';
-        this.mos = null;
+        this.mosFailures = 0;
+      } catch (err) {
+        if (!isTimeout(err) || (this.mosInfo === 'unknown' && ++this.mosFailures >= MOS_FAILURES)) {
+          this.mosInfo = 'off';
+          this.mos = null;
+        } else if (this.mosInfo === 'ok' && ++this.mosFailures >= MOS_FAILURES) {
+          this.mosFailures = 0;
+          this.mosSkip = MOS_SKIP_POLLS;
+          this.mos = null;
+        }
       }
     }
     const { current, flipped } = this.sign.apply(st.current, st.chargeDischargeState);
@@ -1148,12 +1188,19 @@ export class DalyModbusDriver extends BaseDriver {
       const regs = new Map();
       let answered = 0;
       const blocks = this.flavour === 'p81' ? P81_SETTING_BLOCKS : D2_SETTING_BLOCKS;
-      for (const block of blocks) {
+      for (const [i, block] of blocks.entries()) {
         try {
           storeRegisters(regs, block.start, modbusRegisters(await this.#read(block.start, block.count)));
           answered++;
         } catch (err) {
           this.log?.warn(`Daly ${block.name} (0x${block.start.toString(16).toUpperCase()}): ${errorText(err)}`, { source: this.definition.id });
+          // The first block unanswered: one live read tells a silent BMS (asleep, out of range)
+          // from a missing block, so a silent one does not get every other block (spec 12.2).
+          if (i === 0 && isTimeout(err)) {
+            await ensureAnswering(() =>
+              this.flavour === 'p81' ? this.#read(P81.REALTIME_1.start, P81.REALTIME_1.count, { retries: 0 }) : this.#read(D2.STATUS.start, D2.STATUS.count, { retries: 0 }),
+            );
+          }
         }
       }
       /** @type {Record<string, any>} */

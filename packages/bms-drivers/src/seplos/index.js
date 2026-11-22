@@ -37,6 +37,7 @@ export {
   plausiblePia,
   plausibleSingle,
   plausibleTelemetry,
+  telemetryLayout,
   v2AsciiSnapshot,
   v2BleSnapshot,
   v3Snapshot,

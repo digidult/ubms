@@ -323,7 +323,7 @@ test('detection: every captured 0x03 answer passes the plausibility rules, broke
   assert.match(String(broken((x) => (x[19] = 101))), /SOC/);
   assert.match(String(broken((x) => ((x[23] = 0x13), (x[24] = 0x00)))), /temperature/);
   assert.match(String(basicProblem(d.subarray(0, 22))), /data length/);
-  // Polling checks the structure only: an open NTC (raw 0) is no reason to drop the answer.
+  // Detection and polling check the structure only: an open NTC (raw 0) is no reason to drop the answer.
   const openNtc = Uint8Array.from(d);
   openNtc[23] = 0;
   openNtc[24] = 0;
@@ -354,7 +354,7 @@ test('detection: frames of the other families never look like a JBD 0x03 or app 
   for (const { family, id, bytes } of foreign) {
     for (const chunk of [20, 64, 1000]) {
       for (const f of assemble(bytes, chunk).frames) {
-        const accepted = f[0] === 0xdd && f[1] === REG.BASIC && f[2] === STATUS.OK && basicProblem(f.subarray(4, 4 + f[3])) === null;
+        const accepted = f[0] === 0xdd && f[1] === REG.BASIC && f[2] === STATUS.OK && basicProblem(f.subarray(4, 4 + f[3]), { strict: false }) === null;
         assert.ok(!accepted, `${family} ${id}: taken for a JBD 0x03 answer`);
         assert.ok(!(f[0] === 0xff && f[2] === 0x15), `${family} ${id}: taken for an app key answer`);
       }
@@ -860,15 +860,23 @@ test('session: refused optional registers are hidden, 100 mA units make capaciti
 
 test('session: BMS password after a 0x81 refusal of factory mode', async () => {
   const { session, sim } = await connectSim({ bmsPassword: '765828' });
+  // The refusal is a notice with the password field next to it, not an error without fields.
   const before = await session.loadSettings();
-  assert.match(String(before.error), /refused factory mode/);
+  assert.equal(before.error, null);
+  assert.match(String(before.notice), /refused factory mode/);
+  assert.equal(before.passwordField, 'jbd.bms_password');
+  assert.deepEqual([before.values?.['switch.charge'], before.values?.['cell.ovp']], [true, undefined]);
   const r = await session.writeSettings([{ id: 'jbd.bms_password', value: '765828' }], { reload: false });
   assert.equal(r[0].ok, true);
   const after = await session.loadSettings();
   assert.equal(after.error, null);
+  assert.equal(after.notice, null);
   assert.equal(after.values?.['cell.ovp'], 3.65);
   assert.equal(after.values?.['jbd.bms_password'], undefined, 'passwords are never returned');
-  const sent = sim.received.filter((f) => f[1] === 0x5a && f[2] === REG.PASSWORD).map((f) => parseRequest(f).password.text);
+  const frames = sim.received.filter((f) => f[1] === 0x5a && f[2] === REG.PASSWORD);
+  // The decoded frame masks the password (it goes into the log); the bytes carry it.
+  assert.deepEqual(frames.map((f) => parseRequest(f).password.text), ['******']);
+  const sent = frames.map((f) => String.fromCharCode(...f.subarray(5, 4 + f[3])));
   assert.deepEqual(sent, ['765828'], 'ASCII first, accepted');
   await session.disconnect();
   sim.stop();
@@ -908,6 +916,52 @@ test('session: a MOSFET switch keeps the other MOSFET as the BMS reports it now'
   assert.ok(log.list.some((e) => /no saved command: kept off/.test(e.text ?? '')));
   await session.disconnect();
   sim.stop();
+});
+
+test('session: a lost or late 0xE1 acknowledgement, or another app, never switches an off MOSFET back on', async () => {
+  for (const trouble of /** @type {const} */ (['lost', 'late', 'other app'])) {
+    /** @type {Record<string, any>} */
+    const options = {};
+    const { session, sim, first } = await connectSim({}, { options });
+    await first;
+    const sw = async (/** @type {string} */ id, /** @type {boolean} */ value) => (await session.writeSettings([{ id, value }], { reload: false }))[0];
+    assert.equal((await sw('switch.discharge', false)).ok, true);
+    if (trouble === 'other app') {
+      sim.setMosCommand({ chargeOff: true, dischargeOff: true });
+    } else {
+      if (trouble === 'lost') sim.state.dropAnswers[REG.MOS] = 1;
+      else sim.state.lateAnswers[REG.MOS] = 3000;
+      const r = await sw('switch.charge', false);
+      assert.equal(r.ok, false, trouble);
+      assert.equal(options['jbd.mosCommand'], undefined, `${trouble}: the outcome is unknown, the saved command is dropped`);
+      delete sim.state.lateAnswers[REG.MOS];
+    }
+    assert.deepEqual(sim.state.mosCommand, { chargeOff: true, dischargeOff: true }, trouble);
+    assert.equal((await sw('switch.discharge', true)).ok, true);
+    assert.equal(mosWrites(sim).at(-1), 0x01, `${trouble}: charge stays off`);
+    assert.deepEqual(sim.state.mosCommand, { chargeOff: true, dischargeOff: false }, trouble);
+    await session.disconnect();
+    sim.stop();
+  }
+});
+
+test('session: a BMS with an open NTC connects and reconnects; the probe sends no app key', async () => {
+  for (const kind of ['memory', 'serial']) {
+    const { log, session } = makeSession(new DriverRegistry(jbdDrivers));
+    const { host, device } = createLinkPair({ log, deviceChunkSize: 20, kind, name: 'Memory link' });
+    await device.open();
+    const sim = createJbdSimulator(device, { tickMs: 0 });
+    sim.battery.temps[1] = -273.1; // raw 0, before the connect
+    const first = nextSnapshot(session);
+    await session.connect({ kind: 'link', link: host, selection: 'jbd', options: {} });
+    assert.equal(session.state, 'connected', kind);
+    let s = await first;
+    for (let i = 0; i < 3 && !s.alarms.some((/** @type {any} */ a) => a.id === 'temperature_sensor_fault'); i++) s = await nextSnapshot(session);
+    assert.ok(s.alarms.some((/** @type {any} */ a) => a.id === 'temperature_sensor_fault' && a.source === 'NTC 2'), kind);
+    assert.ok(!sim.received.some((f) => f[0] === 0xff && f[1] === 0xaa), `${kind}: no app key frame`);
+    await session.disconnect();
+    sim.stop();
+  }
 });
 
 test('session: factory mode is left after lost answers, a save without acknowledgement is an error', async () => {

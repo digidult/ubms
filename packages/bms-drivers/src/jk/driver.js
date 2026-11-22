@@ -238,6 +238,18 @@ export function uartSnapshot(st) {
   if (st.temperature1 !== undefined) temperatures.push({ id: 't1', label: msg('Battery box temperature'), value: st.temperature1, kind: 'ambient' });
   if (st.temperature2 !== undefined) temperatures.push({ id: 't2', label: msg('Battery temperature'), value: st.temperature2, kind: 'cell' });
   const status = st.status ?? 0;
+  // Status word 0x8C (spec 9.3): bits 0 and 1 follow the MOSFET switches. Bit 2 is not the balancer
+  // switch setting: in the captures it is set only while balancing runs, so it is reported as
+  // balancingActive (inferred from captures, [JK4E57] calls it balance switch state) and the switch
+  // comes from the setting 0x9D, which is what `switch.balance` writes. Bit 3 ("battery present"
+  // in [JK4E57]) is 0 in every capture of a working pack, so it is deliberately not shown.
+  /** @type {NonNullable<BmsSnapshot['switches']>} */
+  const switches = {};
+  if (st.status !== undefined) {
+    switches.charge = (status & 1) !== 0;
+    switches.discharge = (status & 2) !== 0;
+  }
+  if (st.balancerSwitch !== undefined) switches.balance = !!st.balancerSwitch;
   return compact({
     voltage: st.totalVoltage,
     current: st.current,
@@ -248,9 +260,9 @@ export function uartSnapshot(st) {
     uptime: st.systemWorkingMinutes !== undefined ? st.systemWorkingMinutes * 60 : undefined,
     cells: st.cellVoltages,
     temperatures,
-    switches: st.status !== undefined ? { charge: (status & 1) !== 0, discharge: (status & 2) !== 0, balance: (status & 4) !== 0 } : undefined,
+    balancingActive: st.status !== undefined ? (status & 4) !== 0 : undefined,
+    switches: Object.keys(switches).length ? switches : undefined,
     alarms: alarmsFromBits(st.warnings ?? 0, UART_WARNING_BITS, 'warning bit'),
-    extra: st.status !== undefined ? { batteryPresent: { label: msg('Battery connected'), value: (status & 8) !== 0 } } : undefined,
   });
 }
 
@@ -773,7 +785,10 @@ export class JkPbDriver extends BaseDriver {
       }
       const end = frames.findIndex(own);
       const answer = end >= 0 ? frames[end] : null;
-      if (answer && isModbusException(answer, this.address)) throw new Error(`Modbus exception ${answer[2]} for trigger ${h4(register)}`);
+      if (answer && isModbusException(answer, this.address)) {
+        this.log?.warn(`JK-PB: trigger ${h4(register)} refused with Modbus exception ${answer[2]}`);
+        throw new Error(msg('The BMS refused the command'));
+      }
       const frame = this.#ownFrame(end >= 0 ? frames.slice(0, end) : frames, type, !!answer);
       if (frame) {
         if (!answer) this.log?.warn(`JK-PB: settings frame without the FC 0x10 answer for ${h4(register)}, taken by its DIP address`);

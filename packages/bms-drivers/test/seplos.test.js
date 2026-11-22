@@ -598,6 +598,25 @@ test('settings decoding of captured parameter blocks', () => {
   assert.deepEqual(validateAll(v3schema, values), {});
   // Round trip of every register through the engineering value.
   for (const r of V3.SPA_REGISTERS) assert.equal(V3.spaRaw(r, V3.spaValue(r, /** @type {number} */ (spa.get(r.reg)))), spa.get(r.reg), `0x${r.reg.toString(16)}`);
+  // A negated threshold of raw 0 is 0, never -0 (the number format shows "-0").
+  const negated = V3.SPA_REGISTERS.filter((r) => /** @type {any} */ (r).negate);
+  assert.ok(negated.length >= 6);
+  for (const r of negated) assert.ok(Object.is(V3.spaValue(r, 0), 0), `0x${r.reg.toString(16)}`);
+});
+
+test('settings schema: every voltage field has the unit V, pack voltages stay within 0..100 V', () => {
+  const extra = ['seplos.float_lock_voltage', 'seplos.float_release_voltage'];
+  for (const [name, s] of /** @type {const} */ ([['v2', buildV2Schema()], ['v3', buildV3Schema()]])) {
+    const f = fieldMap(s);
+    for (const x of f.values()) {
+      if (x.type !== 'number' || !((x.group === 'cell_voltage' || x.group === 'pack_voltage') || extra.includes(x.id))) continue;
+      assert.equal(x.unit, 'V', `${name} ${x.id}`);
+    }
+    for (const id of ['seplos.pack_ov_alarm_recovery', 'seplos.pack_uv_alarm_recovery']) {
+      if (f.has(id)) assert.ok(/** @type {number} */ (f.get(id)?.max) <= 100, `${name} ${id}`);
+    }
+  }
+  assert.equal(fieldMap(buildV3Schema()).get('seplos.pack_uv_alarm_recovery')?.max, 100);
 });
 
 test('cross-field checks: both sides of every relation, alarms before protections, warnings', () => {
@@ -1164,6 +1183,36 @@ test('detection: look-alike batteries and the other generation are rejected', as
   const jbdOnV2 = await probeWith(jbd, (dv) => createSeplosV2BleSimulator(dv, { tickMs: 0 }));
   assert.equal(jbdOnV2.r, null, 'jbd on Seplos V2 BLE');
   assert.deepEqual(jbdOnV2.sim.state.received, [], 'the V2 module saw no Seplos frame');
+});
+
+test('detection: a V2 ASCII pack with a cell out of range is still detected, with a lower confidence', async () => {
+  for (const outlier of [0.62, 5.3]) {
+    /** @param {any} sim */
+    const patch = (sim) => {
+      const cells = sim.battery.cellVoltages.bind(sim.battery);
+      sim.battery.cellVoltages = () => cells().map((/** @type {number} */ v, /** @type {number} */ i) => (i === 4 ? outlier : v));
+      return sim;
+    };
+    const { host, device } = createLinkPair({ kind: 'serial' });
+    await host.open();
+    await device.open();
+    const sim = patch(createSeplosV2Simulator(device, { tickMs: 0 }));
+    const d = seplosV2Definition.create({ link: host, log: new ProtocolLog(), profileId: 'direct', options: {} });
+    const r = await d.probe({ timeout: 1500 });
+    assert.deepEqual([r?.variant, r?.confidence], ['SEPLOS_V2_ASCII', 0.6], `cell 5 at ${outlier} V`);
+    assert.deepEqual(sentCommands(sim), [0x51, 0x42]);
+    d.dispose();
+    sim.stop();
+    await host.close();
+    const { session, sim: s2, snap } = await connect('seplos-v2', (dv) => patch(createSeplosV2Simulator(dv, { tickMs: 0 })), { kind: 'serial' });
+    assert.equal(session.state, 'connected');
+    try {
+      assert.equal(snap.cells[4], outlier, 'the faulty cell is shown');
+    } finally {
+      await session.disconnect();
+      s2.stop();
+    }
+  }
 });
 
 // ---------------------------------------------------------------------------------------------

@@ -469,6 +469,12 @@ test('JK02 snapshot: units, current sign, temperatures, alarms, switches and ext
   const charging = jk02Snapshot(P.parseCellInfo(fromHex(byId('aiobmsble-jk02-24s-cell-info').hex), P.VARIANT.JK02_24S), { variant: P.VARIANT.JK02_24S });
   assert.equal(charging.current, 2.329);
   assert.ok(/** @type {number} */ (charging.power) > 0);
+  // 24S bytes 202..205 are one i32 of unknown meaning: no heating current from its upper half.
+  for (const id of ['mppsolar-jk02-24s-cell-info', 'mppsolar-jk02-24s-cell-info-discharging-balancer']) {
+    const cell = P.parseCellInfo(fromHex(byId(id).hex), P.VARIANT.JK02_24S);
+    assert.equal(cell.heatingCurrent, undefined, id);
+    assert.equal(jk02Snapshot(cell, { variant: P.VARIANT.JK02_24S }).extra?.heatingCurrent, undefined, id);
+  }
 });
 
 test('JK02_32S snapshot: temperatures 4 and 5 only from software 14 on (captured frames)', () => {
@@ -508,7 +514,10 @@ test('JK04 and 4E57 snapshots, device info mapping', () => {
   const u = uartSnapshot(st);
   assert.equal(u.current, 4.53);
   assert.equal(u.voltage, 55.78);
-  assert.deepEqual(u.switches, { charge: true, discharge: true, balance: false });
+  // The balancer switch is the 0x9D setting (1 here); status bit 2 means balancing runs (spec 9.3).
+  assert.deepEqual(u.switches, { charge: true, discharge: true, balance: true });
+  assert.equal(u.balancingActive, false);
+  assert.equal(u.extra?.batteryPresent, undefined);
   assert.deepEqual(
     u.temperatures?.map((t) => [t.id, t.value]),
     [
@@ -517,7 +526,16 @@ test('JK04 and 4E57 snapshots, device info mapping', () => {
       ['t2', 30],
     ],
   );
-  assert.equal(uartSnapshot(P.parseUartFrame(fromHex(byId('uart-rx-bd6a17s6p-16s-lfp').hex))).current, -0.69);
+  const lfp = uartSnapshot(P.parseUartFrame(fromHex(byId('uart-rx-bd6a17s6p-16s-lfp').hex)));
+  assert.equal(lfp.current, -0.69);
+  assert.equal(lfp.switches?.balance, true);
+  assert.equal(lfp.balancingActive, false);
+  for (const id of ['uart-rx-b2a24s15p-13s-liion', 'uart-rx-14s-protocol-doc']) {
+    const s = uartSnapshot(P.parseUartFrame(fromHex(byId(id).hex)));
+    assert.equal(s.balancingActive, true, id);
+    assert.equal(s.switches?.balance, true, id);
+    assert.equal(s.extra?.batteryPresent, undefined, id);
+  }
 
   const info = deviceInfoModel(P.parseDeviceInfo(fromHex(byId('jk02-24s-v10-device-info').hex)), P.VARIANT.JK02_24S);
   assert.deepEqual(info, {
@@ -1007,11 +1025,17 @@ function pbDevice(device) {
   const settings = answers[P.PB_TRIGGER.SETTINGS];
   /** @type {Uint8Array[]} */
   const received = [];
+  // Set by a test: the settings trigger is answered with Modbus exception 4.
+  const state = { received, refuseSettings: false };
   const asm = P.createModbusRequestAssembler(1)({
     onFrame: (f) => {
       received.push(f);
       tx(device, f); // adapter echo
       const req = P.parseModbusRequest(f);
+      if (state.refuseSettings && req.register === P.PB_TRIGGER.SETTINGS) {
+        tx(device, P.modbusException(1, 0x10, 4));
+        return;
+      }
       const answer = /** @type {Record<number, Uint8Array>} */ (answers)[req.register];
       if (answer) {
         tx(device, answer);
@@ -1029,7 +1053,7 @@ function pbDevice(device) {
     },
   });
   device.on('data', (c) => asm.push(c));
-  return { received };
+  return state;
 }
 
 /**
@@ -1089,6 +1113,11 @@ test('session: JK-PB over RS485 with trigger requests, Modbus writes and the con
     assert.ok(dev.received.some((/** @type {Uint8Array} */ f) => hex(f) === hex(P.pbWriteU32(1, 0x100c, 3600))));
     // Controls word 848 (bits 4, 6, 8, 9) with bit 4 cleared.
     assert.ok(dev.received.some((/** @type {Uint8Array} */ f) => hex(f) === hex(P.pbWriteU16(1, 0x1114, 848 & ~0x10))));
+
+    // A refused trigger reaches the settings screen as a translatable message; the detail is logged.
+    dev.refuseSettings = true;
+    const refused = await session.loadSettings();
+    assert.equal(refused.error, 'The BMS refused the command');
   } finally {
     await session.disconnect();
   }
@@ -1214,7 +1243,8 @@ function uartDevice(device) {
         const o = uartValueOffset(reply, req.dataId);
         reply[o] = /** @type {number} */ (req.value);
         const status = uartValueOffset(reply, 0x8c);
-        const bit = { [P.UART_ID.CHARGE_SWITCH]: 1, [P.UART_ID.DISCHARGE_SWITCH]: 2, [P.UART_ID.BALANCER_SWITCH]: 4 }[req.dataId] ?? 0;
+        // Bits 0 and 1 follow the MOSFET switches; bit 2 is balancing activity, not 0x9D (spec 9.3).
+        const bit = { [P.UART_ID.CHARGE_SWITCH]: 1, [P.UART_ID.DISCHARGE_SWITCH]: 2 }[req.dataId] ?? 0;
         reply[status + 1] = req.value ? reply[status + 1] | bit : reply[status + 1] & ~bit;
         const L = u16be(reply, 2);
         setU32be(reply, L - 2, sum16(reply, 0, L - 2));
@@ -1241,6 +1271,9 @@ test('session: JK-B 4E57 over UART, read all and switch writes', async () => {
     assert.equal(snapshots[0].cells.length, 16);
     assert.equal(snapshots[0].current, -0.69);
     assert.equal(snapshots[0].switches.charge, true);
+    // Balancer enabled (0x9D = 1) but idle (status bit 2 clear): the switch shows on.
+    assert.equal(snapshots[0].switches.balance, true);
+    assert.equal(snapshots[0].balancingActive, false);
     const settings = await session.loadSettings();
     assert.equal(settings.values?.['cell.ovp'], 3.65);
     assert.equal(settings.values?.['switch.charge'], true);
@@ -1251,6 +1284,10 @@ test('session: JK-B 4E57 over UART, read all and switch writes', async () => {
     );
     const dev = port.devices.at(-1);
     assert.ok(dev.received.some((/** @type {Uint8Array} */ f) => hex(f) === byId('uart-cmd-write-charge-mos-off').hex));
+    const balanceOff = await session.writeSettings([{ id: 'switch.balance', value: false }], { reload: false });
+    assert.equal(balanceOff[0].ok, true);
+    const count = snapshots.length;
+    await waitFor(() => snapshots.length > count && snapshots.at(-1).switches.balance === false);
     const refused = await session.writeSettings([{ id: 'cell.ovp', value: 3.6 }]);
     assert.equal(refused[0].ok, false);
   } finally {
