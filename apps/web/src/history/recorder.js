@@ -61,19 +61,17 @@ export function mergeRecords(stored, tail) {
 }
 
 /**
- * Is the link id of a session target stable across connections? Bluetooth device ids are (Web
- * Bluetooth per origin, the desktop bridge per system); a desktop serial port path names the port.
- * Web Serial ports have no stable identity, demo links are new every time.
+ * Is the link id of a session target stable across connections and does it name the device?
+ * Bluetooth device ids do (Web Bluetooth per origin, the desktop bridge per system). A serial port
+ * (a desktop port path such as COM7 as well as a Web Serial port) names the adapter, not the
+ * battery behind it: another BMS on the same adapter must get its own history, so serial links
+ * use the name rule. Demo links are new every time.
  * @param {any} target session target
  * @returns {string} the stable id or ''
  */
 export function stableLinkId(target) {
   if (!target?.handle) return '';
   if (target.kind === 'ble') return String(target.handle.id ?? '');
-  if (target.kind === 'serial') {
-    const d = typeof target.handle.describe === 'function' ? target.handle.describe() : null;
-    return d?.backend === 'tauri' ? String(target.handle.id ?? '') : '';
-  }
   return '';
 }
 
@@ -281,9 +279,11 @@ export class HistoryRecorder {
     // Everything recorded so far waits in the tail; it is written with the next flush.
     if (persist) this.buffer.push(...live.tail);
     // Show what the store holds from earlier connections in the live window as well.
-    const from = this.now() - LIVE_WINDOW_MS;
+    // Up to now: records ahead of the clock (it was ahead before and has been corrected) would
+    // stay the newest records of the tail and block every new reading.
+    const now = this.now();
     store
-      .read(key, { from })
+      .read(key, { from: now - LIVE_WINDOW_MS, to: now })
       .then((stored) => {
         if (this.live?.id !== id || !stored.length) return;
         this.live.tail = mergeRecords(/** @type {HistoryRecord[]} */ (stored), this.live.tail);
@@ -322,6 +322,13 @@ export class HistoryRecorder {
     if (!live || !snapshot) return;
     const record = historyRecord(snapshot);
     const interval = Math.max(250, Number(this.prefs().historyIntervalMs) || 2000);
+    if (record.t < this.lastT || record.t < (live.tail.at(-1)?.t ?? -Infinity)) {
+      // The clock went back: start the live tail again here instead of dropping every reading
+      // until the clock catches up with the time of the last one.
+      live.tail = live.tail.filter((r) => r.t < record.t);
+      live.epoch++;
+      this.lastT = -Infinity;
+    }
     // Polls jitter a little: accept a record slightly early instead of skipping a whole poll.
     if (record.t - this.lastT < interval - Math.min(250, interval * 0.1)) return;
     if (record.t <= (live.tail.at(-1)?.t ?? -Infinity)) return; // never out of order

@@ -13,6 +13,8 @@ import './views/more.js';
 
 /** Routes that need a connected device. */
 const DEVICE_ROUTES = new Set(['overview', 'cells', 'settings', 'info']);
+/** Routes that stay open when the device is disconnected; every other one returns to Connect. */
+const STAY_ROUTES = new Set(['connect', 'charts', 'log']);
 
 export const router = new HashRouter(
   [
@@ -160,7 +162,8 @@ export class UbmsApp extends UiElement {
     this.unsub = this.ctrl.store.subscribe((s, prev) => {
       // Move to the dashboard after connecting, back to the connect screen after disconnecting.
       if (s.state === 'connected' && prev.state !== 'connected' && prev.state !== 'reconnecting') router.navigate('/overview');
-      if (s.state === 'idle' && prev.state !== 'idle' && DEVICE_ROUTES.has(router.route.name)) router.navigate('/connect');
+      // Charts and the log stay open (docs/ui.md); More holds the Disconnect button.
+      if (s.state === 'idle' && prev.state !== 'idle' && !STAY_ROUTES.has(router.route.name)) router.navigate('/connect');
     });
   }
 
@@ -177,8 +180,14 @@ export class UbmsApp extends UiElement {
     return st === 'connected' || st === 'reconnecting';
   }
 
+  /** The screen on view: a device screen without a connection shows Connect. */
+  get #screen() {
+    const name = router.route.name;
+    return DEVICE_ROUTES.has(name) && !this.#connected ? 'connect' : name;
+  }
+
   #navItems() {
-    const route = router.route.name;
+    const route = this.#screen;
     const { alarms, worst } = this.app.value;
     const connected = this.#connected;
     /** @type {any[]} */
@@ -202,7 +211,7 @@ export class UbmsApp extends UiElement {
   }
 
   #title() {
-    const route = router.route.name;
+    const route = this.#screen;
     const titles = {
       connect: t('Connect'),
       overview: t('Overview'),
@@ -231,6 +240,8 @@ export class UbmsApp extends UiElement {
         return html`<span class="chip info status">${t('Connecting…')}</span>`;
       case 'reconnecting':
         return html`<span class="chip warn status">${t('Reconnecting…')}</span>`;
+      case 'disconnecting':
+        return html`<span class="chip info status">${t('Disconnecting…')}</span>`;
       case 'error':
         return html`<span class="chip danger status">${t('Error')}</span>`;
       default:
@@ -242,12 +253,10 @@ export class UbmsApp extends UiElement {
     const route = router.route;
     const { items, active } = this.#navItems();
     const device = this.app.value.device;
-    const connected = this.#connected;
-    let name = route.name;
-    if (DEVICE_ROUTES.has(name) && !connected) name = 'connect';
+    const name = this.#screen;
     const subtitle = device ? `${this.app.value.info?.name || device.deviceName} · ${device.vendor}` : '';
     return html`
-      <ui-nav .items=${items} .active=${active} brand="ubms"></ui-nav>
+      <ui-nav .items=${items} .active=${active} brand="ubms" brand-icon="battery"></ui-nav>
       <div class="layout">
         <header class=${this.scrolled ? 'scrolled' : ''}>
           <div class="titles">

@@ -9,6 +9,25 @@ import { router } from '../app.js';
  * @typedef {{ raw: string, value: any }} Edit
  */
 
+/**
+ * The number typed as an action argument, NaN when it is empty or not a number. Number('') is 0:
+ * an emptied input must not run the action with 0.
+ * @param {string} raw
+ */
+export function parseActionArgument(raw) {
+  const text = String(raw).trim();
+  return text === '' ? NaN : Number(text.replace(',', '.'));
+}
+
+/**
+ * Keypad of a number input. The decimal keypad of iPhones has no minus key, so a field that can
+ * be negative gets the full keyboard.
+ * @param {number | undefined} min
+ */
+export function numberInputMode(min) {
+  return min !== undefined && min >= 0 ? 'decimal' : 'text';
+}
+
 export class ViewSettings extends UiElement {
   static properties = {
     ctrl: { attribute: false },
@@ -312,6 +331,10 @@ export class ViewSettings extends UiElement {
   }
 
   render() {
+    // The session has no driver while the link is restored; the edits stay on this element.
+    if (this.sc.value.state === 'reconnecting' && !this.ctrl.session.driver) {
+      return html`<ui-empty class="loading" icon="clock" heading=${t('Reconnecting…')}></ui-empty>`;
+    }
     const caps = this.ctrl.session.driver?.capabilities;
     if (!caps?.settings) {
       return html`<ui-empty icon="sliders" heading=${t('No settings')} text=${t('This device or protocol does not expose configurable settings.')}></ui-empty>`;
@@ -370,7 +393,9 @@ export class ViewSettings extends UiElement {
         .value=${this.query}
         @input=${(/** @type {any} */ e) => (this.query = e.target.value)}
       />
-      <span class="meta">${settings.readAt ? t('Read {time}', { time: ago(settings.readAt) }) : ''}${!writable ? html` · ${t('read only')}` : nothing}</span>
+      <span class="meta">${settings.readAt ? t('Read {time}', { time: ago(settings.readAt) }) : ''}${!writable ? html` · ${t('read only')}` : nothing}${settings.error
+          ? html` · ${t('Could not read settings: {error}', { error: t(settings.error) })}`
+          : nothing}</span>
       <button class="btn small" ?disabled=${settings.loading} @click=${() => this.ctrl.loadSettings()} title=${t('Read again from the device')}>
         ${icon('refresh', { size: 16 })}${t('Reload')}
       </button>
@@ -395,7 +420,16 @@ export class ViewSettings extends UiElement {
         <span>${t(settings.notice)}</span>
         ${field
           ? html`<form class="login" @submit=${(/** @type {SubmitEvent} */ e) => this.#login(e, field)}>
-              <input class="input" type="password" name="password" autocomplete="current-password" required aria-label=${t('BMS password')} placeholder=${t('BMS password')} />
+              <input
+                class="input"
+                type="password"
+                name="password"
+                autocomplete="current-password"
+                required
+                maxlength=${fieldMap(this.#schema).get(field)?.maxLength ?? 64}
+                aria-label=${t('BMS password')}
+                placeholder=${t('BMS password')}
+              />
               <button class="btn small primary" type="submit" ?disabled=${settings.loading || this.loggingIn}>${icon('link', { size: 16 })}${t('Log in and read')}</button>
             </form>`
           : nothing}
@@ -499,11 +533,13 @@ export class ViewSettings extends UiElement {
       ${!dirty && result
         ? result.ok && f.writeOnly
           ? html`<div class="res-ok">${t('Sent. The device does not report this value, so it cannot be checked.')}</div>`
+          : result.ok && result.readBackError
+          ? html`<div class="res-warn">${t('Written, but the value could not be read back: {error}', { error: t(result.readBackError) })}</div>`
           : result.ok && result.verified !== false
           ? html`<div class="res-ok">${t('Saved')}</div>`
           : result.ok
             ? html`<div class="res-warn">${t('Written, but the device reports {value}', { value: fieldValue(f, result.actual) })}</div>`
-            : html`<div class="err">${icon('alert', { size: 15 })}${result.error ? t(result.error) : t('Failed')}</div>`
+            : html`<div class="err">${icon('alert', { size: 15 })}${result.error ? t(result.error, result.errorParams) : t('Failed')}</div>`
         : nothing}
     </div>`;
   }
@@ -517,19 +553,28 @@ export class ViewSettings extends UiElement {
     switch (f.type) {
       case 'boolean':
         return html`<ui-switch .checked=${edit ? !!edit.value : !!value} label=${t(f.label)} @change=${(/** @type {any} */ e) => this.#set(f, e.detail.checked, value)}></ui-switch>`;
-      case 'enum':
-        return html`<select @change=${(/** @type {any} */ e) => this.#set(f, e.target.value, value)}>
+      case 'enum': {
+        // A value outside the option list (for example an unknown protocol number) is shown as an
+        // extra disabled entry, so the select does not pretend that the first option is set.
+        const shownEnum = edit ? edit.value : value;
+        return html`<select aria-label=${t(f.label)} @change=${(/** @type {any} */ e) => this.#set(f, e.target.value, value)}>
           ${value === undefined && !edit ? html`<option value="" selected disabled>${t('n/a')}</option>` : nothing}
+          ${shownEnum != null && !(f.options ?? []).some((o) => String(o.value) === String(shownEnum))
+            ? html`<option value=${String(shownEnum)} selected disabled>${String(shownEnum)}</option>`
+            : nothing}
           ${(f.options ?? []).map((o) => {
-            const sel = String(edit ? edit.value : value) === String(o.value);
-            return html`<option value=${String(o.value)} ?selected=${sel}>${t(o.label)}</option>`;
+            const sel = String(shownEnum) === String(o.value);
+            return html`<option value=${String(o.value)} .selected=${sel}>${t(o.label)}</option>`;
           })}
         </select>`;
+      }
       case 'text':
         return html`<input
           class="input text"
-          type="text"
+          type=${f.secret ? 'password' : 'text'}
+          autocomplete=${f.secret ? 'off' : nothing}
           maxlength=${f.maxLength ?? 64}
+          aria-label=${t(f.label)}
           .value=${edit ? edit.raw : value ?? ''}
           @input=${(/** @type {any} */ e) => this.#set(f, e.target.value, value)}
         />`;
@@ -546,8 +591,9 @@ export class ViewSettings extends UiElement {
           ><input
             class="input"
             type="text"
-            inputmode="decimal"
+            inputmode=${numberInputMode(f.min)}
             autocomplete="off"
+            aria-label=${t(f.label)}
             .value=${shown}
             @input=${(/** @type {any} */ e) => this.#set(f, e.target.value, value)}
           /><span class="unit">${f.unit ?? ''}</span></span
@@ -592,7 +638,7 @@ export class ViewSettings extends UiElement {
         ><input
           class="input"
           type="text"
-          inputmode="decimal"
+          inputmode=${numberInputMode(a.min)}
           autocomplete="off"
           aria-label=${a.label ? t(a.label) : t(f.label)}
           .value=${raw}
@@ -607,8 +653,7 @@ export class ViewSettings extends UiElement {
     let arg;
     const a = f.argument;
     if (a) {
-      const raw = this.actionArgs[f.id] ?? String(a.default ?? '');
-      arg = Number(String(raw).trim().replace(',', '.'));
+      arg = parseActionArgument(this.actionArgs[f.id] ?? String(a.default ?? ''));
       if (!Number.isFinite(arg) || (a.min !== undefined && arg < a.min) || (a.max !== undefined && arg > a.max)) {
         toast(t('Enter a value from {min} to {max}', { min: num(a.min ?? 0, a.decimals ?? 0), max: num(a.max ?? 0, a.decimals ?? 0) }), { tone: 'warn' });
         return;

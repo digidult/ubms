@@ -18,10 +18,11 @@ function git(cmd) {
 /**
  * Commit of the build: the full hash for links, the short one for display. A build from a working
  * tree with uncommitted changes to tracked files gets a "-dirty" suffix, so a build always tells
- * whether it matches a commit.
+ * whether it matches a commit. The checked out commit comes first: GITHUB_SHA names the commit
+ * that started the workflow, which is not the built one when a tag is rebuilt by hand.
  */
 function buildCommit() {
-  const full = process.env.GITHUB_SHA || git('rev-parse HEAD');
+  const full = git('rev-parse HEAD') || process.env.GITHUB_SHA || '';
   if (!full) return { full: '', short: 'dev' };
   const dirty = !process.env.GITHUB_SHA && git('status --porcelain --untracked-files=no') !== '';
   return { full, short: `${full.slice(0, 7)}${dirty ? '-dirty' : ''}` };

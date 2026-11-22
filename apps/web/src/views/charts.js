@@ -1,9 +1,15 @@
 import { html, css, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { UiElement, define, sharedStyles, StoreController, icon, t, i18n, toast, confirmDialog, downloadFile, toCsv, estimateInterval } from '@ubms/ui';
-import { UNNAMED_DEVICE, availableSeries, historyGroups } from '@ubms/bms-core';
+import { UNNAMED_DEVICE, availableSeries, historyGroups, msg } from '@ubms/bms-core';
 import { LIVE_WINDOW_MS, mergeRecords } from '../history/recorder.js';
 import { num } from '../format.js';
+
+/**
+ * English errors of the history store of the UI kit (packages/ui/src/timeseries.js), which knows
+ * no msg(): listed here so they reach the catalogs, and translated where they are shown.
+ */
+export const STORAGE_ERRORS = [msg('IndexedDB is not available'), msg('The history database is blocked by another tab'), msg('Transaction aborted')];
 
 /**
  * Charts of the recorded readings: the connected device live (the window follows the clock) and
@@ -831,7 +837,7 @@ export class ViewCharts extends UiElement {
           ${sources.map(
             (s) => {
               const when = s.kind === 'live' ? t('Live') : s.last ? i18n.formatDate(s.last, { dateStyle: 'short', timeStyle: 'short' }) : '';
-              return html`<option value=${s.id} ?selected=${s.id === src.id}>${when ? `${s.name} · ${when}` : s.name}</option>`;
+              return html`<option value=${s.id} .selected=${s.id === src.id}>${when ? `${s.name} · ${when}` : s.name}</option>`;
             },
           )}
         </select>

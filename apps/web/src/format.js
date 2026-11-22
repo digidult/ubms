@@ -47,7 +47,9 @@ export function duration(seconds) {
   const DF = /** @type {any} */ (Intl).DurationFormat;
   if (DF) {
     try {
-      return new DF(i18n.locale, { style: 'short' }).format(parts);
+      // Zero units are left out by default, so { seconds: 0 } alone would format as ''.
+      const text = new DF(i18n.locale, { style: 'short' }).format(parts);
+      if (text) return text;
     } catch {
       /* fall back below */
     }

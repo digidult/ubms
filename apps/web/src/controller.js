@@ -8,7 +8,7 @@ import {
   detectEnvironment,
   isTauri,
 } from '@ubms/transport';
-import { BmsSession, DriverRegistry, fieldMap, coerce } from '@ubms/bms-core';
+import { BmsSession, DriverRegistry, fieldMap, coerce, msg } from '@ubms/bms-core';
 import { drivers } from '@ubms/bms-drivers';
 import {
   Store,
@@ -125,13 +125,45 @@ function blobToBase64(blob) {
       const comma = url.indexOf(',');
       resolve(comma >= 0 ? url.slice(comma + 1) : '');
     };
-    reader.onerror = () => reject(reader.error ?? new Error('Could not read the file data'));
+    reader.onerror = () => reject(reader.error ?? new Error(msg('Could not read the file data')));
     reader.readAsDataURL(blob);
   });
 }
 
+/** Values a settings file may hold for a boolean field. */
+const IMPORT_BOOLEANS = new Set([true, false, 0, 1, 'true', 'false', '0', '1']);
+
+/**
+ * Does a value of a settings file fit the field's type? Booleans only as true/false (or 0/1),
+ * texts and numbers only as strings or numbers, never null or objects.
+ * @param {import('@ubms/bms-core/settings').SettingField} f
+ * @param {unknown} raw
+ */
+function importable(f, raw) {
+  if (f.type === 'boolean') return IMPORT_BOOLEANS.has(/** @type {any} */ (raw));
+  return typeof raw === 'string' || typeof raw === 'number';
+}
+
 /** Longest wait for the last history write when the desktop window closes. */
 const CLOSE_FLUSH_MS = 1500;
+
+/**
+ * Setting values without passwords and other secrets, for files a user may share (settings and
+ * log exports). A field counts as secret when it has `secret: true` or its id names a password.
+ * @param {import('@ubms/bms-core/settings').SettingsSchema | null | undefined} schema
+ * @param {Record<string, any> | null | undefined} values
+ * @returns {Record<string, any> | null | undefined}
+ */
+export function withoutSecrets(schema, values) {
+  if (!values) return values;
+  const fields = fieldMap(schema);
+  return Object.fromEntries(
+    Object.entries(values).filter(([id]) => {
+      const f = fields.get(id);
+      return !f?.secret && !/password/i.test(id);
+    }),
+  );
+}
 
 /** The first driver with a demo; DEFAULT_PREFS cannot name it before the drivers are known. */
 function defaultDemoDriver() {
@@ -240,7 +272,7 @@ export class AppController {
           }
         }
       : null;
-    const backend = invoke ? tauriFileBackend(invoke) : fallbackBackend(indexedDbBackend(), memoryBackend());
+    const backend = invoke ? tauriFileBackend(invoke) : fallbackBackend(indexedDbBackend('ubms-history'), memoryBackend());
     /** Stored history of every device. */
     this.historyStore = createSeriesStore(backend);
     /** Demo sessions are recorded in memory only, never persisted. */
@@ -327,10 +359,13 @@ export class AppController {
   async init() {
     this.refreshHistoryInfo();
     await this.refreshAvailability();
-    // Bluetooth can be switched on while the app is open. Check again when the browser reports a
-    // change or the window gets the focus back (the desktop app has no such event).
+    // Bluetooth can be switched on while the app is open. Check again when the browser or the
+    // desktop bridge (provider.onAvailabilityChange, ble://adapter) reports a change, and when the
+    // window gets the focus back (not every browser sends availabilitychanged).
     const bt = /** @type {any} */ (typeof navigator !== 'undefined' ? navigator : {}).bluetooth;
     bt?.addEventListener?.('availabilitychanged', () => this.refreshAvailability());
+    const ble = /** @type {any} */ (this.providers.ble);
+    Promise.resolve(ble.onAvailabilityChange?.(() => this.refreshAvailability())).catch(() => {});
     if (typeof window !== 'undefined') window.addEventListener('focus', () => this.refreshAvailability());
   }
 
@@ -401,8 +436,9 @@ export class AppController {
   }
 
   resetPrefs() {
-    this.storage.remove('prefs');
+    // The language stays: keep it stored too, or the next start picks the browser language again.
     const prefs = { ...DEFAULT_PREFS, lang: this.state.prefs.lang, demoDriver: defaultDemoDriver() };
+    this.storage.set('prefs', prefs);
     this.store.set({ prefs });
     applyTheme(prefs.theme);
     this.session.setPollInterval(prefs.pollMs);
@@ -659,7 +695,7 @@ export class AppController {
     try {
       await this.session.reconnect();
     } catch (err) {
-      toast(t(err instanceof Error ? err.message : String(err)), { tone: 'danger' });
+      if (/** @type {any} */ (err)?.code !== 'cancelled') toast(t(err instanceof Error ? err.message : String(err)), { tone: 'danger' });
     }
   }
 
@@ -667,6 +703,9 @@ export class AppController {
     const target = this.session.target;
     if (!target || (target.kind !== 'ble' && target.kind !== 'serial')) return;
     const handle = target.handle;
+    // A Web Serial port without a stable id (no USB ids, or two adapters with the same ids) gets
+    // an id that is valid for this page only: such an entry would never work after a reload.
+    if (target.kind === 'serial' && /** @type {any} */ (handle).unique === false) return;
     /** @type {RecentDevice} */
     const entry = { id: handle.id, name: handle.name, kind: target.kind, driverId: this.session.definition?.id, at: Date.now() };
     const recent = [entry, ...this.state.recent.filter((r) => !(r.id === entry.id && r.kind === entry.kind))].slice(0, 8);
@@ -714,16 +753,32 @@ export class AppController {
    * @param {{ reload?: boolean, quiet?: boolean }} [opts]
    */
   async writeSettings(changes, { reload = true, quiet = false } = {}) {
-    const results = await this.session.writeSettings(changes, { reload });
+    /** @type {import('@ubms/bms-core/session').WriteResult[]} */
+    let results;
+    try {
+      results = await this.session.writeSettings(changes, { reload });
+    } catch (err) {
+      // No driver any more (the link dropped while the confirmation was open): nothing was written.
+      const error = err instanceof Error ? err.message : String(err);
+      toast(t(error), { tone: 'danger' });
+      return changes.map((c) => ({ id: c.id, ok: false, error }));
+    }
     const failed = results.filter((r) => !r.ok);
     const unverified = results.filter((r) => r.ok && r.verified === false);
+    // Accepted, but the values could not be read back: the device has not confirmed them.
+    const unread = results.filter((r) => r.ok && r.readBackError);
     if (failed.length) {
-      toast(t('{count} setting(s) failed: {list}', { count: failed.length, list: failed.map((r) => `${r.id} (${t(r.error ?? '')})`).join(', ') }), {
-        tone: 'danger',
-        timeout: 9000,
-      });
+      toast(
+        t('{count} setting(s) failed: {list}', { count: failed.length, list: failed.map((r) => `${r.id} (${t(r.error ?? '', r.errorParams)})`).join(', ') }),
+        {
+          tone: 'danger',
+          timeout: 9000,
+        },
+      );
     } else if (unverified.length) {
       toast(t('Written, but the device reports a different value for: {list}', { list: unverified.map((r) => r.id).join(', ') }), { tone: 'warn', timeout: 9000 });
+    } else if (unread.length) {
+      toast(t('Written, but the settings could not be read back: {error}', { error: t(unread[0].readBackError ?? '') }), { tone: 'warn', timeout: 9000 });
     } else if (!quiet) {
       toast(t('{count} setting(s) written', { count: results.length }), { tone: 'ok' });
     }
@@ -752,7 +807,7 @@ export class AppController {
       protocol: device.protocol,
       variant: device.variant,
       device: info,
-      values: settings.values,
+      values: withoutSecrets(settings.schema, settings.values),
     };
     const name = `${(info?.name || device.deviceName || device.driverId).replace(/[^\w.-]+/g, '_')}-settings-${new Date().toISOString().slice(0, 10)}.json`;
     downloadFile(name, JSON.stringify(data, null, 2));
@@ -763,8 +818,13 @@ export class AppController {
    * @param {string} text
    */
   parseSettingsImport(text) {
-    const data = JSON.parse(text);
-    if (data?.format !== 'ubms-settings') throw new Error('Not a ubms settings file');
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = null;
+    }
+    if (data?.format !== 'ubms-settings') throw new Error(msg('Not a ubms settings file'));
     const { settings, device } = this.state;
     const fields = fieldMap(settings.schema);
     /** @type {Array<{ id: string, value: any, from: any }>} */
@@ -776,7 +836,9 @@ export class AppController {
         skipped.push(id);
         continue;
       }
-      const value = coerce(f, raw);
+      // coerce() reads form input: it turns anything unknown into Off and null into ''. A value of
+      // the file that is not of the field's kind is skipped instead of becoming a change.
+      const value = importable(f, raw) ? coerce(f, raw) : undefined;
       if (value === undefined) {
         skipped.push(id);
         continue;
@@ -801,7 +863,7 @@ export class AppController {
         device,
         info,
         snapshot,
-        settings: settings.values,
+        settings: withoutSecrets(settings.schema, settings.values),
       },
     });
     downloadFile(`ubms-log-${new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)}.json`, JSON.stringify(data, null, 1));

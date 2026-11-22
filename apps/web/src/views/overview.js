@@ -295,11 +295,16 @@ export class ViewOverview extends UiElement {
    * @param {boolean} value
    */
   async #toggle(x, value) {
-    if (!value && (x.key === 'discharge' || x.key === 'charge')) {
+    const mosfet = x.key === 'discharge' || x.key === 'charge';
+    const driver = this.ctrl.session.driver;
+    const f = driver ? fieldMap(driver.getSettingsSchema()).get(x.id) : undefined;
+    // Charge and discharge are confirmed when they go off; other switches the driver marks as
+    // dangerous (the NEEY balancer) both ways, like the Settings view does.
+    if ((!value && mosfet) || (f?.danger && !mosfet)) {
       const ok = await confirmDialog({
-        title: t('Turn off {name}?', { name: t(x.label) }),
-        message: x.key === 'discharge' ? t('Connected loads will lose power.') : t('The battery will stop accepting charge.'),
-        confirmLabel: t('Turn off'),
+        title: value ? t('Turn on {name}?', { name: t(x.label) }) : t('Turn off {name}?', { name: t(x.label) }),
+        message: x.key === 'discharge' ? t('Connected loads will lose power.') : x.key === 'charge' ? t('The battery will stop accepting charge.') : f?.description ? t(f.description) : '',
+        confirmLabel: value ? t('Turn on') : t('Turn off'),
         danger: true,
       });
       if (!ok) return;

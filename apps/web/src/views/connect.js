@@ -197,7 +197,7 @@ export class ViewConnect extends UiElement {
 
   render() {
     const v = this.sc.value;
-    const busy = v.state === 'connecting' || v.state === 'detecting';
+    const busy = v.state === 'connecting' || v.state === 'detecting' || v.state === 'disconnecting';
     return html`
       <div class="hero">
         <div class="logo">${icon('battery', { size: 28, stroke: 2 })}</div>
@@ -214,6 +214,12 @@ export class ViewConnect extends UiElement {
 
   #progress() {
     const { state, detect } = this.sc.value;
+    if (state === 'disconnecting') {
+      return html`<div class="card progress" role="status" aria-live="polite">
+        <div class="spinner"></div>
+        <h2>${t('Disconnecting…')}</h2>
+      </div>`;
+    }
     const step =
       state === 'connecting'
         ? t('Connecting to the device…')
@@ -329,13 +335,13 @@ export class ViewConnect extends UiElement {
     return html`<label class="field">
       ${t('Device type')}
       <select @change=${(/** @type {any} */ e) => this.ctrl.setPref('selection', e.target.value)} .value=${prefs.selection}>
-        <option value="auto" ?selected=${prefs.selection === 'auto'}>${t('Detect automatically')}</option>
+        <option value="auto" .selected=${prefs.selection === 'auto'}>${t('Detect automatically')}</option>
         ${families.map(
           (f) => html`<optgroup label=${f.vendor}>
-            <option value=${`family:${f.id}`} ?selected=${prefs.selection === `family:${f.id}`}>${t('{vendor}, any protocol', { vendor: f.vendor })}</option>
+            <option value=${`family:${f.id}`} .selected=${prefs.selection === `family:${f.id}`}>${t('{vendor}, any protocol', { vendor: f.vendor })}</option>
             ${f.drivers
               .filter((d) => d.links[kind])
-              .map((d) => html`<option value=${d.id} ?selected=${prefs.selection === d.id}>${t(d.protocol)}</option>`)}
+              .map((d) => html`<option value=${d.id} .selected=${prefs.selection === d.id}>${t(d.protocol)}</option>`)}
           </optgroup>`,
         )}
       </select>
@@ -405,7 +411,7 @@ export class ViewConnect extends UiElement {
     return html`<label class="field">
         ${t('Simulated device')}
         <select @change=${(/** @type {any} */ e) => this.ctrl.setPref('demoDriver', e.target.value)}>
-          ${demos.map((d) => html`<option value=${d.id} ?selected=${prefs.demoDriver === d.id}>${d.vendor}, ${t(d.protocol)}</option>`)}
+          ${demos.map((d) => html`<option value=${d.id} .selected=${prefs.demoDriver === d.id}>${d.vendor}, ${t(d.protocol)}</option>`)}
         </select>
       </label>
       <div class="note">${icon('info', { size: 18 })}<span>${t('The demo runs a simulated BMS that speaks the real protocol, so every screen and the protocol log work without hardware.')}</span></div>`;

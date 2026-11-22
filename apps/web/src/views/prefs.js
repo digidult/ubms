@@ -93,8 +93,8 @@ export class ViewPrefs extends UiElement {
         <div class="item stack">
           ${icon('globe')}
           <div class="txt"><div class="title">${t('Language')}</div></div>
-          <select @change=${(/** @type {any} */ e) => set('lang', e.target.value)}>
-            ${LANGUAGES.map((l) => html`<option value=${l.code} ?selected=${p.lang === l.code}>${l.name}</option>`)}
+          <select aria-label=${t('Language')} @change=${(/** @type {any} */ e) => set('lang', e.target.value)}>
+            ${LANGUAGES.map((l) => html`<option value=${l.code} .selected=${p.lang === l.code}>${l.name}</option>`)}
           </select>
         </div>
         <div class="item stack">
@@ -121,8 +121,8 @@ export class ViewPrefs extends UiElement {
             <div class="title">${t('Refresh interval')}</div>
             <div class="sub">${t('How often live data is requested. Some BMS push data on their own.')}</div>
           </div>
-          <select @change=${(/** @type {any} */ e) => set('pollMs', Number(e.target.value))}>
-            ${[500, 1000, 2000, 5000, 10000].map((ms) => html`<option value=${ms} ?selected=${p.pollMs === ms}>${t('{s} s', { s: i18n.formatNumber(ms / 1000, { decimals: 1, minDecimals: 0 }) })}</option>`)}
+          <select aria-label=${t('Refresh interval')} @change=${(/** @type {any} */ e) => set('pollMs', Number(e.target.value))}>
+            ${[500, 1000, 2000, 5000, 10000].map((ms) => html`<option value=${ms} .selected=${p.pollMs === ms}>${t('{s} s', { s: i18n.formatNumber(ms / 1000, { decimals: 1, minDecimals: 0 }) })}</option>`)}
           </select>
         </div>
         <div class="item">
@@ -159,9 +159,9 @@ export class ViewPrefs extends UiElement {
             <div class="title">${t('Recording interval')}</div>
             <div class="sub">${t('Time between two stored readings.')}</div>
           </div>
-          <select @change=${(/** @type {any} */ e) => set('historyIntervalMs', Number(e.target.value))}>
+          <select aria-label=${t('Recording interval')} @change=${(/** @type {any} */ e) => set('historyIntervalMs', Number(e.target.value))}>
             ${HISTORY_INTERVALS.map(
-              (ms) => html`<option value=${ms} ?selected=${p.historyIntervalMs === ms}>${t('{s} s', { s: i18n.formatNumber(ms / 1000, { decimals: 0 }) })}</option>`,
+              (ms) => html`<option value=${ms} .selected=${p.historyIntervalMs === ms}>${t('{s} s', { s: i18n.formatNumber(ms / 1000, { decimals: 0 }) })}</option>`,
             )}
           </select>
         </div>
@@ -171,9 +171,9 @@ export class ViewPrefs extends UiElement {
             <div class="title">${t('Keep history')}</div>
             <div class="sub">${t('Older readings of a device are deleted when it connects.')}</div>
           </div>
-          <select @change=${(/** @type {any} */ e) => set('historyRetentionDays', Number(e.target.value))}>
+          <select aria-label=${t('Keep history')} @change=${(/** @type {any} */ e) => set('historyRetentionDays', Number(e.target.value))}>
             ${HISTORY_RETENTION_DAYS.map(
-              (days) => html`<option value=${days} ?selected=${p.historyRetentionDays === days}>${days ? t('{count} days', { count: days }) : t('Forever')}</option>`,
+              (days) => html`<option value=${days} .selected=${p.historyRetentionDays === days}>${days ? t('{count} days', { count: days }) : t('Forever')}</option>`,
             )}
           </select>
         </div>
@@ -195,8 +195,8 @@ export class ViewPrefs extends UiElement {
             <div class="title">${t('Log size')}</div>
             <div class="sub">${t('Number of entries kept in memory.')}</div>
           </div>
-          <select @change=${(/** @type {any} */ e) => set('logCapacity', Number(e.target.value))}>
-            ${[1000, 5000, 20000, 50000].map((n) => html`<option value=${n} ?selected=${p.logCapacity === n}>${n.toLocaleString()}</option>`)}
+          <select aria-label=${t('Log size')} @change=${(/** @type {any} */ e) => set('logCapacity', Number(e.target.value))}>
+            ${[1000, 5000, 20000, 50000].map((n) => html`<option value=${n} .selected=${p.logCapacity === n}>${n.toLocaleString()}</option>`)}
           </select>
         </div>
       </div>

@@ -6,6 +6,28 @@ const KINDS = /** @type {const} */ (['tx', 'rx', 'frame', 'event', 'warn', 'erro
 const PAGE = 300;
 
 /**
+ * Does a log entry match the filter text? The text is searched in the name and the text of the
+ * entry. Only a query that is hex itself (an even number of hex digits, spaces, commas, colons
+ * and 0x allowed) is also searched in the bytes, byte by byte: "read" must not find the nibbles
+ * EAD, and "E5" must not find the bytes 4E 57.
+ * @param {import('@ubms/transport').LogEntry} e
+ * @param {string} query
+ */
+export function entryMatches(e, query) {
+  if (!query) return true;
+  const q = query.toLowerCase();
+  if (e.name?.toLowerCase().includes(q) || e.text?.toLowerCase().includes(q)) return true;
+  if (e.bytes) {
+    const digits = q.replace(/0x|[\s,:]/g, '');
+    if (digits.length >= 2 && digits.length % 2 === 0 && /^[0-9a-f]+$/.test(digits)) {
+      const needle = /** @type {string[]} */ (digits.toUpperCase().match(/../g)).join(' ');
+      if (hex(e.bytes, ' ').includes(needle)) return true;
+    }
+  }
+  return false;
+}
+
+/**
  * Protocol log viewer: live list with filters, expandable entries (hex dump + decoded fields),
  * pause, export (JSON with decoded frames, or text) and opening saved logs.
  */
@@ -207,15 +229,7 @@ export class ViewLog extends UiElement {
 
   /** @param {import('@ubms/transport').LogEntry} e */
   #matches(e) {
-    if (!this.filters[e.kind]) return false;
-    if (!this.query) return true;
-    const q = this.query.toLowerCase();
-    if (e.name?.toLowerCase().includes(q) || e.text?.toLowerCase().includes(q)) return true;
-    if (e.bytes) {
-      const qh = q.replace(/[^0-9a-f]/g, '').toUpperCase();
-      if (qh.length >= 2 && hex(e.bytes).includes(qh)) return true;
-    }
-    return false;
+    return !!this.filters[e.kind] && entryMatches(e, this.query);
   }
 
   render() {
@@ -288,7 +302,7 @@ export class ViewLog extends UiElement {
     const time = t0 !== undefined ? `+${((e.t - t0) / 1000).toFixed(3)}` : '';
     const preview = e.bytes ? hex(e.bytes.subarray(0, 48), ' ') + (e.bytes.length > 48 ? ' …' : '') : '';
     return html`<div class="entry">
-      <div class="head" @click=${() => this.#toggle(e.id)}>
+      <div class="head" role="button" tabindex="0" aria-expanded=${open ? 'true' : 'false'} @click=${() => this.#toggle(e.id)} @keydown=${activateOnKey}>
         <span class="time">${time}</span>
         <span class="kind k-${e.kind}">${e.kind === 'frame' ? 'FRM' : e.kind === 'event' ? 'EVT' : e.kind === 'debug' ? 'DBG' : e.kind.toUpperCase()}</span>
         <span class="text">
@@ -335,12 +349,20 @@ export class ViewLog extends UiElement {
       const { entries } = ProtocolLog.parseExport(file.text);
       this.imported = { name: file.name, entries };
       this.limit = PAGE;
-    } catch (err) {
-      toast(t(err instanceof Error ? err.message : String(err)), { tone: 'danger' });
+    } catch {
+      // Not JSON, not a log export, or broken entries: the parser's English text would not help.
+      toast(t('The file is not a ubms protocol log.'), { tone: 'danger' });
     }
   };
 }
 define('view-log', ViewLog);
+
+/** Enter and Space expand an entry head like a click. @param {KeyboardEvent} e */
+function activateOnKey(e) {
+  if ((e.key !== 'Enter' && e.key !== ' ') || e.repeat) return;
+  e.preventDefault();
+  /** @type {HTMLElement} */ (e.currentTarget).click();
+}
 
 /** JSON replacer that keeps byte arrays readable. @param {string} _k @param {any} v */
 function replacer(_k, v) {

@@ -129,7 +129,7 @@ export class ViewPlugins extends UiElement {
               ${failures.map(
                 (f) => html`<div class="failure">
                   <code>${f.file || t('Plugin list')}</code>
-                  <span>${t(f.message, f.params)}</span>
+                  <span>${t(f.message, f.params?.error !== undefined ? { ...f.params, error: t(String(f.params.error)) } : f.params)}</span>
                 </div>`,
               )}
             </div>`

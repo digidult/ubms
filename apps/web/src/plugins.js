@@ -373,7 +373,7 @@ export async function loadPlugins({ list, registry, log, api, importModule = imp
   /** @type {any} */
   let listing;
   try {
-    listing = await withTimeout(Promise.resolve().then(list), timeoutMs, 'No answer from the desktop app');
+    listing = await withTimeout(Promise.resolve().then(list), timeoutMs, msg('No answer from the desktop app'));
   } catch (err) {
     fail('', msg('The plugin list could not be read: {error}'), { error: errorText(err) });
     return report;
