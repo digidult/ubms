@@ -2,8 +2,9 @@
 
 ## Project
 
-ubms: a browser app (and later a Tauri desktop app) that monitors and configures battery
-management systems and balancers over Web Bluetooth and Web Serial. Start with
+ubms: a browser app and a Tauri desktop app that monitor and configure battery management
+systems, balancers and meters over Bluetooth LE and serial ports (Web Bluetooth and Web Serial in
+the browser, native in the desktop app). Start with
 [docs/architecture.md](docs/architecture.md), then [docs/development.md](docs/development.md).
 
 ## Language and style

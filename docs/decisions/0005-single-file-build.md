@@ -2,6 +2,12 @@
 
 Status: accepted, 2026-11-18
 
+Note, 2026-11-22: two consequences below changed. The hosted build (https) has a web app
+manifest and a network-first service worker (`apps/web/public/sw.js`, copied next to
+`index.html` and registered only over https; a `file://` page is unchanged). The desktop plugin
+loader imports each plugin from a Blob URL (`apps/web/src/plugins.js`), the one dynamic import;
+it creates no extra build files.
+
 ## Context
 
 The app must work without internet access, including on phones in a garage or on a boat, and be

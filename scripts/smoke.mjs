@@ -85,8 +85,11 @@ let browserExit = null;
 browser.on('exit', (code) => (browserExit = code));
 browser.on('error', () => {});
 
-// The launcher process may hand over to a child and exit, so read the port from the profile.
-const port = await (async () => {
+/** DevTools port of the browser; 0 until it is known. */
+let port = 0;
+
+/** The launcher process may hand over to a child and exit, so read the port from the profile. */
+async function waitForPort() {
   const file = path.join(profile, 'DevToolsActivePort');
   for (let i = 0; i < 600; i++) {
     if (existsSync(file)) {
@@ -98,24 +101,40 @@ const port = await (async () => {
   console.error(`Browser exit code: ${browserExit ?? 'still running'}`);
   console.error(browserErr);
   throw new Error('Browser did not start (no DevToolsActivePort)');
-})();
+}
 
-/** Close the whole headless browser through CDP (works even when the launcher already exited). */
+/**
+ * Close the whole headless browser through CDP (works even when the launcher already exited),
+ * then wait a few seconds for the spawned process to end and kill it when it does not.
+ */
 async function closeBrowser() {
-  try {
-    const { webSocketDebuggerUrl } = await (await fetch(`http://127.0.0.1:${port}/json/version`)).json();
-    const ws = new WebSocket(webSocketDebuggerUrl);
-    await new Promise((r, j) => {
-      ws.onopen = r;
-      ws.onerror = j;
+  if (port) {
+    try {
+      const res = await fetch(`http://127.0.0.1:${port}/json/version`, { signal: AbortSignal.timeout(5000) });
+      const { webSocketDebuggerUrl } = await res.json();
+      const ws = new WebSocket(webSocketDebuggerUrl);
+      await new Promise((r, j) => {
+        ws.onopen = r;
+        ws.onerror = j;
+        setTimeout(() => j(new Error('timeout')), 5000);
+      });
+      ws.send(JSON.stringify({ id: 1, method: 'Browser.close' }));
+      await new Promise((r) => setTimeout(r, 500));
+    } catch {
+      /* fall back to killing the spawned process */
+    }
+  }
+  if (browserExit === null) {
+    await new Promise((r) => {
+      browser.once('exit', r);
+      setTimeout(r, 5000);
     });
-    ws.send(JSON.stringify({ id: 1, method: 'Browser.close' }));
-    await new Promise((r) => setTimeout(r, 500));
-  } catch {
-    /* fall back to killing the spawned process */
   }
   browser.kill();
 }
+
+/** Time a CDP call may take before the step fails (on top of the step's own promise). */
+const CDP_TIMEOUT = 60_000;
 
 /** Minimal CDP client for one page target. */
 async function openPage() {
@@ -140,10 +159,29 @@ async function openPage() {
       for (const l of listeners) l(msg);
     }
   };
+  // A crashed tab or a closed connection fails every call still waiting for an answer.
+  ws.onclose = () => {
+    for (const { reject } of pending.values()) reject(new Error('DevTools connection closed'));
+    pending.clear();
+  };
+  // A page promise that never settles (awaitPromise) must not hang the whole run.
   const send = (method, params = {}) =>
     new Promise((resolve, reject) => {
       const n = ++id;
-      pending.set(n, { resolve, reject });
+      const timer = setTimeout(() => {
+        pending.delete(n);
+        reject(new Error(`${method} timed out after ${CDP_TIMEOUT / 1000} s`));
+      }, CDP_TIMEOUT);
+      const done = (fn) => (value) => {
+        clearTimeout(timer);
+        fn(value);
+      };
+      pending.set(n, { resolve: done(resolve), reject: done(reject) });
+      if (ws.readyState !== WebSocket.OPEN) {
+        pending.get(n).reject(new Error('DevTools connection closed'));
+        pending.delete(n);
+        return;
+      }
       ws.send(JSON.stringify({ id: n, method, params }));
     });
   return {
@@ -151,7 +189,7 @@ async function openPage() {
     on: (fn) => listeners.add(fn),
     close: async () => {
       ws.close();
-      await fetch(`http://127.0.0.1:${port}/json/close/${target.id}`).catch(() => {});
+      await fetch(`http://127.0.0.1:${port}/json/close/${target.id}`, { signal: AbortSignal.timeout(5000) }).catch(() => {});
     },
   };
 }
@@ -173,33 +211,39 @@ async function scenario(name, sc) {
     }
     if (m.method === 'Log.entryAdded' && m.params.entry.level === 'error' && !/favicon/.test(m.params.entry.url ?? '')) errors.push(m.params.entry.text);
   });
-  await p.send('Runtime.enable');
-  await p.send('Log.enable');
-  await p.send('Page.enable');
-  await p.send('Emulation.setDeviceMetricsOverride', { width: sc.width, height: sc.height, deviceScaleFactor: 1, mobile: sc.mobile });
-  if (sc.dark) await p.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: 'dark' }] });
-  if (sc.initScript) await p.send('Page.addScriptToEvaluateOnNewDocument', { source: sc.initScript });
-  await p.send('Page.navigate', { url: `${baseUrl}#${sc.hash}` });
-  await sleep(sc.wait ?? 1500);
   const shots = [];
-  for (const step of sc.steps ?? [{ shot: name }]) {
-    if (step.eval) {
-      const r = await p.send('Runtime.evaluate', { expression: step.eval, awaitPromise: true, returnByValue: true });
-      if (r.exceptionDetails) errors.push(`eval failed: ${r.exceptionDetails.exception?.description ?? r.exceptionDetails.text}`);
-      else if (r.result?.value === false) errors.push(`check failed: ${step.eval.slice(0, 120)}`);
+  try {
+    await p.send('Runtime.enable');
+    await p.send('Log.enable');
+    await p.send('Page.enable');
+    await p.send('Emulation.setDeviceMetricsOverride', { width: sc.width, height: sc.height, deviceScaleFactor: 1, mobile: sc.mobile });
+    if (sc.dark) await p.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: 'dark' }] });
+    if (sc.initScript) await p.send('Page.addScriptToEvaluateOnNewDocument', { source: sc.initScript });
+    await p.send('Page.navigate', { url: `${baseUrl}#${sc.hash}` });
+    await sleep(sc.wait ?? 1500);
+    for (const step of sc.steps ?? [{ shot: name }]) {
+      if (step.eval) {
+        const r = await p.send('Runtime.evaluate', { expression: step.eval, awaitPromise: true, returnByValue: true });
+        if (r.exceptionDetails) errors.push(`eval failed: ${r.exceptionDetails.exception?.description ?? r.exceptionDetails.text}`);
+        else if (r.result?.value === false) errors.push(`check failed: ${step.eval.slice(0, 120)}`);
+      }
+      if (step.hash) {
+        await p.send('Runtime.evaluate', { expression: `location.hash = ${JSON.stringify(step.hash)}` });
+      }
+      await sleep(step.wait ?? 700);
+      if (step.shot) {
+        const { data } = await p.send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
+        const file = path.join(outDir, `${step.shot}.png`);
+        writeFileSync(file, Buffer.from(data, 'base64'));
+        shots.push(path.relative(root, file));
+      }
     }
-    if (step.hash) {
-      await p.send('Runtime.evaluate', { expression: `location.hash = ${JSON.stringify(step.hash)}` });
-    }
-    await sleep(step.wait ?? 700);
-    if (step.shot) {
-      const { data } = await p.send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
-      const file = path.join(outDir, `${step.shot}.png`);
-      writeFileSync(file, Buffer.from(data, 'base64'));
-      shots.push(path.relative(root, file));
-    }
+  } catch (e) {
+    // A step that timed out or lost the page fails this scenario; the next one still runs.
+    errors.push(`step failed: ${e instanceof Error ? e.message : e}`);
+  } finally {
+    await p.close();
   }
-  await p.close();
   return { name, errors, shots };
 }
 
@@ -651,52 +695,72 @@ const scenarios = [
   ],
 ];
 
-// Demo sessions for every driver that ships a simulator.
-const demoIds = await (async () => {
+/**
+ * Ids of the drivers that ship a simulator. Waits for the app module to run (it is large and
+ * a cold browser can be slow) and fails instead of silently dropping every demo scenario.
+ */
+async function readDemoIds() {
   const p = await openPage();
-  await p.send('Runtime.enable');
-  await p.send('Page.navigate', { url: `${baseUrl}#/connect` });
-  await sleep(1200);
-  const r = await p.send('Runtime.evaluate', { expression: 'window.ubms.registry.list().filter((d) => d.demo).map((d) => d.id)', returnByValue: true });
-  await p.close();
-  return r.result?.value ?? [];
-})();
+  try {
+    await p.send('Runtime.enable');
+    await p.send('Page.navigate', { url: `${baseUrl}#/connect` });
+    for (let i = 0; i < 60; i++) {
+      await sleep(250);
+      const ready = await p.send('Runtime.evaluate', { expression: '!!window.ubms?.registry', returnByValue: true });
+      if (ready.result?.value === true) break;
+    }
+    const r = await p.send('Runtime.evaluate', { expression: 'window.ubms.registry.list().filter((d) => d.demo).map((d) => d.id)', returnByValue: true });
+    if (r.exceptionDetails) throw new Error(`Reading the demo drivers failed: ${r.exceptionDetails.exception?.description ?? r.exceptionDetails.text}`);
+    const ids = r.result?.value;
+    if (!Array.isArray(ids) || !ids.length) throw new Error('No demo drivers found');
+    return ids;
+  } finally {
+    await p.close();
+  }
+}
 
-for (const id of demoIds) {
-  scenarios.push([
-    `demo-${id}-phone`,
-    {
-      ...phone,
-      hash: `/connect?demo=${id}`,
-      wait: 3500,
-      steps: [
-        { eval: `window.ubms.state.state === 'connected'`, shot: `demo-${id}-overview-phone` },
-        { hash: '/cells', shot: `demo-${id}-cells-phone` },
-        { hash: '/settings', wait: 2500, shot: `demo-${id}-settings-phone` },
-        // Read only drivers without settings (jbd-up-rs485) have nothing to load.
-        { eval: `!window.ubms.session.driver?.capabilities.settings || window.ubms.state.settings.values !== null` },
-        { eval: writeCheck, wait: 300 },
-        { hash: `/settings/${'cell_voltage'}`, shot: `demo-${id}-settings-group-phone` },
-        { hash: '/settings/controls', shot: `demo-${id}-settings-controls-phone` },
-        { hash: '/settings/actions', shot: `demo-${id}-settings-actions-phone` },
-        { hash: '/info', shot: `demo-${id}-info-phone` },
-        { hash: '/log', shot: `demo-${id}-log-phone` },
-      ],
-    },
-  ]);
-  scenarios.push([
-    `demo-${id}-desktop`,
-    {
-      ...desktop,
-      hash: `/connect?demo=${id}`,
-      wait: 3500,
-      steps: [{ shot: `demo-${id}-overview-desktop` }, { hash: '/settings', wait: 2500, shot: `demo-${id}-settings-desktop` }],
-    },
-  ]);
+/** Demo sessions for every driver that ships a simulator. @param {string[]} demoIds */
+function addDemoScenarios(demoIds) {
+  for (const id of demoIds) {
+    scenarios.push([
+      `demo-${id}-phone`,
+      {
+        ...phone,
+        hash: `/connect?demo=${id}`,
+        wait: 3500,
+        steps: [
+          { eval: `window.ubms.state.state === 'connected'`, shot: `demo-${id}-overview-phone` },
+          { hash: '/cells', shot: `demo-${id}-cells-phone` },
+          { hash: '/settings', wait: 2500, shot: `demo-${id}-settings-phone` },
+          // Read only drivers without settings (jbd-up-rs485) have nothing to load.
+          { eval: `!window.ubms.session.driver?.capabilities.settings || window.ubms.state.settings.values !== null` },
+          { eval: writeCheck, wait: 300 },
+          { hash: `/settings/${'cell_voltage'}`, shot: `demo-${id}-settings-group-phone` },
+          { hash: '/settings/controls', shot: `demo-${id}-settings-controls-phone` },
+          { hash: '/settings/actions', shot: `demo-${id}-settings-actions-phone` },
+          { hash: '/info', shot: `demo-${id}-info-phone` },
+          { hash: '/log', shot: `demo-${id}-log-phone` },
+        ],
+      },
+    ]);
+    scenarios.push([
+      `demo-${id}-desktop`,
+      {
+        ...desktop,
+        hash: `/connect?demo=${id}`,
+        wait: 3500,
+        steps: [{ shot: `demo-${id}-overview-desktop` }, { hash: '/settings', wait: 2500, shot: `demo-${id}-settings-desktop` }],
+      },
+    ]);
+  }
 }
 
 let failed = 0;
+// Everything that talks to the browser runs inside try, so the browser and its profile are
+// removed whatever fails (also when the browser never reports its port).
 try {
+  port = await waitForPort();
+  addDemoScenarios(await readDemoIds());
   for (const [name, sc] of scenarios) {
     if (only && !name.includes(only)) continue;
     const r = await scenario(name, sc);
@@ -707,11 +771,11 @@ try {
   }
 } finally {
   await closeBrowser();
-  await sleep(500);
   try {
-    rmSync(profile, { recursive: true, force: true });
-  } catch {
-    /* the browser may still hold a lock for a moment */
+    // The browser may still hold a lock on the profile for a moment after it exits.
+    rmSync(profile, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });
+  } catch (e) {
+    console.error(`Could not remove the browser profile ${profile}: ${e instanceof Error ? e.message : e}`);
   }
 }
 console.log(failed ? `${failed} scenario(s) with errors` : 'All scenarios passed');

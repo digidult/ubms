@@ -16,15 +16,18 @@ More, Plugins shows the folders of the running app, what was loaded and what fai
 
 | System | Folder |
 | --- | --- |
-| Windows, installed per user (setup exe) | `%LOCALAPPDATA%\ubms\plugins` (the folder of `ubms.exe`) |
+| Windows, installed per user (setup exe) | `%LOCALAPPDATA%\ubms\plugins` (the folder of `ubms-desktop.exe`) |
 | Windows, installed per machine (MSI or setup) | `C:\Program Files\ubms\plugins`, needs administrator rights to write |
 | Windows, portable exe | `plugins` next to the exe |
-| Linux, AppImage | `plugins` next to the `.AppImage` file (the executable itself runs from a temporary mount) |
+| Linux, AppImage | `plugins` next to the `.AppImage` file (the executable itself runs from a temporary mount). This needs `APPIMAGE` set and the executable inside `APPDIR` |
 | Linux, `.deb` and `.rpm` | `plugins` in the folder of the executable (`/usr/bin/plugins`), needs root rights |
 | macOS | `plugins` next to `ubms.app` (for example `/Applications/plugins`), and `ubms.app/Contents/MacOS/plugins` inside the bundle |
 
 The rule: Windows and Linux use `<folder of the executable>/plugins`, an AppImage
-`<folder of the AppImage file>/plugins`. On macOS both folders are read, the one inside the bundle
+`<folder of the AppImage file>/plugins`. A run counts as an AppImage only when `APPIMAGE` is set
+and the executable lies inside `APPDIR` (the AppImage runtime sets both for its whole process
+tree); a value inherited from another AppImage is ignored, and the folder of the executable is
+used. On macOS both folders are read, the one inside the bundle
 first; the folder next to the bundle is the one users can reach without opening the bundle (a
 change inside the bundle also breaks a code signature). A missing folder is not an error: then
 there are no plugins.
@@ -153,6 +156,9 @@ const channel = new FrameChannel(ctx.link, {
 // encode() builds the request bytes; the answer is the first complete frame that `match` accepts.
 const frame = await channel.request(encode(0x01), { match: (f) => f[2] === 0x81, timeout: 1000, retries: 1, name: 'Status request' });
 ```
+
+`requestMany()` (several answer frames to one request) writes the request once and has no
+`retries` option: repeat the call yourself when a device needs it.
 
 ## The api object
 

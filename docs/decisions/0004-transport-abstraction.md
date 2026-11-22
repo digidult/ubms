@@ -2,6 +2,9 @@
 
 Status: accepted, 2026-11-18
 
+Note, 2026-11-22: the Tauri bridge mentioned below as the next stage is implemented
+(`packages/transport/src/tauri.js`, `apps/desktop`); see [tauri.md](../tauri.md).
+
 ## Context
 
 Devices are reached over Web Bluetooth, Web Serial and, in the next stage, native Bluetooth and

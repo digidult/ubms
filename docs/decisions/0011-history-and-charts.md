@@ -52,15 +52,17 @@ view gives each one its own card. A value shown as text gives the number to char
 - `sn:<family>:<serial number>` when the device reports a usable serial number (not empty, not
   `0`, not all zeros);
 - otherwise `<link kind>:<link id>` when the link id is stable: a Bluetooth device id (Web
-  Bluetooth per origin, the desktop bridge per system) or a desktop serial port path (`COM7`);
-- otherwise `name:<driver id>:<device name>`. Web Serial ports have no stable identity (only USB
-  ids of the adapter), so they use this rule. For a serial link the device name is the device's
+  Bluetooth per origin, the desktop bridge per system);
+- otherwise `name:<driver id>:<device name>`. Every serial link (desktop and Web Serial) uses
+  this rule: a port path or the USB ids name the adapter, not the battery behind it, so batteries
+  behind one adapter do not share a history. Histories stored earlier as `serial:COM7` stay
+  separate entries. For a serial link the device name is the device's
   own name or model when it reports one, and the adapter name (`CH340 (1a86:7523)`) only
   otherwise, so batteries behind identical adapters do not share a history.
 
 Several devices can share one serial link (packs on one RS485 bus). When the Connect screen sets
 an RS485 address or board number, the link and name rules end with `#<address>`:
-`serial:COM7#1` and `serial:COM7#2` are two histories. The meta stores the address, and the
+`name:<driver id>:<name>#1` and `name:<driver id>:<name>#2` are two histories. The meta stores the address, and the
 device picker shows it when two stored devices have the same name and no serial number. A serial
 number identifies a device by itself, so it gets no address.
 

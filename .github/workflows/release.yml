@@ -22,6 +22,7 @@ permissions:
 jobs:
   web:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     outputs:
       version: ${{ steps.version.outputs.version }}
     steps:
@@ -68,6 +69,16 @@ jobs:
           path: dist/ubms.html
           if-no-files-found: error
 
+      # Named smoke-*, so the publish job (pattern ubms-*) does not attach it to the release.
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-screenshots
+          path: .smoke/
+          include-hidden-files: true
+          if-no-files-found: ignore
+
   desktop:
     uses: ./.github/workflows/desktop.yml
     with:
@@ -76,6 +87,7 @@ jobs:
   publish:
     needs: [web, desktop]
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: write
     steps:
@@ -85,7 +97,7 @@ jobs:
           merge-multiple: true
           path: files
 
-      - name: Create the release
+      - name: Create the release (or replace its files when the tag is rebuilt)
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -99,4 +111,9 @@ jobs:
             flags+=(--prerelease)
             title="$title (alpha)"
           fi
-          gh release create "$TAG" files/* --repo "$GITHUB_REPOSITORY" --verify-tag --title "$title" --generate-notes "${flags[@]}" 
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            # A rebuild of an existing tag keeps the release text and replaces its files.
+            gh release upload "$TAG" files/* --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create "$TAG" files/* --repo "$GITHUB_REPOSITORY" --verify-tag --title "$title" --generate-notes "${flags[@]}"
+          fi 

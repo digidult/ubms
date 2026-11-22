@@ -6,7 +6,7 @@ balancers directly from the page: over Bluetooth Low Energy (Web Bluetooth) or a
 settings. The production build is a single self-contained HTML file that works offline.
 
 The code is split into layers with strict dependency rules, so the generic parts can move to their
-own repository and the same drivers and UI can run inside a Tauri desktop app later.
+own repository and the same drivers and UI also run inside the Tauri desktop app (`apps/desktop`).
 
 ## Layers
 
@@ -243,9 +243,11 @@ Vite builds one HTML file with all scripts, styles, icons and translations inlin
 (`vite-plugin-singlefile`). Hash routing keeps it working from `file://`, from any static host
 and in a Tauri webview. See [decisions/0005-single-file-build.md](decisions/0005-single-file-build.md).
 
-## Desktop (next stage)
+## Desktop
 
-The Tauri app will reuse `apps/web` unchanged. Only the transport providers differ:
-`TauriBleProvider` and `TauriSerialProvider` implement the same device handle and Link interfaces
-on top of Rust commands (btleplug, serialport). The command and event contract is in
-[tauri.md](tauri.md).
+The Tauri 2 app in `apps/desktop` loads `apps/web` unchanged. Only the transport providers
+differ: `TauriBleProvider` and `TauriSerialProvider` (`packages/transport/src/tauri.js`)
+implement the same device handle and Link interfaces on top of the Rust commands of
+`apps/desktop/src-tauri` (bluest for Bluetooth LE, serialport for serial ports). The Rust side
+also stores the chart history in files and reads the plugin folder ([plugins.md](plugins.md)).
+The command and event contract is in [tauri.md](tauri.md).

@@ -2,7 +2,8 @@
 
 ## Requirements
 
-- Node.js 20.19 or newer (22 or 24 recommended), npm 10 or newer.
+- Node.js 22.12 or newer (24 recommended), npm 10 or newer. `npm test` passes glob patterns to
+  `node --test` and the smoke test uses the global `WebSocket`; Node.js 20 has neither.
 - A Chromium based browser (Chrome, Edge, Opera, Brave) for Web Bluetooth and Web Serial.
 
 ## Commands
@@ -29,7 +30,7 @@ packages/transport/       generic device link layer (to be extracted)
 packages/ui/              generic UI kit (to be extracted)
 packages/bms-core/        BMS domain core
 packages/bms-drivers/     protocol drivers, simulators, test vectors
-docs/                     architecture, decisions, protocols, UI, i18n, Tauri plan, plugins
+docs/                     architecture, decisions, protocols, UI, i18n, Tauri app, plugins
 examples/plugins/         example plugin for the desktop app (docs/plugins.md)
 scripts/                  smoke test, i18n checker, repository checks
 ```
@@ -84,7 +85,8 @@ The desktop app also loads drivers from plugins without a new build: one `.js` f
      test, builds `ubms.html` and the installers (Windows NSIS, MSI and portable exe; Linux deb, rpm
      and AppImage; macOS universal dmg) and publishes the
      GitHub release with generated notes. While the major version is 0 the release is marked as a
-     pre-release (alpha). The workflow can rebuild an existing tag from the Actions tab.
+     pre-release (alpha). The workflow can rebuild an existing tag from the Actions tab; for a
+     release that already exists it replaces the files and keeps the text.
 - Without a release, the workflows "CI" (ubms.html) and "Desktop" (installers) keep the files of
   every push to main as artifacts for 90 days.
 - The web app is deployed from `main` by Vercel (project `ubms-html`, output `dist`) to
@@ -98,4 +100,8 @@ The desktop app also loads drivers from plugins without a new build: one `.js` f
 - Serial: connect a USB-UART or USB-RS485 adapter. Check the BMS port voltage level (3.3 V TTL,
   5 V TTL or RS485) before wiring.
 - Export the protocol log (Log, Export) and attach it to bug reports. The log contains the raw
-  bytes, so new frames can be added to the test vectors.
+  bytes, so new frames can be added to the test vectors. Decoded frames mask passwords and the
+  export leaves password settings out, but the raw hex bytes of an entry still carry what was
+  sent and received. A login frame (ANT 0x23, old ANT F1..F4, JBD 0x06) holds the BMS password
+  in clear text: change the password before you publish a log. Masking these bytes in the
+  ProtocolLog export is a separate task in `packages/transport`.

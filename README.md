@@ -23,13 +23,13 @@ and electronic loads.
 | `jk-pb-rs485` | JK-PB inverter BMS, frame triggers and Modbus writes | RS485 | 47 / 45 / 0 |
 | `jk-uart` | JK-B series, "4E 57" protocol on the GPS/UART port | UART, RS485 | 3 / 35 / 0 |
 | `ant` | ANT BMS from about 2021 (7E A1 frames) | Bluetooth, UART | 49 + switches / 36 / 14 |
-| `ant-legacy` | ANT BMS up to about 2020 (140-byte status) | Bluetooth, UART | switches / 34 / 1 |
+| `ant-legacy` | ANT BMS up to about 2020 (140-byte status) | Bluetooth, UART | switches / 34 / 2 |
 | `daly-modbus` | Daly BMS with the newer Modbus protocol (D2 and 0x81 flavours) | Bluetooth, UART, RS485 | D2: 35 / 5 / 3, 0x81: 7 / 50 / 0 |
 | `daly` | Daly BMS, classic 13-byte A5 protocol | Bluetooth, UART, RS485 | 37 / 14 / 1 |
 | `jk-balancer-ble` | JK active balancers with the JK04 protocol (JK-B2A16S, JK-B2A24S, JK-B5A24S) | Bluetooth | 6 / 1 / 0 |
 | `jk-balancer-rs485` | JK-DZ11-B2A24S active balancer, "55 AA" requests and "EB 90" answers | RS485 | 4 / 1 / 0 |
 | `atorch` | Atorch DC and AC meters, USB testers and DL24 electronic loads, "FF 55" protocol (load control over PX100 is experimental) | Bluetooth | AC: 2 / 0 / 7, DC: 2 / 0 / 8, USB: 0 / 1 / 8 |
-| `neey-ble` | NEEY (Heltec, Enerkon) active balancers GW-24S4EB, EK-24S4EB, EK-16S2EB and newer, two settings layouts | Bluetooth | V1: 6 / 3 / 0, V2: 1 / 33 / 0 |
+| `neey-ble` | NEEY (Heltec, EnerKey) active balancers GW-24S4EB, EK-24S4EB, EK-16S2EB and newer, two settings layouts | Bluetooth | V1: 6 / 3–4 / 0, V2: 1 / 33 / 0 |
 | `daly-balancer` | Daly active balancers, Modbus D2 protocol | Bluetooth, UART | 4 / 2 / 0 |
 | `jbd` | JBD (Jiabaida) BMS and the brands built on it (Xiaoxiang app, Overkill Solar and others), "DD A5" protocol | Bluetooth, UART, RS485 | 59 / 26 / 2 (serial 57 / 26 / 2) |
 | `jbd-up-rs485` | JBD UP series, Modbus style protocol (experimental) | RS485 | read only |
@@ -41,7 +41,8 @@ and electronic loads.
 | `deye-can` | Deye batteries over the inverter CAN bus (Pylontech style frames) through an SLCAN USB-CAN adapter; chosen explicitly, never auto-detected | CAN (SLCAN adapter) | read only |
 
 Parameters whose encoding is not confirmed by captures or vendor documents are shown read only.
-Every driver ships a simulator, so the demo mode shows each protocol without hardware. See
+Most drivers ship a simulator, so the demo mode shows their protocol without hardware (all except
+`jk-balancer-ble`, `jk-pb-rs485`, `jk-uart` and `ant-legacy`). See
 [docs/protocols](docs/protocols/) for the details and sources.
 
 ## Use
@@ -122,18 +123,18 @@ Read [AGENTS.md](AGENTS.md) and [docs/development.md](docs/development.md) befor
 - [UI structure and navigation](docs/ui.md)
 - [Protocols](docs/protocols/)
 - [Translations](docs/i18n.md)
-- [Desktop app plan (Tauri)](docs/tauri.md)
+- [Desktop app (Tauri)](docs/tauri.md)
 - [Desktop plugins](docs/plugins.md)
 
 ## Repository layout
 
 ```
 apps/web               the application
-apps/desktop           Tauri 2 desktop shell (Rust: btleplug, serialport)
+apps/desktop           Tauri 2 desktop shell (Rust: bluest, serialport)
 packages/transport     device link layer: Web Bluetooth, Web Serial, Tauri bridge, framing, log
 packages/ui            UI kit: Lit components, theme, i18n, router, store
 packages/bms-core      BMS model, catalogs, driver contract, detection, session
-packages/bms-drivers   JK, ANT and Daly drivers with simulators and test vectors
+packages/bms-drivers   protocol drivers with simulators and test vectors
 docs                   documentation
 examples/plugins       example plugin for the desktop app
 scripts                smoke test and checks

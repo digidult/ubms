@@ -12,16 +12,26 @@
  *                                   -> apps/web/src/locales/<lang>.json
  *
  * Usage:
- *   node scripts/i18n-check.mjs                 report
- *   node scripts/i18n-check.mjs --strict        exit 1 on missing keys or placeholder errors
+ *   node scripts/i18n-check.mjs                 report; exit 1 on placeholder or plural shape errors
+ *   node scripts/i18n-check.mjs --strict        exit 1 on missing keys and unused en.json keys too
  *   node scripts/i18n-check.mjs --write-template  write <locales>/_template.json (all keys, English values)
  *   node scripts/i18n-check.mjs --keys app      print the key list of a domain as JSON
+ *   node scripts/i18n-check.mjs --root <dir>    check another tree (used by the tests)
+ *
+ * Missing translations fall back to English, so they fail the check only with --strict. A
+ * placeholder or plural shape error always fails it: the user would see a raw "{name}" or lose
+ * the plural forms. `en.json` (the English plural forms) is checked for placeholders and unused
+ * keys as well.
  */
 import { readFileSync, readdirSync, statSync, writeFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const args = process.argv.slice(2);
+const strict = args.includes('--strict');
+const root = args.includes('--root')
+  ? path.resolve(args[args.indexOf('--root') + 1])
+  : path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const LANGS = ['uk', 'ru', 'de', 'fr'];
 const DOMAINS = {
   kit: { sources: ['packages/ui/src'], locales: 'packages/ui/locales' },
@@ -30,9 +40,6 @@ const DOMAINS = {
     locales: 'apps/web/src/locales',
   },
 };
-
-const args = process.argv.slice(2);
-const strict = args.includes('--strict');
 
 /** @param {string} dir @returns {string[]} */
 function walk(dir) {
@@ -101,9 +108,10 @@ for (const [domain, cfg] of Object.entries(DOMAINS)) {
   }
   const en = loadJson(`${cfg.locales}/en.json`);
   console.log(`\n== ${domain}: ${keys.size} keys`);
-  for (const lang of LANGS) {
-    const cat = loadJson(`${cfg.locales}/${lang}.json`);
-    const missing = [...keys.keys()].filter((k) => cat[k] === undefined || cat[k] === '');
+  for (const lang of ['en', ...LANGS]) {
+    const cat = lang === 'en' ? en : loadJson(`${cfg.locales}/${lang}.json`);
+    // en.json holds only the English plural forms, so no key is "missing" there.
+    const missing = lang === 'en' ? [] : [...keys.keys()].filter((k) => cat[k] === undefined || cat[k] === '');
     const unused = Object.keys(cat).filter((k) => !keys.has(k));
     const badPlaceholders = [];
     const badPlural = [];
@@ -111,6 +119,8 @@ for (const [domain, cfg] of Object.entries(DOMAINS)) {
       if (!keys.has(k)) continue;
       const pluralKey = typeof en[k] === 'object';
       if (pluralKey && typeof v !== 'object') badPlural.push(k);
+      // Plural forms in a translation without English ones: the English UI shows the raw key.
+      if (!pluralKey && v && typeof v === 'object') badPlural.push(`${k}  (no plural forms in en.json)`);
       const values = typeof v === 'object' ? Object.values(v) : [v];
       for (const s of values) {
         if (typeof s !== 'string') continue;
@@ -122,17 +132,20 @@ for (const [domain, cfg] of Object.entries(DOMAINS)) {
       }
     }
     const pct = keys.size ? Math.round(((keys.size - missing.length) / keys.size) * 100) : 100;
-    console.log(`${lang}: ${pct}% translated, ${missing.length} missing, ${unused.length} unused, ${badPlaceholders.length} placeholder errors, ${badPlural.length} plural shape errors`);
+    const coverage = lang === 'en' ? `${Object.keys(cat).length} plural keys` : `${pct}% translated, ${missing.length} missing`;
+    console.log(`${lang}: ${coverage}, ${unused.length} unused, ${badPlaceholders.length} placeholder errors, ${badPlural.length} plural shape errors`);
     if (args.includes('--verbose')) {
       for (const k of missing) console.log(`   missing: ${k}`);
       for (const k of unused) console.log(`   unused:  ${k}`);
     }
     for (const k of badPlaceholders) console.log(`   placeholder: ${k}`);
     for (const k of badPlural) console.log(`   plural: ${k}`);
-    problems += badPlaceholders.length + badPlural.length + (strict ? missing.length : 0);
+    problems += badPlaceholders.length + badPlural.length;
+    // An unused en.json key is an orphaned plural: the source string changed and lost its forms.
+    if (strict) problems += missing.length + (lang === 'en' ? unused.length : 0);
   }
 }
-if (strict && problems) {
+if (problems) {
   console.error(`\n${problems} problem(s)`);
   process.exit(1);
 }
