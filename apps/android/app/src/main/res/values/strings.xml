@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name" translatable="false">ubms</string>
+    <string name="app_host" translatable="false">ubms-html.vercel.app</string>
+    <string name="app_url" translatable="false">https://ubms-html.vercel.app/</string>
+    <string name="asset_statements" translatable="false">[{ \"relation\": [\"delegate_permission/common.handle_all_urls\"], \"target\": { \"namespace\": \"web\", \"site\": \"https://ubms-html.vercel.app\" } }]</string>
+</resources>

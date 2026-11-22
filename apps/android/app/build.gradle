@@ -1,0 +1,61 @@
+import groovy.json.JsonSlurper
+
+plugins {
+    id 'com.android.application'
+}
+
+// One version for the whole project: the root package.json (scripts/set-version.mjs).
+def appVersion = new JsonSlurper().parse(new File(rootDir, '../../package.json')).version as String
+def parts = appVersion.tokenize('.').collect { it as int }
+
+// Release signing from the environment (CI secrets). Without it the release build is signed
+// with the debug key: fine for a local try, but it cannot update a released installation and
+// Chrome shows its address bar, because the key does not match assetlinks.json.
+def keystorePath = System.getenv('ANDROID_KEYSTORE_FILE')
+def hasReleaseKey = keystorePath != null && !keystorePath.isEmpty() && new File(keystorePath).exists()
+
+android {
+    namespace 'io.github.supakov.ubms'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'io.github.supakov.ubms'
+        // Adaptive icons need Android 8; Chrome with Web Bluetooth runs on every such device.
+        minSdk 26
+        targetSdk 34
+        versionCode parts[0] * 10000 + parts[1] * 100 + parts[2]
+        versionName appVersion
+    }
+
+    signingConfigs {
+        release {
+            if (hasReleaseKey) {
+                storeFile new File(keystorePath)
+                storeType 'pkcs12'
+                storePassword System.getenv('ANDROID_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('ANDROID_KEY_ALIAS')
+                keyPassword System.getenv('ANDROID_KEYSTORE_PASSWORD')
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig hasReleaseKey ? signingConfigs.release : signingConfigs.debug
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    lint {
+        abortOnError false
+    }
+}
+
+dependencies {
+    implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.5.0'
+}
