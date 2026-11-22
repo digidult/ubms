@@ -3,5 +3,9 @@
   "Close": "Fermer",
   "Confirm": "Confirmer",
   "n/a": "n/d",
-  "No data": "Aucune donnée"
+  "No data": "Aucune donnée",
+  "navigation|Main": "Navigation principale",
+  "Transaction aborted": "Transaction interrompue",
+  "IndexedDB is not available": "IndexedDB n'est pas disponible",
+  "The history database is blocked by another tab": "La base de données de l'historique est bloquée par un autre onglet"
 }

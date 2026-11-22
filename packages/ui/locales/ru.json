@@ -3,5 +3,9 @@
   "Close": "Закрыть",
   "Confirm": "Подтвердить",
   "n/a": "н/д",
-  "No data": "Нет данных"
+  "No data": "Нет данных",
+  "navigation|Main": "Основная навигация",
+  "Transaction aborted": "Транзакция прервана",
+  "IndexedDB is not available": "IndexedDB недоступна",
+  "The history database is blocked by another tab": "База данных истории заблокирована другой вкладкой"
 }

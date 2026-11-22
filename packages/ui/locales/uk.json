@@ -3,5 +3,9 @@
   "Close": "Закрити",
   "Confirm": "Підтвердити",
   "n/a": "н/д",
-  "No data": "Немає даних"
+  "No data": "Немає даних",
+  "navigation|Main": "Головна навігація",
+  "Transaction aborted": "Транзакцію перервано",
+  "IndexedDB is not available": "IndexedDB недоступна",
+  "The history database is blocked by another tab": "Базу даних історії заблоковано іншою вкладкою"
 }
