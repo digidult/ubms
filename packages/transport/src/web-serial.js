@@ -201,7 +201,7 @@ export class WebSerialLink extends Link {
     this.portOpen = false;
     /** @param {any} e */
     this.onDisconnect = (e) => {
-      if (e.target === this.handle.port || e.port === this.handle.port) this._remoteClosed('Serial port disconnected');
+      if (e.target === this.handle.port || e.port === this.handle.port) this._remoteClosed(msg('Serial port disconnected'));
     };
   }
 
@@ -248,7 +248,7 @@ export class WebSerialLink extends Link {
         this.reader = null;
       }
     }
-    if (!this.closing) this._remoteClosed('Serial stream ended');
+    if (!this.closing) this._remoteClosed(msg('Serial stream ended'));
   }
 
   /** @param {Uint8Array} bytes */

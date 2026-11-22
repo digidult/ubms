@@ -9,9 +9,30 @@ import { msg } from './msg.js';
  * docs/tauri.md; this module adapts it to the same device-handle and Link interfaces the Web
  * Bluetooth and Web Serial transports expose, so drivers and the UI need no changes.
  *
- * Every listener this module registers is removed again: on close, on a remote close and when
- * an open fails, also when the Link base class does not call `_close()`.
+ * Every listener of a device or link is removed again: on close, on a remote close and when an
+ * open fails, also when the Link base class does not call `_close()`. The adapter listener of
+ * TauriBleProvider.onAvailabilityChange() stays until the caller removes it.
  */
+
+/**
+ * Fixed error texts of the Rust bridge (ble.rs, serial.rs). Commands reject with them as they
+ * are, and apps show them through their translation function, so they are listed here to be
+ * extracted for translation. Keep them identical to the Rust source. Texts the bridge builds at
+ * run time (an invalid UUID, a missing characteristic, DTR/RTS warnings, system errors) stay
+ * English.
+ */
+export const BRIDGE_ERRORS = [
+  msg('Bluetooth device is not connected'),
+  msg('Device not found, scan again'),
+  msg('The Bluetooth scan stopped'),
+  msg('The Bluetooth scan did not start'),
+  msg('The device did not report any GATT characteristics'),
+  msg('Notifications could not be enabled'),
+  msg('Enabling notifications timed out'),
+  msg('Bluetooth write timed out'),
+  msg('Serial port is not open'),
+  msg('Serial write timed out'),
+];
 
 /** @returns {any} */
 function tauri() {
@@ -96,6 +117,17 @@ export class TauriBleProvider {
     } catch (err) {
       return { available: false, reason: text(err) };
     }
+  }
+
+  /**
+   * Calls `handler` when the bridge reports that the adapter was switched on or off
+   * (`ble://adapter`). The handler should ask availability() again: the bridge emits the event
+   * only once it has found an adapter, so callers keep their other triggers (window focus).
+   * @param {() => void} handler
+   * @returns {Promise<() => void>} removes the listener
+   */
+  async onAvailabilityChange(handler) {
+    return once(await listen('ble://adapter', () => handler()));
   }
 
   /**
@@ -307,7 +339,7 @@ class TauriBleLink extends Link {
     }
     const offDisconnect = handle.on('disconnect', () => {
       this.release();
-      this._remoteClosed('Bluetooth disconnected');
+      this._remoteClosed(msg('Bluetooth disconnected'));
     });
     this.release = once(() => {
       offNotify();
@@ -407,7 +439,7 @@ class TauriSerialLink extends Link {
     };
     const onClosed = (/** @type {any} */ p) => {
       if (early) early.push({ closed: true, p });
-      else if (p.handle === this.handleId) this.#lost(p.reason ?? 'Serial port closed');
+      else if (p.handle === this.handleId) this.#lost(p.reason ?? msg('Serial port closed'));
     };
     // Listen before opening: the reader thread forwards bytes as soon as the port is open.
     const offData = once(await listen('serial://data', onData));
@@ -434,7 +466,7 @@ class TauriSerialLink extends Link {
       if (e.closed) {
         // The port failed before the handle was known: the open fails.
         await this._close();
-        throw new Error(String(e.p.reason ?? 'Serial port closed'));
+        throw new Error(String(e.p.reason ?? msg('Serial port closed')));
       }
       this._receive(Uint8Array.from(e.p.data));
     }

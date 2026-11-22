@@ -1,5 +1,6 @@
 import { Emitter } from './emitter.js';
 import { fromHex, hex } from './bytes.js';
+import { msg } from './msg.js';
 
 /**
  * Protocol log: a bounded, observable list of everything that crossed a link, with optional
@@ -33,6 +34,9 @@ const now = () =>
 
 export const LOG_FORMAT = 'ubms-protocol-log';
 export const LOG_FORMAT_VERSION = 1;
+
+/** @type {Set<string>} */
+const LOG_KINDS = new Set(['tx', 'rx', 'frame', 'event', 'warn', 'error', 'debug']);
 
 export class ProtocolLog extends Emitter {
   /** @param {{ capacity?: number }} [opts] */
@@ -145,24 +149,42 @@ export class ProtocolLog extends Emitter {
   }
 
   /**
-   * Parse an exported log (for viewing or replay).
+   * Parse an exported log (for viewing or replay). Any file that is not a valid export (not
+   * JSON, another format, a damaged entry) throws one translatable error.
    * @param {any} json
    * @returns {{ meta: Record<string, any>, entries: LogEntry[] }}
    */
   static parseExport(json) {
-    const data = typeof json === 'string' ? JSON.parse(json) : json;
-    if (!data || data.format !== LOG_FORMAT) throw new Error('Not a ubms protocol log file');
+    const invalid = () => new Error(msg('This file is not a protocol log'));
+    let data;
+    try {
+      data = typeof json === 'string' ? JSON.parse(json) : json;
+    } catch {
+      throw invalid();
+    }
+    if (!data || typeof data !== 'object' || data.format !== LOG_FORMAT) throw invalid();
+    if (data.entries !== undefined && !Array.isArray(data.entries)) throw invalid();
     let id = 1;
-    const entries = (data.entries ?? []).map((/** @type {any} */ e) => ({
-      id: id++,
-      t: Number(e.t) || 0,
-      kind: e.kind,
-      source: e.source,
-      name: e.name,
-      text: e.text,
-      bytes: e.hex ? fromHex(e.hex) : undefined,
-      fields: e.fields,
-    }));
+    const entries = (data.entries ?? []).map((/** @type {any} */ e) => {
+      if (!e || typeof e !== 'object' || !LOG_KINDS.has(e.kind)) throw invalid();
+      if (e.hex !== undefined && typeof e.hex !== 'string') throw invalid();
+      let bytes;
+      try {
+        bytes = e.hex ? fromHex(e.hex) : undefined;
+      } catch {
+        throw invalid();
+      }
+      return {
+        id: id++,
+        t: Number(e.t) || 0,
+        kind: e.kind,
+        source: e.source,
+        name: e.name,
+        text: e.text,
+        bytes,
+        fields: e.fields,
+      };
+    });
     return { meta: data.meta ?? {}, entries };
   }
 

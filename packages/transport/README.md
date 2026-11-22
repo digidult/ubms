@@ -10,12 +10,12 @@ management systems and is meant to move to its own repository.
 | Piece | Purpose |
 | --- | --- |
 | `WebBluetoothProvider`, `WebSerialProvider`, `TauriBleProvider`, `TauriSerialProvider` | Availability checks and device selection (browser chooser, granted devices, native scan or port list). |
-| `WebBleDevice` | A selected BLE device: `connect()`, `discover()`, `openChannel(profile)`, `disconnect()`, `disconnect` event. |
+| `WebBleDevice` | A selected BLE device: `connect()`, `discover()`, `openChannel(profile)`, `disconnect()` (also cancels a connect in progress), `disconnect` event. |
 | `WebSerialPort` | A selected serial port: `openLink(serialOptions)`. |
 | `Link` | An open byte channel: `write(bytes, meta)`, events `data`, `state`, `close`. Writes are serialized and chunked. |
 | `MemoryLink`, `createLinkPair()` | Two connected in-memory links, optional delivery chunking to imitate BLE. |
 | `FrameAssembler` | Turns arbitrary chunks into validated frames (sync patterns, length from header, checksum, resync, stale data handling). |
-| `FrameChannel` | Link plus assembler: serialized `send`, `request`, `requestMany`, `waitFor`, frame events, frame logging. |
+| `FrameChannel` | Link plus assembler: serialized `send`, `request` (with `retries`), `requestMany` (one write, no retries), `waitFor`, frame events, frame logging. |
 | `ProtocolLog` | Bounded observable log (`tx`, `rx`, `frame`, `event`, `warn`, `error`, `debug`) with lazy decoding and JSON export. |
 | `bytes.js`, `checksum.js` | Hex helpers, integer readers with bounds checks, `ByteReader`, UUID helpers, sum8/xor8/CRC16. |
 

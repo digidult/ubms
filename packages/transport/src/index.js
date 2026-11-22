@@ -9,6 +9,6 @@ export { MemoryLink, createLinkPair } from './memory.js';
 export { FrameChannel } from './channel.js';
 export { WebBluetoothProvider, WebBleDevice, WebBleLink } from './web-bluetooth.js';
 export { WebSerialProvider, WebSerialPort, WebSerialLink, USB_SERIAL_ADAPTERS } from './web-serial.js';
-export { TauriBleProvider, TauriSerialProvider, isTauri } from './tauri.js';
+export { TauriBleProvider, TauriSerialProvider, isTauri, BRIDGE_ERRORS } from './tauri.js';
 export { detectEnvironment } from './environment.js';
 export { SLCAN_BITRATES, SLCAN_CR, SLCAN_BEL, SLCAN_MAX_LINE, slcanCommand, slcanBitrateCommand, formatSlcanFrame, encodeSlcanFrame, parseSlcanLine, SlcanDecoder } from './slcan.js';

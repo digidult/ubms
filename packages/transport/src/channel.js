@@ -19,10 +19,10 @@ import { msg } from './msg.js';
  * @property {string} [name] command name for the log
  * @property {() => any} [decode] lazy decoder of the command bytes for the log
  *
- * @typedef {RequestOptions & {
+ * @typedef {Omit<RequestOptions, 'retries'> & {
  *   until: (frames: Uint8Array[]) => boolean,
  *   partialOnTimeout?: boolean
- * }} RequestManyOptions
+ * }} RequestManyOptions no `retries`: requestMany writes the command once
  */
 
 /**
@@ -179,7 +179,8 @@ export class FrameChannel extends Emitter {
   }
 
   /**
-   * Write a command and collect several response frames (multi-frame answers).
+   * Write a command and collect several response frames (multi-frame answers). It makes no
+   * automatic retries; a caller that needs them loops around requestMany itself.
    * @param {Uint8Array} bytes
    * @param {RequestManyOptions} opts
    * @returns {Promise<Uint8Array[]>}

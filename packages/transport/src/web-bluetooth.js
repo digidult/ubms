@@ -51,6 +51,12 @@ const deviceWrappers = new WeakMap();
 /** Longest wait for an advertisement before connecting to a device from getDevices(). */
 const ADVERTISEMENT_WAIT_MS = 10000;
 
+function cancelledError() {
+  const err = new Error(msg('Connection cancelled'));
+  /** @type {any} */ (err).code = 'cancelled';
+  return err;
+}
+
 export class WebBluetoothProvider {
   /** @param {{ log?: import('./log.js').ProtocolLog }} [opts] */
   constructor({ log } = {}) {
@@ -149,6 +155,12 @@ export class WebBleDevice extends Emitter {
     this.server = null;
     /** Wait for an advertisement before the next GATT connect (devices from getDevices()). */
     this.awaitAdvertisement = false;
+    /** Counts disconnect() calls: a connect that started before one gives up instead of retrying. */
+    this.epoch = 0;
+    /** Connects started since the last disconnect() that are still running. */
+    this.liveConnects = 0;
+    /** @type {Set<() => void>} rejects the steps of connects in progress; disconnect() calls them */
+    this.cancels = new Set();
     this.onDisconnected = () => {
       this.log?.warn(`Bluetooth device disconnected: ${this.name}`);
       this.emit('disconnect', { reason: 'gatt-disconnected' });
@@ -173,40 +185,98 @@ export class WebBleDevice extends Emitter {
   }
 
   /**
+   * Connect with up to `attempts` tries. disconnect() cancels a connect in progress: it rejects
+   * with code 'cancelled' at once and makes no further attempt.
    * @param {{ timeoutMs?: number, attempts?: number }} [opts]
    */
   async connect({ timeoutMs = 20000, attempts = 2 } = {}) {
     if (this.connected) return;
-    if (this.awaitAdvertisement) await this.#watchAdvertisement(timeoutMs);
-    let lastErr;
-    for (let i = 1; i <= attempts; i++) {
-      try {
-        this.log?.event(`Connecting GATT to ${this.name} (attempt ${i}/${attempts})`);
-        this.server = await withTimeout(this.device.gatt.connect(), timeoutMs, msg('Bluetooth connection timed out'));
-        this.awaitAdvertisement = false;
-        this.log?.event(`GATT connected: ${this.name}`);
-        return;
-      } catch (err) {
-        lastErr = err;
-        this.log?.warn(`GATT connect failed: ${err instanceof Error ? err.message : err}`);
+    const epoch = this.epoch;
+    this.liveConnects++;
+    try {
+      if (this.awaitAdvertisement) await this.#watchAdvertisement(timeoutMs, epoch);
+      let lastErr;
+      for (let i = 1; i <= attempts; i++) {
+        if (epoch !== this.epoch) break;
+        let abandoned = false;
         try {
-          this.device.gatt.disconnect();
-        } catch {
-          /* ignore */
+          this.log?.event(`Connecting GATT to ${this.name} (attempt ${i}/${attempts})`);
+          const pending = this.device.gatt.connect();
+          // Browsers may finish a connect that disconnect() could not abort: release it then.
+          Promise.resolve(pending).then(
+            () => abandoned && this.#dropStale(),
+            () => {},
+          );
+          const server = await this.#unlessCancelled(withTimeout(pending, timeoutMs, msg('Bluetooth connection timed out')), epoch);
+          if (epoch !== this.epoch) {
+            abandoned = true;
+            this.#dropStale();
+            break;
+          }
+          this.server = server;
+          this.awaitAdvertisement = false;
+          this.log?.event(`GATT connected: ${this.name}`);
+          return;
+        } catch (err) {
+          lastErr = err;
+          if (epoch !== this.epoch) {
+            // Leave the shared GATT object alone: a newer connect to this device may be running.
+            abandoned = true;
+            break;
+          }
+          this.log?.warn(`GATT connect failed: ${err instanceof Error ? err.message : err}`);
+          try {
+            this.device.gatt.disconnect();
+          } catch {
+            /* ignore */
+          }
+          if (i < attempts) await sleep(600);
         }
-        if (i < attempts) await sleep(600);
       }
+      if (epoch !== this.epoch) throw cancelledError();
+      throw lastErr;
+    } finally {
+      if (epoch === this.epoch) this.liveConnects--;
     }
-    throw lastErr;
+  }
+
+  /**
+   * `promise`, or a rejection with code 'cancelled' as soon as disconnect() runs.
+   * @template T @param {Promise<T>} promise @param {number} epoch @returns {Promise<T>}
+   */
+  #unlessCancelled(promise, epoch) {
+    if (epoch !== this.epoch) {
+      promise.catch(() => {});
+      return Promise.reject(cancelledError());
+    }
+    /** @type {() => void} */
+    let cancel = () => {};
+    const cancelled = new Promise((_, reject) => {
+      cancel = () => reject(cancelledError());
+    });
+    this.cancels.add(cancel);
+    return /** @type {Promise<T>} */ (Promise.race([promise, cancelled])).finally(() => this.cancels.delete(cancel));
+  }
+
+  /** A cancelled connect completed anyway: drop it unless a newer connect owns the link. */
+  #dropStale() {
+    if (this.liveConnects > 0 || this.server) return;
+    try {
+      if (this.device.gatt?.connected) this.device.gatt.disconnect();
+    } catch {
+      /* ignore */
+    }
   }
 
   /**
    * Chrome connects only to devices it has seen since it started, so gatt.connect() on a device from
    * getDevices() can fail with "Bluetooth Device is no longer in range". Wait for one advertisement
-   * first, as Chrome's samples do. Does nothing without watchAdvertisements() support.
+   * first, as Chrome's samples do. Does nothing without watchAdvertisements() support. disconnect()
+   * ends the wait.
    * @param {number} timeoutMs connect timeout, which also bounds the wait
+   * @param {number} epoch the connect's epoch
    */
-  async #watchAdvertisement(timeoutMs) {
+  async #watchAdvertisement(timeoutMs, epoch) {
     const device = this.device;
     if (typeof device.watchAdvertisements !== 'function') return;
     const ms = timeoutMs > 0 ? Math.min(timeoutMs, ADVERTISEMENT_WAIT_MS) : ADVERTISEMENT_WAIT_MS;
@@ -219,9 +289,11 @@ export class WebBleDevice extends Emitter {
     device.addEventListener('advertisementreceived', onAdvertisement);
     try {
       this.log?.event(`Waiting for an advertisement from ${this.name}`);
-      await withTimeout(Promise.all([device.watchAdvertisements({ signal: abort.signal }), seen]), ms);
+      await this.#unlessCancelled(withTimeout(Promise.all([device.watchAdvertisements({ signal: abort.signal }), seen]), ms), epoch);
     } catch (err) {
-      if (/** @type {any} */ (err)?.code === 'TIMEOUT') this.log?.warn(`No advertisement from ${this.name}, connecting anyway`);
+      const code = /** @type {any} */ (err)?.code;
+      if (code === 'cancelled') return;
+      if (code === 'TIMEOUT') this.log?.warn(`No advertisement from ${this.name}, connecting anyway`);
       else this.log?.debug(`Cannot watch advertisements: ${err instanceof Error ? err.message : err}`);
     } finally {
       device.removeEventListener('advertisementreceived', onAdvertisement);
@@ -274,9 +346,15 @@ export class WebBleDevice extends Emitter {
     return link;
   }
 
+  /** Also cancels a connect in progress. */
   async disconnect() {
+    this.epoch++;
+    this.liveConnects = 0;
+    this.server = null;
+    for (const cancel of [...this.cancels]) cancel();
     try {
-      if (this.device.gatt?.connected) this.device.gatt.disconnect();
+      // Without a link this does nothing; where the browser supports it, it aborts a pending connect.
+      this.device.gatt?.disconnect();
     } catch {
       /* ignore */
     }
@@ -342,7 +420,7 @@ export class WebBleLink extends Link {
     }
     this.notifyChar.addEventListener('characteristicvaluechanged', this.onValue);
     await this.notifyChar.startNotifications();
-    this.offDisconnect = this.handle.on('disconnect', () => this._remoteClosed('Bluetooth disconnected'));
+    this.offDisconnect = this.handle.on('disconnect', () => this._remoteClosed(msg('Bluetooth disconnected')));
   }
 
   async _close() {

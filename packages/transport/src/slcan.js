@@ -1,6 +1,7 @@
 /**
- * SLCAN (Lawicel ASCII) codec for USB-CAN adapters that appear as a serial port (CANable with
- * slcan firmware, USBtin, Lawicel CANUSB and compatible adapters).
+ * SLCAN (Lawicel ASCII) codec for USB-CAN adapters that appear as a serial port (USBtin, Lawicel
+ * CANUSB and compatible adapters). Adapters must answer commands with CR or BEL; the stock
+ * CANable slcan firmware does not.
  *
  * The adapter speaks text lines terminated by CR (0x0D):
  * - frames: `t` iii l dd.. (11-bit id), `T` iiiiiiii l dd.. (29-bit id), `r` / `R` remote frames;

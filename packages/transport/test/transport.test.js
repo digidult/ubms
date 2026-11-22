@@ -158,6 +158,26 @@ test('ProtocolLog bounds, decodes lazily and exports', () => {
   assert.equal(hexdump(fromHex('41424344'), 4), '0000  41 42 43 44  ABCD');
 });
 
+test('ProtocolLog.parseExport rejects other and damaged files with one message', () => {
+  const ok = { format: 'ubms-protocol-log', version: 1 };
+  const bad = [
+    'not json',
+    JSON.stringify({ format: 'ubms-settings' }),
+    JSON.stringify(null),
+    JSON.stringify({ ...ok, entries: {} }),
+    JSON.stringify({ ...ok, entries: [null] }),
+    JSON.stringify({ ...ok, entries: [{ t: 1 }] }),
+    JSON.stringify({ ...ok, entries: [{ t: 1, kind: 'other' }] }),
+    JSON.stringify({ ...ok, entries: [{ t: 1, kind: 'rx', hex: 12 }] }),
+    JSON.stringify({ ...ok, entries: [{ t: 1, kind: 'rx', hex: 'ABC' }] }),
+  ];
+  for (const text of bad) {
+    assert.throws(() => ProtocolLog.parseExport(text), { message: 'This file is not a protocol log' }, text);
+  }
+  assert.deepEqual(ProtocolLog.parseExport({ ...ok }).entries, []);
+  assert.equal(hex(ProtocolLog.parseExport({ ...ok, entries: [{ t: 1, kind: 'rx', hex: '0A0B' }] }).entries[0].bytes), '0A0B');
+});
+
 test('FrameChannel request/response over a memory link with fragmentation', async () => {
   const log = new ProtocolLog();
   const { host, device } = createLinkPair({ log, deviceChunkSize: 2 });

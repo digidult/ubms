@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { FrameChannel, Link, ProtocolLog, sleep, WebBleDevice, WebBluetoothProvider, WebSerialProvider } from '../src/index.js';
+import { FrameChannel, Link, ProtocolLog, sleep, TauriBleProvider, WebBleDevice, WebBluetoothProvider, WebSerialProvider } from '../src/index.js';
 
 /** Run `fn` with a stand-in for `navigator` (Node defines a read-only one). */
 async function withNavigator(value, fn) {
@@ -189,6 +189,97 @@ test('WebBluetoothProvider keeps one handle per device and waits for an advertis
     assert.deepEqual(silent.calls, ['connect']);
     assert.ok(log.entries().some((e) => e.kind === 'warn' && /No advertisement/.test(e.text)));
   });
+});
+
+/** BluetoothDevice stand-in whose gatt.connect() settles only when the test says so. */
+function pendingBleDevice() {
+  const device = Object.assign(new EventTarget(), { id: 'dev-2', name: 'BMS', calls: [], pending: [] });
+  device.gatt = {
+    connected: false,
+    connect() {
+      device.calls.push('connect');
+      return new Promise((resolve) => {
+        device.pending.push(() => {
+          device.gatt.connected = true;
+          resolve(device.gatt);
+        });
+      });
+    },
+    disconnect() {
+      device.calls.push('disconnect');
+      device.gatt.connected = false;
+    },
+  };
+  return device;
+}
+
+test('WebBleDevice.disconnect() cancels a connect in progress and releases a late connection', async () => {
+  const device = pendingBleDevice();
+  const log = new ProtocolLog();
+  const handle = new WebBleDevice(device, log);
+  const started = Date.now();
+  const first = handle.connect({ timeoutMs: 400, attempts: 2 });
+  await sleep(10);
+  await handle.disconnect();
+  await assert.rejects(first, (e) => /** @type {any} */ (e).code === 'cancelled');
+  assert.ok(Date.now() - started < 200, 'rejects at once, not after the timeout');
+  // The browser finishes the abandoned connect later: the handle drops it.
+  device.pending.shift()();
+  await sleep(5);
+  assert.equal(device.gatt.connected, false);
+  await sleep(1100); // past both attempts and the pause between them
+  assert.deepEqual(device.calls, ['connect', 'disconnect', 'disconnect']);
+  assert.ok(!log.entries().some((e) => /attempt 2\/2|GATT connect failed/.test(e.text ?? '')));
+
+  // A connect started after disconnect() is not disturbed by the stale one finishing.
+  const stale = new WebBleDevice(pendingBleDevice(), log);
+  const gatt = stale.device;
+  const old = stale.connect({ timeoutMs: 1000 });
+  await sleep(5);
+  await stale.disconnect();
+  await assert.rejects(old, (e) => /** @type {any} */ (e).code === 'cancelled');
+  const fresh = stale.connect({ timeoutMs: 1000 });
+  await sleep(5);
+  gatt.pending.shift()(); // the stale attempt completes first
+  gatt.pending.shift()();
+  await fresh;
+  await sleep(5);
+  assert.equal(stale.connected, true);
+  assert.deepEqual(gatt.calls, ['connect', 'disconnect', 'connect']);
+});
+
+test('TauriBleProvider.onAvailabilityChange follows ble://adapter until removed', async () => {
+  /** @type {Map<string, Set<Function>>} */
+  const listeners = new Map();
+  const saved = globalThis.window;
+  globalThis.window = /** @type {any} */ ({
+    __TAURI__: {
+      core: { invoke: async () => ({ state: 'on' }) },
+      event: {
+        listen: async (/** @type {string} */ name, /** @type {Function} */ fn) => {
+          if (!listeners.has(name)) listeners.set(name, new Set());
+          listeners.get(name)?.add(fn);
+          return () => listeners.get(name)?.delete(fn);
+        },
+      },
+    },
+  });
+  try {
+    const provider = new TauriBleProvider();
+    let calls = 0;
+    const off = await provider.onAvailabilityChange(() => calls++);
+    const emit = () => listeners.get('ble://adapter')?.forEach((fn) => fn({ payload: { state: 'off', reason: 'powered-off' } }));
+    emit();
+    assert.equal(calls, 1);
+    off();
+    off();
+    emit();
+    assert.equal(calls, 1);
+    assert.equal(listeners.get('ble://adapter')?.size, 0);
+  } finally {
+    if (saved === undefined) delete globalThis.window;
+    else globalThis.window = saved;
+  }
 });
 
 /** SerialPort stand-in; open() creates a readable stream that a test can end with an error. */
