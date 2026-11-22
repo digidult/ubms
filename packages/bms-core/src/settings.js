@@ -25,6 +25,8 @@ import { msg } from './msg.js';
  *   read-back verification, the input starts empty
  * @property {{ label?: string, unit?: string, min?: number, max?: number, step?: number, decimals?: number, default?: number }} [argument]
  *   for 'action' fields that take a number (for example "set SOC to N %")
+ * @property {boolean} [secret] the value is a password or another secret: the session logs a write of
+ *   it without the value, and the UI may mask the input
  * @property {boolean} [danger] confirm before writing / running
  * @property {boolean} [advanced] hidden unless the user enables advanced settings
  * @property {string} [description] English help text

@@ -439,11 +439,12 @@ export function usableSerial(v) {
 /**
  * Stable history key of a device:
  * - `sn:<family>:<serialNumber>` when the device reports a usable serial number;
- * - `<linkKind>:<linkId>` when the link has a stable id (BLE device id, desktop serial port path);
+ * - `<linkKind>:<linkId>` when the link has a stable id (a Bluetooth device id; serial links pass
+ *   none, a port names the adapter and not the battery);
  * - `name:<driverId>:<deviceName>` otherwise.
  *
  * Several devices can share one link (packs on one RS485 bus): when a bus address is set, the
- * link and name rules end with `#<address>`, so `serial:COM7#1` and `serial:COM7#2` are two
+ * link and name rules end with `#<address>`, so `name:daly:Pack#1` and `name:daly:Pack#2` are two
  * histories. A serial number identifies the device by itself.
  * @param {Object} src
  * @param {import('./model.js').DeviceInfo | null} [src.info]

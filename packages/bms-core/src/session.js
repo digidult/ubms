@@ -39,6 +39,8 @@ import { msg } from './msg.js';
  * @property {string} id
  * @property {boolean} ok the write command was accepted
  * @property {string} [error] English message
+ * @property {Record<string, any>} [errorParams] placeholder values of `error` (for example `{ max: 12 }`
+ *   for "At most {max} characters"), to pass to the translation together with the message
  * @property {boolean} [verified] read-back matched the requested value
  * @property {any} [actual] value read back from the device
  * @property {string} [readBackError] English message: the write was accepted, but the values could
@@ -99,6 +101,18 @@ export class BmsSession extends Emitter {
     this.lastDataAt = 0;
     this.pollErrors = 0;
     this.generation = 0;
+    /**
+     * Counts connections to a target: connect() and disconnect() change it, an automatic reconnect
+     * to the same device does not. Late results of a settings or info read on an earlier
+     * connection are dropped when it changed.
+     */
+    this.epoch = 0;
+    /**
+     * The disconnect in progress. Overlapping calls share it, so a late pass never returns a newer
+     * connection to 'idle'.
+     * @type {Promise<void> | null}
+     */
+    this.disconnecting = null;
     /** @type {Promise<any>} */
     this.lock = Promise.resolve();
     /** @type {Set<() => void>} */
@@ -143,9 +157,11 @@ export class BmsSession extends Emitter {
   async connect(target) {
     // Pass through disconnect() from every state, 'error' included: it releases the previous device
     // (its BLE connection may still be up), and 'idle' tells subscribers to drop the snapshot, info
-    // and settings of that device.
-    if (this.state !== 'idle') await this.disconnect();
+    // and settings of that device. Loop: another connect() may start while this one waits for a
+    // shared disconnect, and then it has to be cancelled in turn.
+    while (this.state !== 'idle') await this.disconnect();
     const gen = ++this.generation;
+    this.epoch++;
     // One options object per target, shared by every driver instance created for it (probe
     // candidates and reconnects), so drivers can keep local values such as passwords there.
     if (!target.options) target.options = {};
@@ -174,10 +190,12 @@ export class BmsSession extends Emitter {
         // Detection can fail after the GATT connection is up: do not keep the device busy.
         if (target.kind === 'ble' && gen === this.generation) await disconnectHandle(target.handle);
         if (gen === this.generation) this.#setState('error', err);
-      } else if (target.kind === 'ble') {
-        await this.#releaseStaleBle(target.handle);
+        throw err;
       }
-      throw err;
+      // A cancelled attempt that fails later (a GATT connect timing out after Cancel) reports the
+      // cancel, not its own late error.
+      if (target.kind === 'ble') await this.#releaseStaleBle(target.handle);
+      throw cancelled();
     }
   }
 
@@ -188,7 +206,8 @@ export class BmsSession extends Emitter {
   async #detectBle(target, gen) {
     const handle = target.handle;
     await handle.connect();
-    // Cancel cannot abort a pending GATT connect: a stale attempt must not touch the state.
+    // Cancel rejects a pending Web Bluetooth connect (code 'cancelled'), but another handle may
+    // still resolve after it: a stale attempt must not touch the state.
     if (gen !== this.generation) throw cancelled();
     this.#setState('detecting');
     /** @type {string[] | undefined} */
@@ -289,7 +308,8 @@ export class BmsSession extends Emitter {
     const probe = await driver.probe({ timeout: this.probeTimeoutMs });
     if (!probe) {
       driver.dispose();
-      throw new SessionError('not-detected', `${definition.protocol}: no valid answer`);
+      this.log.event(`${definition.protocol}: no valid answer`);
+      throw new SessionError('not-detected', msg('The device sent no valid answer'));
     }
     return { definition, profile: { id: 'direct' }, driver, link, probe };
   }
@@ -337,6 +357,8 @@ export class BmsSession extends Emitter {
     this.log.event(`Connected: ${definition.vendor}, ${definition.protocol}${this.variant ? ` (${this.variant})` : ''}`);
     this.#setState('connected');
     await driver.start();
+    // Disconnect during start() already tore this driver down.
+    if (gen !== this.generation) throw cancelled();
     this.#loop(gen);
     this.exclusive(() => driver.readInfo())
       .then((info) => {
@@ -409,6 +431,8 @@ export class BmsSession extends Emitter {
     const { definition, profile, target } = this;
     const variant = this.variant;
     await this.#teardown({ keepTarget: true });
+    // disconnect() during the teardown owns the state now.
+    if (myGen !== this.generation) return;
     if (!this.autoReconnect || target?.kind !== 'ble' || !definition) {
       this.#setState('error', new SessionError('link-lost', reason));
       return;
@@ -424,7 +448,8 @@ export class BmsSession extends Emitter {
       /** @type {any} */
       let driver = null;
       try {
-        // Check the generation after every step: Disconnect cannot abort a pending GATT connect.
+        // Check the generation after every step: a connect that resolves after Disconnect (a
+        // handle that cannot cancel it) must not bring the session back.
         await handle.connect();
         if (myGen === this.generation) link = await handle.openChannel(profile);
         if (myGen === this.generation) {
@@ -433,8 +458,18 @@ export class BmsSession extends Emitter {
           const probe = await driver.probe({ timeout: this.probeTimeoutMs });
           if (!probe) throw new Error(msg('The device did not answer'));
           if (myGen === this.generation) {
-            await this.#activate({ definition, profile, driver, link, probe }, myGen);
-            return;
+            try {
+              await this.#activate({ definition, profile, driver, link, probe }, myGen);
+              return;
+            } catch (err) {
+              // start() failed after 'connected': drop the dead driver, so the session does not
+              // claim a connection during the next pause.
+              if (myGen === this.generation) {
+                await this.#teardown({ keepTarget: true });
+                if (myGen === this.generation) this.#setState('reconnecting');
+              }
+              throw err;
+            }
           }
         }
       } catch (err) {
@@ -445,7 +480,8 @@ export class BmsSession extends Emitter {
     if (myGen === this.generation) {
       // The last attempt may have connected GATT without an answer: do not keep the device busy.
       await disconnectHandle(handle);
-      if (myGen === this.generation) this.#setState('error', new SessionError('link-lost', `Connection lost: ${reason}`));
+      // The reason is a translation key of its own (for example 'Bluetooth disconnected').
+      if (myGen === this.generation) this.#setState('error', new SessionError('link-lost', reason));
     } else {
       await this.#releaseStaleBle(handle);
     }
@@ -488,9 +524,20 @@ export class BmsSession extends Emitter {
 
   /** Disconnect and return to idle. The last target is kept for a quick reconnect. */
   async disconnect() {
+    // A second call joins the first one: moving the generation here would leave the first pass
+    // unable to tell whether a newer connection exists.
+    if (this.disconnecting) return this.disconnecting;
     this.generation++;
     this.#wakeAll();
     if (this.state === 'idle') return;
+    this.disconnecting = this.#disconnect().finally(() => {
+      this.disconnecting = null;
+    });
+    return this.disconnecting;
+  }
+
+  async #disconnect() {
+    this.epoch++;
     this.#setState('disconnecting');
     const target = this.target;
     // Close the link of a probe in progress, so the port or channel is free right away.
@@ -510,6 +557,8 @@ export class BmsSession extends Emitter {
     this.definition = null;
     this.profile = null;
     this.variant = undefined;
+    // A read dropped as stale must not leave 'loading' behind.
+    this.settings = { schema: null, values: null, loading: false, error: null };
     this.log.event('Disconnected');
     this.#setState('idle');
   }
@@ -528,8 +577,10 @@ export class BmsSession extends Emitter {
 
   async refreshInfo() {
     const driver = this.#requireDriver();
+    const epoch = this.epoch;
     const info = await this.exclusive(() => driver.readInfo());
-    if (info) {
+    // The info of an earlier device must not merge into the current one.
+    if (info && epoch === this.epoch) {
       this.info = { ...(this.info ?? {}), ...info };
       this.emit('info', this.info);
     }
@@ -540,20 +591,26 @@ export class BmsSession extends Emitter {
   async loadSettings() {
     const driver = this.#requireDriver();
     if (!driver.capabilities.settings) throw new SessionError('unsupported', msg('This device does not expose settings'));
+    const epoch = this.epoch;
     this.settings = { ...this.settings, schema: driver.getSettingsSchema(), loading: true, error: null };
     this.emit('settings', this.settings);
+    /** @type {SettingsState} */
+    let next;
     try {
       driver.settingsNotice = null;
       driver.settingsPasswordField = null;
       const values = await this.exclusive(() => driver.readSettings());
+      if (epoch !== this.epoch) return staleSettings();
       const schema = driver.getSettingsSchema();
       const notice = driver.settingsNotice ?? (noDeviceValues(schema, values) ? msg('The device returned no values for its settings.') : null);
       if (notice) this.log.warn(`Settings: ${notice}`);
       const passwordField = driver.settingsNotice ? driver.settingsPasswordField : null;
-      this.settings = { schema, values, readAt: Date.now(), loading: false, error: null, notice, passwordField };
+      next = { schema, values, readAt: Date.now(), loading: false, error: null, notice, passwordField };
     } catch (err) {
-      this.settings = { ...this.settings, loading: false, error: err instanceof Error ? err.message : String(err) };
+      if (epoch !== this.epoch) return staleSettings();
+      next = { ...this.settings, loading: false, error: err instanceof Error ? err.message : String(err) };
     }
+    this.settings = next;
     this.emit('settings', this.settings);
     return this.settings;
   }
@@ -574,12 +631,14 @@ export class BmsSession extends Emitter {
       const f = fields.get(id);
       const problem = f ? validateValue(f, value) : { message: msg('Unknown setting') };
       if (problem) {
-        results.push({ id, ok: false, error: problem.message });
+        results.push({ id, ok: false, error: problem.message, ...(problem.params ? { errorParams: problem.params } : {}) });
         continue;
       }
       try {
         await this.exclusive(() => driver.writeSetting(id, value));
-        this.log.event(`Setting written: ${id} = ${value}`);
+        // Secret fields (passwords) keep their value out of the log: users attach log exports to
+        // bug reports. The raw TX bytes of a login frame may still carry it.
+        this.log.event(f?.secret ? `Setting written: ${id}` : `Setting written: ${id} = ${value}`);
         results.push({ id, ok: true });
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
@@ -613,7 +672,10 @@ export class BmsSession extends Emitter {
         const requested = changes.find((c) => c.id === r.id)?.value;
         const f = fields.get(r.id);
         r.actual = values[r.id];
-        r.verified = sameValue(requested, r.actual, f);
+        const same = sameValue(requested, r.actual, f);
+        // A value kept in the app ('local') may come back normalised (a MAC address in upper case):
+        // that is no device mismatch, so a different form leaves it unverified instead of failed.
+        if (same || f?.meta?.kind !== 'local') r.verified = same;
       }
     }
     return results;
@@ -632,6 +694,15 @@ export class BmsSession extends Emitter {
 
 function cancelled() {
   return new SessionError('cancelled', msg('Connection cancelled'));
+}
+
+/**
+ * Result of a settings read that finished on an earlier connection: it is not stored, and the error
+ * makes a read-back in writeSettings() report the write as not verified.
+ * @returns {SettingsState}
+ */
+function staleSettings() {
+  return { schema: null, values: null, loading: false, error: msg('Not connected') };
 }
 
 /** Disconnect a BLE device handle; errors are ignored. @param {any} handle */

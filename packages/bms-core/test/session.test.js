@@ -357,3 +357,256 @@ test('BmsSession: a link drop in the middle of a write batch still returns per-f
   assert.equal(results[0].readBackError, 'Not connected');
   assert.equal(session.state, 'error');
 });
+
+/**
+ * Toy driver with the hooks the overlap tests need: a settings or info read that finishes late
+ * (real drivers wait for their timeouts and return partial values after dispose()), a start() that
+ * can fail, and two fields kept in the app (a secret password and a normalised address).
+ */
+class HookedToyDriver extends ToyDriver {
+  async start() {
+    if (this.definition.startFails?.()) throw new Error('The connection is not open');
+  }
+  getSettingsSchema() {
+    return buildSchema([
+      field('cell.ovp', { min: 3, max: 4 }),
+      field('toy.password', { label: 'Password', group: 'identity', type: 'text', maxLength: 8, secret: true, meta: { kind: 'local' } }),
+      field('toy.address', { label: 'Address', group: 'identity', type: 'text', meta: { kind: 'local' } }),
+    ]);
+  }
+  async readSettings() {
+    const delay = this.definition.readDelayMs;
+    if (!delay) return { ...(await super.readSettings()), 'toy.address': this.ctx.options.address };
+    await wait(delay);
+    if (this.definition.readError) throw new Error(this.definition.readError);
+    return { 'cell.ovp': this.definition.ovp };
+  }
+  async readInfo() {
+    if (this.definition.infoDelayMs) await wait(this.definition.infoDelayMs);
+    return this.definition.serial ? { serialNumber: this.definition.serial } : { model: 'Toy' };
+  }
+  async writeSetting(id, value) {
+    if (id === 'toy.password') this.ctx.options.password = value;
+    else if (id === 'toy.address') this.ctx.options.address = String(value).toUpperCase();
+    else await super.writeSetting(id, value);
+  }
+}
+
+/** @param {Record<string, any>} over */
+function hookedDefinition(over) {
+  const def = { family: 'toy', vendor: 'Toy', protocol: 'Toy protocol', deviceType: 'bms', links: {}, ...over };
+  def.create = (ctx) => new HookedToyDriver(def, ctx);
+  return def;
+}
+
+/** Make link.close() (and the cleanup after a remote close) take `ms`, like a GATT unsubscribe. */
+function slowClose(link, ms) {
+  const close = link._close.bind(link);
+  link._close = async () => {
+    await wait(ms);
+    await close();
+  };
+  return link;
+}
+
+test('BmsSession: Disconnect and an immediate connect end connected, with no channel left behind', async () => {
+  const log = new ProtocolLog();
+  const session = new BmsSession({ registry: new DriverRegistry([linkToy]), log, pollIntervalMs: 30 });
+  const a = await directLink(log);
+  slowClose(a.host, 120);
+  await session.connect({ kind: 'link', link: a.host, selection: 'toy' });
+  const leaving = session.disconnect();
+  await wait(10);
+  const b = await directLink(log);
+  await session.connect({ kind: 'link', link: b.host, selection: 'toy' });
+  await leaving;
+  await wait(150);
+  assert.equal(session.state, 'connected', 'the late first pass does not return the new connection to idle');
+  assert.equal(session.definition?.id, 'toy');
+  assert.notEqual(session.driver, null);
+  assert.equal(a.host.isOpen, false);
+  await session.disconnect();
+  assert.equal(b.host.isOpen, false, 'Disconnect releases the new connection');
+});
+
+test('BmsSession: two connects in a row keep one connection and cancel the first', async () => {
+  const log = new ProtocolLog();
+  const session = new BmsSession({ registry: new DriverRegistry([bleToy]), log, pollIntervalMs: 1000, probeTimeoutMs: 100 });
+  const a = new FakeBle('TOY-A');
+  await session.connect({ kind: 'ble', handle: a, selection: 'auto' });
+  slowClose(session.link, 80);
+  const b = new FakeBle('TOY-B');
+  const first = session.connect({ kind: 'ble', handle: b, selection: 'auto' }).then(
+    () => 'ok',
+    (e) => e.code,
+  );
+  await wait(10);
+  await session.connect({ kind: 'ble', handle: b, selection: 'auto' });
+  assert.equal(await first, 'cancelled');
+  assert.equal(session.state, 'connected');
+  assert.equal(b.channels, 1, 'only one channel is opened on the device');
+  await session.disconnect();
+});
+
+test('BmsSession: two Disconnect calls share one pass', async () => {
+  const log = new ProtocolLog();
+  const session = new BmsSession({ registry: new DriverRegistry([linkToy]), log, pollIntervalMs: 1000 });
+  const { host } = await directLink(log);
+  slowClose(host, 50);
+  await session.connect({ kind: 'link', link: host, selection: 'toy' });
+  const states = [];
+  session.on('state', (s) => states.push(s.state));
+  await Promise.all([session.disconnect(), session.disconnect()]);
+  assert.deepEqual(states, ['disconnecting', 'idle']);
+});
+
+test('BmsSession: Disconnect while a lost link is torn down ends idle, not reconnecting', async () => {
+  const log = new ProtocolLog();
+  const session = new BmsSession({ registry: new DriverRegistry([bleToy]), log, pollIntervalMs: 1000, probeTimeoutMs: 100, reconnectDelayMs: 10 });
+  const ble = new FakeBle('TOY-A');
+  await session.connect({ kind: 'ble', handle: ble, selection: 'auto' });
+  slowClose(session.link, 80);
+  session.link.simulateDrop('Bluetooth disconnected');
+  await wait(10);
+  await session.disconnect();
+  await wait(150);
+  assert.equal(session.state, 'idle');
+  assert.equal(ble.channels, 1, 'no reconnect attempt runs');
+});
+
+for (const readError of [undefined, 'The BMS did not answer the settings requests']) {
+  test(`BmsSession: a ${readError ? 'failed' : 'late'} settings read of the previous device does not land on the next one`, async () => {
+    const log = new ProtocolLog();
+    const slow = hookedDefinition({ id: 'slow', readDelayMs: 120, ovp: 3.99, readError });
+    const session = new BmsSession({ registry: new DriverRegistry([slow, linkToy]), log, pollIntervalMs: 1000 });
+    const a = await directLink(log);
+    await session.connect({ kind: 'link', link: a.host, selection: 'slow' });
+    const reading = session.loadSettings();
+    await wait(10);
+    await session.disconnect();
+    assert.equal(session.settings.loading, false, 'Disconnect clears the pending read');
+    const b = await directLink(log);
+    await session.connect({ kind: 'link', link: b.host, selection: 'toy' });
+    const events = [];
+    session.on('settings', (s) => events.push(s));
+    const stale = await reading;
+    assert.equal(stale.error, 'Not connected');
+    assert.equal(stale.values, null);
+    assert.deepEqual(events, [], "no 'settings' event on the new connection");
+    assert.deepEqual(session.settings, { schema: null, values: null, loading: false, error: null });
+    await session.disconnect();
+  });
+}
+
+test('BmsSession: refreshInfo of the previous device does not merge into the next one', async () => {
+  const log = new ProtocolLog();
+  const slow = hookedDefinition({ id: 'slow-a', serial: 'SN-A' });
+  const other = hookedDefinition({ id: 'slow-b' });
+  const session = new BmsSession({ registry: new DriverRegistry([slow, other]), log, pollIntervalMs: 1000 });
+  const a = await directLink(log);
+  await session.connect({ kind: 'link', link: a.host, selection: 'slow-a' });
+  await waitFor(() => session.info?.serialNumber === 'SN-A');
+  slow.infoDelayMs = 100;
+  const refreshing = session.refreshInfo();
+  await wait(10);
+  await session.disconnect();
+  const b = await directLink(log);
+  await session.connect({ kind: 'link', link: b.host, selection: 'slow-b' });
+  await refreshing;
+  await waitFor(() => session.info?.model === 'Toy');
+  assert.equal(session.info?.serialNumber, undefined, 'no serial number of the previous device');
+  await session.disconnect();
+});
+
+test('BmsSession: a start() failure on reconnect keeps the session reconnecting', async () => {
+  const log = new ProtocolLog();
+  let fail = false;
+  let failures = 0;
+  const def = hookedDefinition({
+    id: 'toy-start',
+    links: bleProfiles,
+    startFails: () => {
+      if (!fail) return false;
+      fail = false;
+      failures++;
+      return true;
+    },
+  });
+  const session = new BmsSession({ registry: new DriverRegistry([def]), log, pollIntervalMs: 1000, probeTimeoutMs: 100, reconnectDelayMs: 60 });
+  const ble = new FakeBle('TOY-A');
+  await session.connect({ kind: 'ble', handle: ble, selection: 'auto' });
+  const states = [];
+  session.on('state', (s) => states.push(s.state));
+  fail = true;
+  session.link.simulateDrop('Bluetooth disconnected');
+  await waitFor(() => failures === 1);
+  await wait(20);
+  assert.equal(session.state, 'reconnecting', 'no false connected state between attempts');
+  assert.equal(session.driver, null);
+  await waitFor(() => session.state === 'connected');
+  assert.deepEqual(states, ['reconnecting', 'connected', 'reconnecting', 'connected']);
+  await session.disconnect();
+});
+
+test('BmsSession: a cancelled BLE connect that fails later reports the cancel', async () => {
+  const log = new ProtocolLog();
+  const session = new BmsSession({ registry: new DriverRegistry([bleToy]), log, pollIntervalMs: 1000, probeTimeoutMs: 100 });
+  const ble = new FakeBle('TOY-A');
+  ble.connect = async () => {
+    await wait(80);
+    throw new Error('Bluetooth connection timed out');
+  };
+  const pending = session.connect({ kind: 'ble', handle: ble, selection: 'auto' });
+  await wait(10);
+  await session.disconnect();
+  await assert.rejects(pending, (e) => e.code === 'cancelled');
+  assert.equal(session.state, 'idle');
+});
+
+test('BmsSession: failed links report translatable messages', async () => {
+  const log = new ProtocolLog();
+  const session = new BmsSession({ registry: new DriverRegistry([bleToy, linkToy]), log, pollIntervalMs: 1000, probeTimeoutMs: 30, reconnectDelayMs: 5 });
+  const silent = await directLink(log, { isSilent: () => true });
+  await assert.rejects(session.connect({ kind: 'link', link: silent.host, selection: 'toy' }), (e) => e.code === 'not-detected' && e.message === 'The device sent no valid answer');
+  const ble = new FakeBle('TOY-B');
+  await session.connect({ kind: 'ble', handle: ble, selection: 'auto' });
+  ble.silent = true;
+  ble.connected = false;
+  session.link.simulateDrop('Bluetooth disconnected');
+  await waitFor(() => session.state === 'error');
+  assert.equal(session.error?.message, 'Bluetooth disconnected', 'the reason is the translation key');
+});
+
+test('BmsSession: writeSettings keeps the placeholders of a validation message', async () => {
+  const log = new ProtocolLog();
+  const session = new BmsSession({ registry: new DriverRegistry([linkToy]), log, pollIntervalMs: 1000 });
+  const { host } = await directLink(log);
+  await session.connect({ kind: 'link', link: host, selection: 'toy' });
+  const [r] = await session.writeSettings([{ id: 'cell.ovp', value: 5 }]);
+  assert.equal(r.ok, false);
+  assert.equal(r.error, 'Maximum is {max}');
+  assert.equal(r.errorParams?.max, 4);
+  await session.disconnect();
+});
+
+test('BmsSession: a secret is not logged, values kept in the app are not verified by read-back', async () => {
+  const log = new ProtocolLog();
+  const def = hookedDefinition({ id: 'toy-local' });
+  const session = new BmsSession({ registry: new DriverRegistry([def]), log, pollIntervalMs: 1000 });
+  const { host } = await directLink(log);
+  await session.connect({ kind: 'link', link: host, selection: 'toy-local' });
+  const results = await session.writeSettings([
+    { id: 'toy.password', value: 'Pw-77x' },
+    { id: 'toy.address', value: 'a4c137042dbe' },
+    { id: 'cell.ovp', value: 3.6 },
+  ]);
+  assert.ok(results.every((r) => r.ok));
+  assert.equal(results[1].verified, undefined, 'a normalised local value is not reported as different');
+  assert.equal(results[2].verified, true);
+  const texts = log.entries().map((e) => e.text ?? '');
+  assert.ok(!texts.some((t) => t.includes('Pw-77x')), 'the password is not in the log');
+  assert.ok(!JSON.stringify(log.export({ includeDecoded: true })).includes('Pw-77x'));
+  assert.ok(texts.includes('Setting written: toy.password'));
+  assert.ok(texts.includes('Setting written: toy.address = a4c137042dbe'), 'other values are still logged');
+  await session.disconnect();
+});
