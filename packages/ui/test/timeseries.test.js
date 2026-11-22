@@ -215,6 +215,45 @@ test('indexedDbBackend reports a missing IndexedDB as an error, also from info()
   await assert.rejects(store.read('x'), /IndexedDB is not available/);
 });
 
+test('indexedDbBackend rejects a failed write with the error of the request, not null', async () => {
+  const quota = new Error('QuotaExceededError');
+  /** @type {any} */
+  let tx = null;
+  const fakeDb = {
+    objectStoreNames: { contains: () => true },
+    transaction: () => {
+      tx = { error: null, objectStore: () => store };
+      return tx;
+    },
+  };
+  const store = {
+    put: () => {
+      // IndexedDB order: the request's error event bubbles to the transaction first (tx.error is
+      // still null), then the transaction aborts with the request's error.
+      setTimeout(() => {
+        tx.onerror?.({ target: { error: quota } });
+        tx.error = quota;
+        tx.onabort?.();
+      });
+      return {};
+    },
+  };
+  globalThis.indexedDB = /** @type {any} */ ({
+    open: () => {
+      /** @type {any} */
+      const req = { result: fakeDb };
+      setTimeout(() => req.onsuccess?.());
+      return req;
+    },
+  });
+  try {
+    const series = createSeriesStore(indexedDbBackend('test-db'));
+    await assert.rejects(series.append('k', [{ t: 1, u: 2 }]), (err) => err === quota);
+  } finally {
+    delete (/** @type {any} */ (globalThis)).indexedDB;
+  }
+});
+
 test('fallbackBackend uses the second backend when the first cannot be opened', async () => {
   // No IndexedDB here (like a profile that blocks site data): memory instead.
   const store = createSeriesStore(fallbackBackend(indexedDbBackend('test-db'), memoryBackend()));

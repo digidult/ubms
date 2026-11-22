@@ -147,6 +147,17 @@ export function timeTicks(from, to, maxTicks = 6) {
   }
   const d = new Date(from);
   d.setHours(0, 0, 0, 0);
+  if (step >= 365 * DAY) {
+    // Whole years: every tick on January 1 (a step of 3 years is not 37 months of 30 days).
+    const years = Math.round(step / (365 * DAY));
+    d.setMonth(0, 1);
+    while (d.getTime() < from) d.setFullYear(d.getFullYear() + 1);
+    for (let k = 0; k < 500 && d.getTime() <= to; k++) {
+      ticks.push(d.getTime());
+      d.setFullYear(d.getFullYear() + years);
+    }
+    return { step, ticks };
+  }
   if (step >= 30 * DAY) {
     const months = Math.max(1, Math.round(step / (30 * DAY)));
     d.setDate(1);
@@ -311,8 +322,11 @@ function dateFormat(locale, opts) {
 }
 
 /**
+ * Number formatter with a fixed number of decimals. A negative value that rounds to zero prints
+ * without a minus ("0.0", not "-0.0").
  * @param {string} locale
  * @param {number} decimals
+ * @returns {{ format: (value: number) => string }}
  */
 function numberFormat(locale, decimals) {
   const d = Math.max(0, Math.min(10, Math.round(decimals)));
@@ -326,7 +340,9 @@ function numberFormat(locale, decimals) {
     }
     numberFormats.set(key, f);
   }
-  return f;
+  const nf = f;
+  const tiny = 0.5 * 10 ** -d;
+  return { format: (value) => nf.format(Math.abs(value) < tiny ? 0 : value) };
 }
 
 /** Local calendar day of an instant, for "does the window cross midnight". */
@@ -343,6 +359,8 @@ const dayOf = (/** @type {number} */ time) => {
 function tickFormat(step) {
   if (step < MINUTE) return { hour: '2-digit', minute: '2-digit', second: '2-digit' };
   if (step < DAY) return { hour: '2-digit', minute: '2-digit' };
+  if (step >= 365 * DAY) return { year: 'numeric' };
+  if (step >= 30 * DAY) return { month: 'short', year: 'numeric' };
   return { month: 'short', day: 'numeric' };
 }
 
@@ -1037,7 +1055,8 @@ export class UiChart extends UiElement {
       if (!d.points.length) continue;
       const segments = splitSegments(d.points, L.gapMs);
       if (fill) {
-        const base = yOf(Math.max(L.lo, Math.min(L.hi, L.lo < 0 && L.hi > 0 ? 0 : L.lo)));
+        // The area reaches toward zero: the zero line, or the axis end nearest to it.
+        const base = yOf(Math.max(L.lo, Math.min(L.hi, 0)));
         ctx.fillStyle = d.color;
         ctx.globalAlpha = theme.dark ? 0.18 : 0.12;
         for (const seg of segments) {
@@ -1202,10 +1221,11 @@ export class UiChart extends UiElement {
       });
     }
     const long = dayOf(L.from) !== dayOf(L.to);
+    const years = new Date(L.from).getFullYear() !== new Date(L.to).getFullYear();
     /** @type {Intl.DateTimeFormatOptions} */
-    const opts = long
-      ? { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' }
-      : { hour: '2-digit', minute: '2-digit', second: '2-digit' };
+    const opts = { hour: '2-digit', minute: '2-digit', second: '2-digit' };
+    if (long) Object.assign(opts, { month: 'short', day: 'numeric' });
+    if (long && years) opts.year = 'numeric';
     const left = x > plot.x + plot.w * 0.55;
     this._tip = { x: left ? x - 10 : x + 10, y: plot.y + 2, left, time: dateFormat(i18n.locale, opts).format(time), rows };
   }

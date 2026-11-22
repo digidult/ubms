@@ -5,6 +5,8 @@ import { Store, shallowEqual } from '../src/store.js';
 import { HashRouter } from '../src/router.js';
 import { createStorage } from '../src/storage.js';
 import { lightDismiss } from '../src/components/overlays.js';
+import { applyTheme } from '../src/theme.js';
+import { UiNav } from '../src/components/nav.js';
 
 test('i18n: English keys, fallback, context, plurals and numbers', () => {
   const i = createI18n();
@@ -31,6 +33,56 @@ test('i18n: English keys, fallback, context, plurals and numbers', () => {
   assert.equal(i.formatNumber(3.3051, { decimals: 3 }).replace(/\s/g, ' '), '3,305');
   assert.equal(i.formatNumber(NaN), 'n/a');
   assert.equal(interpolate('{a} of {b} {c}', { a: 1, b: 2 }), '1 of 2 {c}');
+});
+
+test('i18n: a negative number that rounds to zero prints without a minus', () => {
+  const i = createI18n();
+  assert.equal(i.formatNumber(-0.04, { decimals: 1 }), '0.0');
+  assert.equal(i.formatNumber(-0, { decimals: 1 }), '0.0');
+  assert.equal(i.formatNumber(-0.3, { decimals: 0 }), '0');
+  assert.equal(i.formatNumber(-0.004, { decimals: 2 }), '0.00');
+  assert.equal(i.formatNumber(-0.05, { decimals: 1 }), '-0.1');
+  assert.equal(i.formatNumber(-0.004, { decimals: 2, signed: true }), '0.00');
+  assert.equal(i.formatNumber(-1.25, { decimals: 1, minDecimals: 0 }), '-1.3');
+});
+
+test('applyTheme keeps the browser UI color in step with the system scheme in auto mode', () => {
+  const meta = { content: '', setAttribute: (/** @type {string} */ _k, /** @type {string} */ v) => (meta.content = v) };
+  /** @type {Array<() => void>} */
+  const listeners = [];
+  const mq = { matches: false, addEventListener: (/** @type {string} */ type, /** @type {() => void} */ fn) => type === 'change' && listeners.push(fn) };
+  const g = /** @type {any} */ (globalThis);
+  g.document = { documentElement: { dataset: {} }, querySelector: () => meta };
+  g.window = { matchMedia: () => mq };
+  try {
+    applyTheme('auto');
+    assert.equal(meta.content, '#f3f5f8');
+    mq.matches = true;
+    for (const fn of listeners) fn();
+    assert.equal(meta.content, '#0e1116');
+    applyTheme('light');
+    assert.equal(meta.content, '#f3f5f8');
+    for (const fn of listeners) fn();
+    assert.equal(meta.content, '#f3f5f8', 'a forced theme ignores the system scheme');
+    applyTheme('auto');
+    assert.equal(meta.content, '#0e1116');
+    assert.equal(listeners.length, 1, 'one listener for all calls');
+  } finally {
+    delete g.document;
+    delete g.window;
+  }
+});
+
+test('ui-nav: brand icon only when set, a translatable landmark name', () => {
+  const nav = new UiNav();
+  nav.brand = 'App';
+  const values = (/** @type {any} */ r) => r.values;
+  assert.equal(values(nav.render())[0], 'Main');
+  assert.equal(values(nav.render())[1], '');
+  nav.brandIcon = 'chart';
+  nav.label = 'Sections';
+  assert.equal(values(nav.render())[0], 'Sections');
+  assert.notEqual(values(nav.render())[1], '');
 });
 
 test('negotiateLocale picks exact, base or fallback', () => {

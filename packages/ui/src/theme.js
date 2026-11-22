@@ -101,20 +101,36 @@ export function applyGlobalStyles() {
   document.head.append(style);
 }
 
+/** @type {'auto'|'light'|'dark'} */
+let themeMode = 'auto';
+let watchingScheme = false;
+
+/** Browser UI color (`meta[name=theme-color]`) for the current mode and system scheme. */
+function updateThemeColor() {
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (!meta) return;
+  const dark = themeMode === 'dark' || (themeMode === 'auto' && !!(typeof window !== 'undefined' ? window : globalThis).matchMedia?.('(prefers-color-scheme: dark)')?.matches);
+  meta.setAttribute('content', dark ? '#0e1116' : '#f3f5f8');
+}
+
 /**
- * Apply a theme preference.
+ * Apply a theme preference. In `auto` mode the browser UI color follows later changes of the
+ * system scheme too (the tokens follow them through CSS).
  * @param {'auto'|'light'|'dark'} mode
  */
 export function applyTheme(mode) {
   if (typeof document === 'undefined') return;
+  themeMode = mode;
   const root = document.documentElement;
   if (mode === 'auto') delete root.dataset.theme;
   else root.dataset.theme = mode;
-  const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) {
-    const dark = mode === 'dark' || (mode === 'auto' && window.matchMedia?.('(prefers-color-scheme: dark)').matches);
-    meta.setAttribute('content', dark ? '#0e1116' : '#f3f5f8');
+  if (!watchingScheme) {
+    watchingScheme = true;
+    (typeof window !== 'undefined' ? window : globalThis).matchMedia?.('(prefers-color-scheme: dark)')?.addEventListener?.('change', () => {
+      if (themeMode === 'auto') updateThemeColor();
+    });
   }
+  updateThemeColor();
 }
 
 /**

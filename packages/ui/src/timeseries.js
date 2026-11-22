@@ -1,3 +1,5 @@
+import { msg } from './i18n.js';
+
 /**
  * Generic time series store for device web apps: append-only records per key (one key per
  * device), metadata per key, range reads, pruning. Backends: IndexedDB (browser), files through
@@ -290,8 +292,9 @@ function request(req) {
 function done(tx) {
   return new Promise((resolve, reject) => {
     tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-    tx.onabort = () => reject(tx.error ?? new Error('Transaction aborted'));
+    // No `error` handler: a failed request bubbles its error event to the transaction before the
+    // transaction has `tx.error` set (it would reject with null). The abort that follows carries it.
+    tx.onabort = () => reject(tx.error ?? new Error(msg('Transaction aborted')));
   });
 }
 
@@ -310,7 +313,7 @@ export function indexedDbBackend(dbName = 'ubms-history') {
   function db() {
     if (opening) return opening;
     opening = new Promise((resolve, reject) => {
-      if (typeof indexedDB === 'undefined') return reject(new Error('IndexedDB is not available'));
+      if (typeof indexedDB === 'undefined') return reject(new Error(msg('IndexedDB is not available')));
       const req = indexedDB.open(dbName, 1);
       req.onupgradeneeded = () => {
         const d = req.result;
@@ -333,7 +336,7 @@ export function indexedDbBackend(dbName = 'ubms-history') {
         resolve(d);
       };
       req.onerror = () => reject(req.error);
-      req.onblocked = () => reject(new Error('The history database is blocked by another tab'));
+      req.onblocked = () => reject(new Error(msg('The history database is blocked by another tab')));
     });
     opening.catch(() => {
       opening = null;

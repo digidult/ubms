@@ -1,7 +1,7 @@
 import { Store } from './store.js';
 
 /**
- * Hash router (`#/settings/cell_voltage`). Hash routing works from a single local HTML file,
+ * Hash router (`#/settings/network`). Hash routing works from a single local HTML file,
  * from any static host and inside a Tauri webview without server configuration.
  *
  * @typedef {{ name: string, path: string }} RouteDef  path like '/settings/:group?'
@@ -25,7 +25,7 @@ export class HashRouter extends Store {
     return this.get().route;
   }
 
-  /** @param {string} hashPath path without '#', for example '/cells' */
+  /** @param {string} hashPath path without '#', for example '/overview' */
   resolve(hashPath) {
     const [path, qs = ''] = hashPath.split('?');
     const query = Object.fromEntries(new URLSearchParams(qs));

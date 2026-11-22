@@ -1,4 +1,4 @@
-export { createI18n, i18n, t, interpolate, negotiateLocale } from './i18n.js';
+export { createI18n, i18n, t, msg, interpolate, negotiateLocale } from './i18n.js';
 export { Store, StoreController, shallowEqual } from './store.js';
 export { createStorage } from './storage.js';
 export { HashRouter } from './router.js';

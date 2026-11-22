@@ -2,6 +2,7 @@ import { html, css } from 'lit';
 import { UiElement, define } from '../element.js';
 import { sharedStyles } from '../theme.js';
 import { icon } from '../icons.js';
+import { t } from '../i18n.js';
 
 /**
  * Primary navigation. Bottom tab bar on phones, a labelled side rail on wide screens.
@@ -13,6 +14,10 @@ export class UiNav extends UiElement {
     items: { type: Array },
     active: { type: String },
     brand: { type: String },
+    /** Icon name of the brand mark on the side rail; empty shows the brand text alone. */
+    brandIcon: { type: String, attribute: 'brand-icon' },
+    /** Accessible name of the navigation landmark; defaults to "Main". */
+    label: { type: String },
   };
 
   static styles = [
@@ -170,11 +175,13 @@ export class UiNav extends UiElement {
     this.items = [];
     this.active = '';
     this.brand = '';
+    this.brandIcon = '';
+    this.label = '';
   }
 
   render() {
-    return html`<nav aria-label="Main">
-      <div class="brand"><span class="brand-mark">${icon('battery', { size: 18, stroke: 2.2 })}</span>${this.brand}</div>
+    return html`<nav aria-label=${this.label || t('navigation|Main')}>
+      <div class="brand">${this.brandIcon ? html`<span class="brand-mark">${icon(this.brandIcon, { size: 18, stroke: 2.2 })}</span>` : ''}${this.brand}</div>
       ${this.items.map(
         (it) => html`<a
           href=${it.href}

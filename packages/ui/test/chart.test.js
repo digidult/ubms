@@ -135,6 +135,84 @@ function plotOf(chart, gutter) {
   return { x: x + 1, w: w - 2 };
 }
 
+/** A 2D context that records every call with its arguments and the fill alpha at that time. */
+function callRecorder() {
+  /** @type {Array<{ name: string, args: any[], alpha: number }>} */
+  const calls = [];
+  /** @type {Record<string | symbol, any>} */
+  const target = { calls, globalAlpha: 1, measureText: (/** @type {string} */ s) => ({ width: String(s).length * 6 }) };
+  const ctx = new Proxy(target, {
+    get: (t, k) => (k in t ? t[k] : (/** @type {any[]} */ ...args) => calls.push({ name: String(k), args, alpha: t.globalAlpha })),
+    set: (t, k, v) => {
+      t[k] = v;
+      return true;
+    },
+  });
+  return { ctx: /** @type {any} */ (ctx), calls };
+}
+
+test('ui-chart fills the area toward zero, also when every value is negative', () => {
+  const from = 1_700_000_000_000;
+  const to = from + 300_000;
+  /** @param {(i: number) => number} f */
+  const draw = (f, zero = true) => {
+    const chart = new UiChart();
+    chart.series = [{ id: 'i', label: 'Current', points: Array.from({ length: 31 }, (_, i) => ({ t: from + i * 10_000, v: f(i) })) }];
+    chart.from = from;
+    chart.to = to;
+    chart.zero = zero;
+    const { ctx, calls } = callRecorder();
+    chart.drawTo(ctx, 0, 0, 600, 220);
+    const at = calls.findLastIndex((c) => c.name === 'rect');
+    const clip = calls[at].args;
+    const plot = { top: clip[1] + 3, bottom: clip[1] + clip[3] - 3 };
+    // The fill outline: the first moveTo after the clip of the lines, drawn at the area alpha.
+    const start = calls.slice(at).find((c) => c.name === 'moveTo' && c.alpha < 1);
+    return { plot, base: /** @type {number} */ (start?.args[1]) };
+  };
+  const near = (/** @type {number} */ a, /** @type {number} */ b) => Math.abs(a - b) < 1e-6;
+  const negative = draw((i) => -5 - (i % 7));
+  assert.ok(near(negative.base, negative.plot.top), `all negative: zero is the top of the axis (${negative.base}, ${negative.plot.top})`);
+  const positive = draw((i) => 5 + (i % 7));
+  assert.ok(near(positive.base, positive.plot.bottom), `all positive: zero is the bottom of the axis (${positive.base})`);
+  const mixed = draw((i) => (i === 10 ? 3 : -5 - (i % 7)));
+  assert.ok(mixed.base > mixed.plot.top && mixed.base < mixed.plot.bottom, 'mixed: the zero line inside');
+});
+
+test('timeTicks puts year steps on January 1, also from a window that starts mid year', () => {
+  const nine = timeTicks(new Date(2020, 0, 1).getTime(), new Date(2029, 0, 1).getTime(), 4);
+  assert.equal(nine.step, 3 * 365 * 86400000);
+  assert.deepEqual(nine.ticks.map((t) => new Date(t).getFullYear()), [2020, 2023, 2026, 2029]);
+  for (const [a, b, want] of [
+    [new Date(2020, 5, 15), new Date(2029, 0, 1), 2],
+    [new Date(2020, 5, 15), new Date(2024, 6, 1), 2],
+    [new Date(2000, 0, 1), new Date(2026, 10, 21), 9],
+  ]) {
+    const { ticks } = timeTicks(a.getTime(), b.getTime(), /** @type {number} */ (want));
+    assert.ok(ticks.length >= 2, `${a.toISOString()}: ${ticks.length} ticks`);
+    for (const t of ticks) {
+      const d = new Date(t);
+      assert.equal(d.getMonth() * 100 + d.getDate(), 1, d.toString());
+      assert.ok(t >= a.getTime() && t <= b.getTime());
+    }
+  }
+});
+
+test('ui-chart time labels carry the year on windows longer than a month', () => {
+  const from = new Date(2024, 8, 1).getTime();
+  const to = new Date(2026, 11, 1).getTime();
+  const chart = new UiChart();
+  chart.series = [{ id: 'u', label: 'Voltage', points: [{ t: from, v: 1 }, { t: to, v: 2 }] }];
+  chart.from = from;
+  chart.to = to;
+  const { ctx, calls } = callRecorder();
+  chart.drawTo(ctx, 0, 0, 340, 220);
+  const labels = calls.filter((c) => c.name === 'fillText').map((c) => String(c.args[0]));
+  const timeLabels = labels.filter((s) => /20\d\d/.test(s));
+  assert.ok(timeLabels.length >= 2, labels.join(' | '));
+  assert.equal(new Set(timeLabels).size, timeLabels.length, 'no repeated labels');
+});
+
 test('stacked charts with the same gutter share the time axis, also in drawTo()', () => {
   const from = 1_700_000_000_000;
   const to = from + 3600_000;

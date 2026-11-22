@@ -1,6 +1,6 @@
 /**
  * Translation runtime. English source strings are the keys (gettext style): code calls
- * `t('Cell overvoltage protection')`, translation catalogs map that English text to the target
+ * `t('Save changes')`, translation catalogs map that English text to the target
  * language, and missing translations fall back to the English text itself.
  *
  * Plurals: a catalog value may be an object keyed by Intl.PluralRules categories
@@ -8,7 +8,7 @@
  * Interpolation: `{name}` placeholders are replaced from `params`.
  *
  * Context: when the same English text needs different translations, the key may carry a context
- * prefix separated by `|`, for example `t('noun|Charge')`. The English fallback drops the prefix.
+ * prefix separated by `|`, for example `t('noun|Order')`. The English fallback drops the prefix.
  *
  * This module has no DOM dependency and runs in Node tests.
  *
@@ -110,7 +110,8 @@ export function createI18n({ fallback = 'en' } = {}) {
       });
       numberCache.set(k, f);
     }
-    return f.format(value);
+    // A negative value that rounds to zero prints without a minus ("0.0", not "-0.0").
+    return f.format(Math.abs(value) < 0.5 * 10 ** -decimals ? 0 : value);
   }
 
   /**
@@ -179,6 +180,14 @@ export function negotiateLocale(supported, preferred = [], fallback = 'en') {
   }
   return fallback;
 }
+
+/**
+ * Mark an English text for translation without translating it yet, for example an error message
+ * that the app shows later with `t(err.message)`. Keep the argument a literal so the i18n check
+ * extracts it.
+ * @param {string} text
+ */
+export const msg = (text) => text;
 
 /** Shared app-wide instance. */
 export const i18n = createI18n();

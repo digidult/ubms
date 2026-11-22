@@ -264,7 +264,9 @@ export class UiSparkline extends UiElement {
     const x = (/** @type {number} */ t) => ((t - t0) / Math.max(1, t1 - t0)) * w;
     const y = (/** @type {number} */ v) => h - ((v - lo) / (hi - lo)) * h;
     const line = pts.map((p, i) => `${i ? 'L' : 'M'}${x(p.t).toFixed(1)},${y(p.v).toFixed(1)}`).join('');
-    const area = `${line}L${x(t1).toFixed(1)},${h}L0,${h}Z`;
+    // With `zero` the area reaches the zero line (a negative series fills up to it, not down).
+    const base = (this.zero ? Math.max(0, Math.min(h, y(0))) : h).toFixed(1);
+    const area = `${line}L${x(t1).toFixed(1)},${base}L0,${base}Z`;
     const color =
       this.tone === 'charge' ? 'var(--ui-charge)' : this.tone === 'discharge' ? 'var(--ui-discharge)' : this.tone === 'warn' ? 'var(--ui-warn)' : 'var(--ui-primary)';
     return html`<svg viewBox="0 0 ${w} ${h}" height=${h} preserveAspectRatio="none" style="--spark-color:${color}" aria-hidden="true">
